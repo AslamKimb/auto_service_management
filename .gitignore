@@ -1,0 +1,30 @@
+# Frappe runtime and local development
+.devcontainer-local/
+.frappe-dev/
+sites/
+logs/
+env/
+node_modules/
+*.log
+
+# Python and test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.local
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Isolated worktrees
+.worktrees/
