@@ -101,13 +101,13 @@
 
 ## Phase 8 — Infrastructure and Deployment
 
-- [ ] Prepare MariaDB 10.6 backup and MariaDB 11.8 restore rehearsal instructions.
+- [x] Prepare MariaDB 10.6 backup and MariaDB 11.8 restore rehearsal instructions.
 - [ ] Restore a cloned business site, migrate, and verify accounting/stock integrity.
 - [ ] **APPROVAL GATE:** Obtain approval after restore rehearsal.
-- [ ] Add the app to `apps.business.json`, both business compose files, and `SOP.business.md`.
+- [x] Add the app to `apps.business.json`, both business compose files, and `SOP.business.md`.
 - [ ] Build and smoke-test the staged custom image.
 - [ ] Complete staging UAT and rollback rehearsal.
 - [ ] **APPROVAL GATE:** Obtain approval before production rollout.
 - [ ] Deploy, verify health and business transactions, and record rollback evidence.
 
-**Evidence:** Pending.
+**Evidence:** Business deployment prep updated in `C:\Users\user\Documents\Coded\frappe` on 2026-06-30. `apps.business.json` now includes `https://github.com/AslamKimb/auto_service_management` on `version-16`. `docker-compose.business.yml` and `docker-compose.business.dokploy.yml` now target `mariadb:11.8` and install `auto_service_management` idempotently immediately after ERPNext. `SOP.business.md` now includes MariaDB 10.6 backup and MariaDB 11.8 restore rehearsal steps, cloned-staging verification, and business rollout checks. Validation observed green with `docker compose --env-file .env.business.example -f docker-compose.business.yml config` and `docker compose --env-file .env.business.example -f docker-compose.business.dokploy.yml config`. Remaining gate: restore the cloned business site and verify accounting, stock, workers, PDFs, and rollback before approval.
