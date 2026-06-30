@@ -1,0 +1,123 @@
+{
+  "name": "Quality Check",
+  "module": "Auto Service Management",
+  "doctype": "DocType",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "autoname": "format:QC-{YYYY}-{#####}",
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "qc_section",
+      "fieldtype": "Section Break",
+      "label": "Quality Check Details"
+    },
+    {
+      "fieldname": "repair_job",
+      "fieldtype": "Link",
+      "label": "Repair Job",
+      "options": "Repair Job",
+      "reqd": 1
+    },
+    {
+      "fieldname": "customer_vehicle",
+      "fieldtype": "Link",
+      "label": "Vehicle",
+      "options": "Customer Vehicle",
+      "reqd": 1,
+      "fetch_from": "repair_job.customer_vehicle"
+    },
+    {
+      "fieldname": "column_break_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "qc_date",
+      "fieldtype": "Datetime",
+      "label": "QC Date",
+      "reqd": 1
+    },
+    {
+      "fieldname": "checked_by",
+      "fieldtype": "Link",
+      "label": "Checked By",
+      "options": "User",
+      "reqd": 1
+    },
+    {
+      "fieldname": "checklist_section",
+      "fieldtype": "Section Break",
+      "label": "Checklist"
+    },
+    {
+      "fieldname": "completion_check",
+      "fieldtype": "Check",
+      "label": "All Tasks Completed"
+    },
+    {
+      "fieldname": "fitment_check",
+      "fieldtype": "Check",
+      "label": "Fitment Verified"
+    },
+    {
+      "fieldname": "fluid_levels_check",
+      "fieldtype": "Check",
+      "label": "Fluid Levels OK"
+    },
+    {
+      "fieldname": "column_break_2",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "warning_lights_clear",
+      "fieldtype": "Check",
+      "label": "No Warning Lights"
+    },
+    {
+      "fieldname": "cleanliness_check",
+      "fieldtype": "Check",
+      "label": "Vehicle Cleaned"
+    },
+    {
+      "fieldname": "road_test_check",
+      "fieldtype": "Check",
+      "label": "Road Test Passed"
+    },
+    {
+      "fieldname": "notes_section",
+      "fieldtype": "Section Break",
+      "label": "Notes",
+      "collapsible": 1
+    },
+    {
+      "fieldname": "qc_notes",
+      "fieldtype": "Text Editor",
+      "label": "QC Notes"
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "\nPending\nPassed\nFailed\nRework",
+      "default": "Pending"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "Workshop Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "Workshop Technician",
+      "read": 1,
+      "write": 1,
+      "create": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "title_field": "repair_job"
+}

@@ -1,0 +1,8 @@
+{
+ "name": "Cashier",
+ "module": "Auto Service Management",
+ "doctype": "Role",
+ "role_name": "Cashier",
+ "desk_access": 1,
+ "is_custom": 1
+}

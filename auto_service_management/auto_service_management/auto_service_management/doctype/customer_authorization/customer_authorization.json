@@ -1,0 +1,123 @@
+{
+  "name": "Customer Authorization",
+  "module": "Auto Service Management",
+  "doctype": "DocType",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "autoname": "format:CA-{YYYY}-{#####}",
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "auth_section",
+      "fieldtype": "Section Break",
+      "label": "Authorization Details"
+    },
+    {
+      "fieldname": "repair_job",
+      "fieldtype": "Link",
+      "label": "Repair Job",
+      "options": "Repair Job",
+      "reqd": 1
+    },
+    {
+      "fieldname": "customer",
+      "fieldtype": "Link",
+      "label": "Customer",
+      "options": "Customer",
+      "reqd": 1,
+      "fetch_from": "repair_job.customer"
+    },
+    {
+      "fieldname": "column_break_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "authorization_date",
+      "fieldtype": "Datetime",
+      "label": "Authorization Date",
+      "reqd": 1
+    },
+    {
+      "fieldname": "authorized_by_user",
+      "fieldtype": "Link",
+      "label": "Authorized By",
+      "options": "User",
+      "reqd": 1
+    },
+    {
+      "fieldname": "amount_section",
+      "fieldtype": "Section Break",
+      "label": "Amount and Method"
+    },
+    {
+      "fieldname": "approved_amount",
+      "fieldtype": "Currency",
+      "label": "Approved Amount",
+      "reqd": 1,
+      "options": "currency"
+    },
+    {
+      "fieldname": "currency",
+      "fieldtype": "Link",
+      "label": "Currency",
+      "options": "Currency",
+      "reqd": 1
+    },
+    {
+      "fieldname": "column_break_2",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "authorization_method",
+      "fieldtype": "Select",
+      "label": "Method",
+      "options": "\nIn Person\nPhone\nEmail\nWritten"
+    },
+    {
+      "fieldname": "evidence_section",
+      "fieldtype": "Section Break",
+      "label": "Evidence",
+      "collapsible": 1
+    },
+    {
+      "fieldname": "signature_or_evidence",
+      "fieldtype": "Attach Image",
+      "label": "Signature / Evidence"
+    },
+    {
+      "fieldname": "authorization_notes",
+      "fieldtype": "Text Editor",
+      "label": "Notes"
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "\nPending\nApproved\nRejected\nExpired",
+      "default": "Pending"
+    },
+    {
+      "fieldname": "expiry_date",
+      "fieldtype": "Date",
+      "label": "Expiry Date"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "Workshop Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "Service Advisor",
+      "read": 1,
+      "write": 1,
+      "create": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "title_field": "repair_job"
+}

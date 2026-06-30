@@ -1,0 +1,77 @@
+{
+  "name": "Repair Job Override",
+  "module": "Auto Service Management",
+  "doctype": "DocType",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "autoname": "format:RJO-{YYYY}-{#####}",
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "override_type",
+      "fieldtype": "Select",
+      "label": "Override Type",
+      "options": "\nAuthorization Override\nQC Release Override\nParts Shortage Override\nCredit Release Override",
+      "reqd": 1
+    },
+    {
+      "fieldname": "repair_job",
+      "fieldtype": "Link",
+      "label": "Repair Job",
+      "options": "Repair Job",
+      "reqd": 1
+    },
+    {
+      "fieldname": "column_break_override",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "reason",
+      "fieldtype": "Small Text",
+      "label": "Reason",
+      "reqd": 1
+    },
+    {
+      "fieldname": "override_by",
+      "fieldtype": "Link",
+      "label": "Overridden By",
+      "options": "User",
+      "reqd": 1
+    },
+    {
+      "fieldname": "override_date",
+      "fieldtype": "Datetime",
+      "label": "Override Date",
+      "reqd": 1
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "\nPending\nApproved\nRejected",
+      "default": "Pending"
+    },
+    {
+      "fieldname": "notes",
+      "fieldtype": "Small Text",
+      "label": "Additional Notes"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "Workshop Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "Accounts Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC"
+}

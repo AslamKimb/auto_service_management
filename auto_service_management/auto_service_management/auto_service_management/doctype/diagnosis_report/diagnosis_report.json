@@ -1,0 +1,127 @@
+{
+  "name": "Diagnosis Report",
+  "module": "Auto Service Management",
+  "doctype": "DocType",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "autoname": "format:DR-{YYYY}-{#####}",
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "report_section",
+      "fieldtype": "Section Break",
+      "label": "Report Details"
+    },
+    {
+      "fieldname": "repair_job",
+      "fieldtype": "Link",
+      "label": "Repair Job",
+      "options": "Repair Job",
+      "reqd": 1
+    },
+    {
+      "fieldname": "customer_vehicle",
+      "fieldtype": "Link",
+      "label": "Vehicle",
+      "options": "Customer Vehicle",
+      "reqd": 1,
+      "fetch_from": "repair_job.customer_vehicle"
+    },
+    {
+      "fieldname": "column_break_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "diagnosis_date",
+      "fieldtype": "Datetime",
+      "label": "Diagnosis Date",
+      "reqd": 1
+    },
+    {
+      "fieldname": "diagnosed_by",
+      "fieldtype": "Link",
+      "label": "Diagnosed By",
+      "options": "User",
+      "reqd": 1
+    },
+    {
+      "fieldname": "findings_section",
+      "fieldtype": "Section Break",
+      "label": "Findings"
+    },
+    {
+      "fieldname": "customer_complaint",
+      "fieldtype": "Text Editor",
+      "label": "Customer Complaint"
+    },
+    {
+      "fieldname": "findings",
+      "fieldtype": "Text Editor",
+      "label": "Findings"
+    },
+    {
+      "fieldname": "column_break_2",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "recommendations",
+      "fieldtype": "Text Editor",
+      "label": "Recommendations"
+    },
+    {
+      "fieldname": "estimation_section",
+      "fieldtype": "Section Break",
+      "label": "Estimation"
+    },
+    {
+      "fieldname": "estimated_hours",
+      "fieldtype": "Float",
+      "label": "Estimated Labour Hours"
+    },
+    {
+      "fieldname": "road_test_required",
+      "fieldtype": "Check",
+      "label": "Road Test Required"
+    },
+    {
+      "fieldname": "column_break_3",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "required_parts",
+      "fieldtype": "Small Text",
+      "label": "Required Parts Summary"
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "\nDraft\nSubmitted\nCancelled",
+      "default": "Draft"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "Workshop Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "Service Advisor",
+      "read": 1,
+      "write": 1,
+      "create": 1
+    },
+    {
+      "role": "Workshop Technician",
+      "read": 1,
+      "write": 1,
+      "create": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "title_field": "repair_job"
+}

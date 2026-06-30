@@ -1,0 +1,8 @@
+{
+ "name": "Auto Service Admin",
+ "module": "Auto Service Management",
+ "doctype": "Role",
+ "role_name": "Auto Service Admin",
+ "desk_access": 1,
+ "is_custom": 1
+}

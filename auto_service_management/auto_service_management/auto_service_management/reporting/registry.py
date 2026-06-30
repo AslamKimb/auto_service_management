@@ -1,0 +1,4 @@
+from auto_service_management.auto_service_management.reporting.control_definitions import CONTROL_REPORTS
+from auto_service_management.auto_service_management.reporting.workshop_definitions import WORKSHOP_REPORTS
+
+REPORT_DEFINITIONS = {**WORKSHOP_REPORTS, **CONTROL_REPORTS}

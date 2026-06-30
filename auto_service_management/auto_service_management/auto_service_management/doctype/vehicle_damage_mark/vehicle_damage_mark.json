@@ -1,0 +1,20 @@
+{
+ "name": "Vehicle Damage Mark",
+ "module": "Auto Service Management",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "istable": 1,
+ "fields": [
+  {"fieldname": "marker_number", "fieldtype": "Int", "label": "#", "reqd": 1},
+  {"fieldname": "damage_area", "fieldtype": "Select", "label": "Area", "options": "\nFront\nRear\nLeft Side\nRight Side\nRoof\nUndercarriage\nInterior\nEngine Bay\nOther", "reqd": 1},
+  {"fieldname": "damage_type", "fieldtype": "Select", "label": "Type", "options": "\nScratch\nDent\nCrack\nChip\nRust\nPaint Transfer\nBroken Glass\nOther"},
+  {"fieldname": "severity", "fieldtype": "Select", "label": "Severity", "options": "\nMinor\nModerate\nSevere"},
+  {"fieldname": "column_break_dm", "fieldtype": "Column Break"},
+  {"fieldname": "photo", "fieldtype": "Attach Image", "label": "Photo"},
+  {"fieldname": "description", "fieldtype": "Small Text", "label": "Description"}
+ ],
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

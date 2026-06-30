@@ -1,0 +1,109 @@
+{
+  "name": "Service History",
+  "module": "Auto Service Management",
+  "doctype": "DocType",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "autoname": "format:SH-{YYYY}-{#####}",
+  "track_changes": 0,
+  "fields": [
+    {
+      "fieldname": "history_section",
+      "fieldtype": "Section Break",
+      "label": "Service Record"
+    },
+    {
+      "fieldname": "repair_job",
+      "fieldtype": "Link",
+      "label": "Repair Job",
+      "options": "Repair Job",
+      "reqd": 1,
+      "unique": 1
+    },
+    {
+      "fieldname": "customer_vehicle",
+      "fieldtype": "Link",
+      "label": "Vehicle",
+      "options": "Customer Vehicle",
+      "reqd": 1,
+      "fetch_from": "repair_job.customer_vehicle"
+    },
+    {
+      "fieldname": "column_break_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "closure_date",
+      "fieldtype": "Date",
+      "label": "Closure Date",
+      "reqd": 1
+    },
+    {
+      "fieldname": "closed_by",
+      "fieldtype": "Link",
+      "label": "Closed By",
+      "options": "User",
+      "reqd": 1
+    },
+    {
+      "fieldname": "details_section",
+      "fieldtype": "Section Break",
+      "label": "Summary"
+    },
+    {
+      "fieldname": "total_amount",
+      "fieldtype": "Currency",
+      "label": "Total Amount",
+      "options": "currency"
+    },
+    {
+      "fieldname": "currency",
+      "fieldtype": "Link",
+      "label": "Currency",
+      "options": "Currency"
+    },
+    {
+      "fieldname": "column_break_2",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "odometer_at_closure",
+      "fieldtype": "Float",
+      "label": "Odometer (km)"
+    },
+    {
+      "fieldname": "services_performed",
+      "fieldtype": "Text",
+      "label": "Services Performed"
+    },
+    {
+      "fieldname": "parts_replaced",
+      "fieldtype": "Text",
+      "label": "Parts Replaced"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "Workshop Manager",
+      "read": 1,
+      "write": 0,
+      "create": 0,
+      "delete": 0
+    },
+    {
+      "role": "Service Advisor",
+      "read": 1
+    },
+    {
+      "role": "Workshop Technician",
+      "read": 1
+    },
+    {
+      "role": "Security Gate Officer",
+      "read": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "title_field": "repair_job"
+}

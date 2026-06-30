@@ -1,0 +1,8 @@
+{
+ "name": "Security Gate Officer",
+ "module": "Auto Service Management",
+ "doctype": "Role",
+ "role_name": "Security Gate Officer",
+ "desk_access": 1,
+ "is_custom": 1
+}

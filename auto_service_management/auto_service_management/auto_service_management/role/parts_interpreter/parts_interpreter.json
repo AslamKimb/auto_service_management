@@ -1,0 +1,8 @@
+{
+ "name": "Parts Interpreter",
+ "module": "Auto Service Management",
+ "doctype": "Role",
+ "role_name": "Parts Interpreter",
+ "desk_access": 1,
+ "is_custom": 1
+}

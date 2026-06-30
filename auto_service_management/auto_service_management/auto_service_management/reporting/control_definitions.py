@@ -1,0 +1,71 @@
+from auto_service_management.auto_service_management.reporting.types import ReportDefinition, column
+
+CONTROL_REPORTS = {
+	"Repair Revenue by Period": ReportDefinition(
+		source_doctype="Repair Job",
+		permission_doctype="Repair Job",
+		columns=(
+			column("Closed On", "closed_on", "Datetime", width=170),
+			column("Repair Job", "name", "Link", "Repair Job"),
+			column("Customer", "customer", "Link", "Customer"),
+			column("Sales Invoice", "sales_invoice", "Link", "Sales Invoice"),
+			column("Revenue", "total_amount", "Currency"),
+		),
+		fields=("closed_on", "name", "customer", "sales_invoice", "total_amount"),
+		filters=("customer", "sales_invoice"),
+		base_filters={"job_status": "Closed"},
+		date_field="closed_on",
+		order_by="closed_on desc, name desc",
+	),
+	"Gate Pass Register": ReportDefinition(
+		source_doctype="Gate Pass",
+		permission_doctype="Gate Pass",
+		columns=(
+			column("Gate Pass", "name", "Link", "Gate Pass"),
+			column("Repair Job", "repair_job", "Link", "Repair Job"),
+			column("Vehicle", "customer_vehicle", "Link", "Customer Vehicle"),
+			column("Status", "status"),
+			column("Issued", "issue_date", "Datetime", width=170),
+			column("Used", "use_date", "Datetime", width=170),
+		),
+		fields=("name", "repair_job", "customer_vehicle", "status", "issue_date", "use_date"),
+		filters=("repair_job", "customer_vehicle", "status"),
+		date_field="issue_date",
+		order_by="issue_date desc, modified desc",
+	),
+	"Corporate Credit Releases": ReportDefinition(
+		source_doctype="Repair Job",
+		permission_doctype="Repair Job",
+		columns=(
+			column("Repair Job", "name", "Link", "Repair Job"),
+			column("Customer", "customer", "Link", "Customer"),
+			column("Invoice", "sales_invoice", "Link", "Sales Invoice"),
+			column("Payment Status", "payment_status"),
+			column("Closed On", "closed_on", "Datetime", width=170),
+		),
+		fields=("name", "customer", "sales_invoice", "payment_status", "closed_on"),
+		filters=("customer", "sales_invoice"),
+		base_filters={
+			"job_status": ["in", ["Released", "Closed"]],
+			"payment_status": ["!=", "Paid"],
+		},
+		date_field="closed_on",
+		order_by="closed_on desc, modified desc",
+	),
+	"Discount and Price Change Audit": ReportDefinition(
+		source_doctype="Version",
+		permission_doctype="Repair Job",
+		parent_field="docname",
+		columns=(
+			column("Changed On", "modified", "Datetime", width=170),
+			column("Repair Job", "docname", "Link", "Repair Job"),
+			column("Changed By", "owner", "Link", "User"),
+			column("Changes", "data", "Long Text", width=420),
+		),
+		fields=("modified", "docname", "owner", "data"),
+		filters=("docname", "owner"),
+		base_filters={"ref_doctype": "Repair Job", "data": ["like", "%rate%"]},
+		date_field="modified",
+		order_by="modified desc",
+	),
+}

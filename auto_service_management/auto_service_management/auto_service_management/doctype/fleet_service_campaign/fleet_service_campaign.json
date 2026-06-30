@@ -1,0 +1,84 @@
+{
+  "name": "Fleet Service Campaign",
+  "module": "Auto Service Management",
+  "doctype": "DocType",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "autoname": "format:FSC-{YYYY}-{#####}",
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "campaign_section",
+      "fieldtype": "Section Break",
+      "label": "Campaign Details"
+    },
+    {
+      "fieldname": "campaign_name",
+      "fieldtype": "Data",
+      "label": "Campaign Name",
+      "reqd": 1
+    },
+    {
+      "fieldname": "customer",
+      "fieldtype": "Link",
+      "label": "Customer",
+      "options": "Customer",
+      "reqd": 1
+    },
+    {
+      "fieldname": "column_break_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "campaign_start",
+      "fieldtype": "Date",
+      "label": "Campaign Start"
+    },
+    {
+      "fieldname": "campaign_end",
+      "fieldtype": "Date",
+      "label": "Campaign End"
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "\nDraft\nOngoing\nClosed\nCancelled",
+      "default": "Draft"
+    },
+    {
+      "fieldname": "description",
+      "fieldtype": "Text Editor",
+      "label": "Description"
+    },
+    {
+      "fieldname": "jobs_section",
+      "fieldtype": "Section Break",
+      "label": "Repair Jobs"
+    },
+    {
+      "fieldname": "fleet_jobs",
+      "fieldtype": "Table",
+      "label": "Repair Jobs",
+      "options": "Fleet Service Campaign Job"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "Workshop Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "Service Advisor",
+      "read": 1,
+      "write": 1,
+      "create": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "title_field": "campaign_name"
+}

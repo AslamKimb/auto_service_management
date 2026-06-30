@@ -1,0 +1,24 @@
+{
+ "add_total_row": 0,
+ "apply_user_permissions": 1,
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "is_standard": "Yes",
+ "module": "Auto Service Management",
+ "name": "Labour Hours by Technician",
+ "ref_doctype": "Repair Job",
+ "report_name": "Labour Hours by Technician",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Workshop Manager"
+  },
+  {
+   "role": "Service Advisor"
+  },
+  {
+   "role": "Accounts Manager"
+  }
+ ]
+}

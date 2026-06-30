@@ -1,0 +1,62 @@
+{
+ "name": "Workshop Bay",
+ "module": "Auto Service Management",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "autoname": "field:bay_name",
+ "track_changes": 1,
+ "fields": [
+  {
+   "fieldname": "bay_name",
+   "fieldtype": "Data",
+   "label": "Bay Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "bay_type",
+   "fieldtype": "Select",
+   "label": "Bay Type",
+   "options": "\nGeneral\nDiagnostic\nBody Work\nPaint\nQuick Service"
+  },
+  {
+   "fieldname": "column_break_bay",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "\nAvailable\nOccupied\nUnder Maintenance",
+   "default": "Available"
+  },
+  {
+   "fieldname": "capacity",
+   "fieldtype": "Int",
+   "label": "Capacity (simultaneous jobs)",
+   "default": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "Workshop Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Workshop Technician",
+   "read": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "bay_name"
+}

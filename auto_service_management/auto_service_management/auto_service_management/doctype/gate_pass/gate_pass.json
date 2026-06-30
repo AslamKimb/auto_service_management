@@ -1,0 +1,131 @@
+{
+  "name": "Gate Pass",
+  "module": "Auto Service Management",
+  "doctype": "DocType",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "autoname": "format:GP-{YYYY}-{#####}",
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "pass_section",
+      "fieldtype": "Section Break",
+      "label": "Gate Pass Details"
+    },
+    {
+      "fieldname": "repair_job",
+      "fieldtype": "Link",
+      "label": "Repair Job",
+      "options": "Repair Job",
+      "reqd": 1
+    },
+    {
+      "fieldname": "customer_vehicle",
+      "fieldtype": "Link",
+      "label": "Vehicle",
+      "options": "Customer Vehicle",
+      "reqd": 1,
+      "fetch_from": "repair_job.customer_vehicle"
+    },
+    {
+      "fieldname": "sales_invoice",
+      "fieldtype": "Link",
+      "label": "Sales Invoice",
+      "options": "Sales Invoice",
+      "fetch_from": "repair_job.sales_invoice"
+    },
+    {
+      "fieldname": "column_break_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "recipient_name",
+      "fieldtype": "Data",
+      "label": "Recipient Name",
+      "reqd": 1
+    },
+    {
+      "fieldname": "recipient_id_type",
+      "fieldtype": "Select",
+      "label": "ID Type",
+      "options": "\nNational ID\nPassport\nDriver License"
+    },
+    {
+      "fieldname": "recipient_id_number",
+      "fieldtype": "Data",
+      "label": "ID Number"
+    },
+    {
+      "fieldname": "release_section",
+      "fieldtype": "Section Break",
+      "label": "Release Details"
+    },
+    {
+      "fieldname": "issued_by",
+      "fieldtype": "Link",
+      "label": "Issued By",
+      "options": "User"
+    },
+    {
+      "fieldname": "issue_date",
+      "fieldtype": "Datetime",
+      "label": "Issue Date"
+    },
+    {
+      "fieldname": "column_break_2",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "used_by",
+      "fieldtype": "Link",
+      "label": "Used By (Security)",
+      "options": "User"
+    },
+    {
+      "fieldname": "use_date",
+      "fieldtype": "Datetime",
+      "label": "Use Date"
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "\nPending\nIssued\nUsed\nCancelled",
+      "default": "Pending"
+    },
+    {
+      "fieldname": "notes_section",
+      "fieldtype": "Section Break",
+      "label": "Notes",
+      "collapsible": 1
+    },
+    {
+      "fieldname": "notes",
+      "fieldtype": "Small Text",
+      "label": "Notes"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "Workshop Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "Security Gate Officer",
+      "read": 1,
+      "write": 1
+    },
+    {
+      "role": "Service Advisor",
+      "read": 1,
+      "write": 1,
+      "create": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "title_field": "repair_job"
+}
