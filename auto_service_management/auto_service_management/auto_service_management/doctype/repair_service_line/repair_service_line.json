@@ -56,8 +56,8 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "\nPending\nApproved\nIn Progress\nCompleted\nCancelled",
-   "default": "Pending"
+   "options": "\nPending Approval\nApproved\nRejected\nCompleted\nCancelled",
+   "default": "Pending Approval"
   },
   {
    "fieldname": "assigned_to",

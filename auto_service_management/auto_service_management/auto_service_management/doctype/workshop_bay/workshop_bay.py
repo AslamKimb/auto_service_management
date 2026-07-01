@@ -16,6 +16,9 @@ class WorkshopBay(Document):
 			"Repair Job",
 			{
 				"workshop_bay": self.name,
-				"job_status": ("in", ["Checked In", "In Progress", "Under Diagnosis"]),
+				"job_status": (
+					"in",
+					["Checked In", "Walkaround Inspection", "Diagnosis", "In Repair", "Quality Check"],
+				),
 			},
 		)

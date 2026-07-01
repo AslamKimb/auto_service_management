@@ -17,15 +17,18 @@ class TestRepairJobWorkflow(IntegrationTestCase):
 		expected_states = [
 			"Draft",
 			"Checked In",
-			"Under Diagnosis",
-			"Diagnosed",
-			"Awaiting Authorization",
-			"Authorized",
-			"In Progress",
-			"QC Hold",
-			"Ready for Release",
-			"Released",
+			"Walkaround Inspection",
+			"Diagnosis",
+			"Estimate Prepared",
+			"Waiting for Customer Approval",
+			"Approved",
+			"In Repair",
+			"Quality Check",
+			"Ready for Invoice",
+			"Invoiced",
+			"Gate Pass Issued",
 			"Closed",
+			"Closed - Diagnosis Only",
 			"Cancelled",
 		]
 		for state in expected_states:
@@ -34,8 +37,8 @@ class TestRepairJobWorkflow(IntegrationTestCase):
 	def test_draft_to_checked_in_allowed(self):
 		self.assertIn("Checked In", VALID_TRANSITIONS["Draft"])
 
-	def test_draft_to_in_progress_blocked(self):
-		self.assertNotIn("In Progress", VALID_TRANSITIONS["Draft"])
+	def test_draft_to_in_repair_blocked(self):
+		self.assertNotIn("In Repair", VALID_TRANSITIONS["Draft"])
 
 	def test_closed_is_terminal(self):
 		self.assertEqual(VALID_TRANSITIONS["Closed"], [])
@@ -43,28 +46,30 @@ class TestRepairJobWorkflow(IntegrationTestCase):
 	def test_cancelled_is_terminal(self):
 		self.assertEqual(VALID_TRANSITIONS["Cancelled"], [])
 
-	def test_qc_hold_can_resume_or_release(self):
-		self.assertIn("In Progress", VALID_TRANSITIONS["QC Hold"])
-		self.assertIn("Ready for Release", VALID_TRANSITIONS["QC Hold"])
+	def test_quality_check_can_resume_or_move_to_invoice(self):
+		self.assertIn("In Repair", VALID_TRANSITIONS["Quality Check"])
+		self.assertIn("Ready for Invoice", VALID_TRANSITIONS["Quality Check"])
 
-	def test_released_must_close(self):
-		self.assertEqual(VALID_TRANSITIONS["Released"], ["Closed"])
+	def test_gate_pass_issued_must_close(self):
+		self.assertEqual(VALID_TRANSITIONS["Gate Pass Issued"], ["Closed", "Closed - Diagnosis Only"])
 
 	def test_full_happy_path(self):
 		"""Verify the complete lifecycle from Draft to Closed."""
 		path = [
 			"Draft",
 			"Checked In",
-			"Under Diagnosis",
-			"Diagnosed",
-			"Awaiting Authorization",
-			"Authorized",
-			"In Progress",
-			"QC Hold",
-			"In Progress",
-			"QC Hold",
-			"Ready for Release",
-			"Released",
+			"Walkaround Inspection",
+			"Diagnosis",
+			"Estimate Prepared",
+			"Waiting for Customer Approval",
+			"Approved",
+			"In Repair",
+			"Quality Check",
+			"In Repair",
+			"Quality Check",
+			"Ready for Invoice",
+			"Invoiced",
+			"Gate Pass Issued",
 			"Closed",
 		]
 		for i in range(len(path) - 1):
@@ -79,13 +84,14 @@ class TestRepairJobWorkflow(IntegrationTestCase):
 		cancellable = [
 			"Draft",
 			"Checked In",
-			"Under Diagnosis",
-			"Diagnosed",
-			"Awaiting Authorization",
-			"Authorized",
-			"In Progress",
-			"QC Hold",
-			"Ready for Release",
+			"Walkaround Inspection",
+			"Diagnosis",
+			"Estimate Prepared",
+			"Waiting for Customer Approval",
+			"Approved",
+			"In Repair",
+			"Quality Check",
+			"Ready for Invoice",
 		]
 		for state in cancellable:
 			self.assertIn(
@@ -93,3 +99,17 @@ class TestRepairJobWorkflow(IntegrationTestCase):
 				VALID_TRANSITIONS[state],
 				f"Cancellation from {state} should be allowed",
 			)
+
+	def test_diagnosis_only_path_exists(self):
+		path = [
+			"Draft",
+			"Checked In",
+			"Walkaround Inspection",
+			"Diagnosis",
+			"Ready for Invoice",
+			"Invoiced",
+			"Gate Pass Issued",
+			"Closed - Diagnosis Only",
+		]
+		for i in range(len(path) - 1):
+			self.assertIn(path[i + 1], VALID_TRANSITIONS[path[i]])

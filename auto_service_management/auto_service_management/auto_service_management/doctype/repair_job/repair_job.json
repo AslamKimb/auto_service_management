@@ -46,7 +46,8 @@
     {
       "label": "Odometer In (km)",
       "fieldtype": "Float",
-      "fieldname": "odometer_in"
+      "fieldname": "odometer_in",
+      "reqd": 1
     },
     {
       "fieldname": "job_section",
@@ -57,7 +58,7 @@
       "fieldname": "job_status",
       "fieldtype": "Select",
       "label": "Status",
-      "options": "\nDraft\nChecked In\nUnder Diagnosis\nDiagnosed\nAwaiting Authorization\nAuthorized\nIn Progress\nQC Hold\nReady for Release\nReleased\nClosed\nCancelled",
+      "options": "\nDraft\nChecked In\nWalkaround Inspection\nDiagnosis\nEstimate Prepared\nWaiting for Customer Approval\nApproved\nIn Repair\nQuality Check\nReady for Invoice\nInvoiced\nGate Pass Issued\nClosed\nClosed - Diagnosis Only\nCancelled",
       "default": "Draft",
       "in_list_view": 1
     },
@@ -138,7 +139,8 @@
     {
       "fieldname": "customer_concern",
       "fieldtype": "Text Editor",
-      "label": "Customer Concern"
+      "label": "Customer Concern",
+      "reqd": 1
     },
     {
       "fieldname": "authorization_section",

@@ -120,7 +120,7 @@ def create_quotation(repair_job):
 	settings = get_settings()
 	items = []
 	for line in repair_job.service_lines:
-		if line.status in ("Approved", "In Progress", "Completed"):
+		if line.status in ("Approved", "Completed"):
 			items.append(
 				{
 					"item_code": line.item_code,
@@ -278,7 +278,10 @@ def create_sales_invoice(repair_job):
 
 def on_invoice_submit(doc, method):
 	"""Update linked Repair Job when Sales Invoice is submitted."""
-	# Find Repair Job linked to this invoice
 	repair_job_name = frappe.db.get_value("Repair Job", {"sales_invoice": doc.name}, "name")
 	if repair_job_name:
-		frappe.db.set_value("Repair Job", repair_job_name, {"payment_status": "Unpaid"})
+		repair_job = frappe.get_doc("Repair Job", repair_job_name)
+		repair_job.payment_status = "Unpaid"
+		if repair_job.job_status == "Ready for Invoice":
+			repair_job.job_status = "Invoiced"
+		repair_job.save(ignore_permissions=True)

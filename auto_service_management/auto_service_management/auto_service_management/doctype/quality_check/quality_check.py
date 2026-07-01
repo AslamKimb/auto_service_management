@@ -12,8 +12,8 @@ class QualityCheck(Document):
 	def validate_repair_job_state(self):
 		if self.repair_job:
 			status = frappe.db.get_value("Repair Job", self.repair_job, "job_status")
-			if status not in ("In Progress", "QC Hold"):
+			if status not in ("In Repair", "Quality Check"):
 				frappe.throw(
 					f"Quality Check can only be created when the Repair Job "
-					f"is in 'In Progress' or 'QC Hold' state. Current: {status}"
+					f"is in 'In Repair' or 'Quality Check' state. Current: {status}"
 				)

@@ -16,7 +16,7 @@ frappe.query_reports["Open Repair Jobs"] = {
    "fieldname": "job_status",
    "label": "Status",
    "fieldtype": "Select",
-   "options": "Draft\nChecked In\nUnder Diagnosis\nDiagnosed\nAwaiting Authorization\nAuthorized\nIn Progress\nQC Hold\nReady for Release\nReleased"
+   "options": "Draft\nChecked In\nWalkaround Inspection\nDiagnosis\nEstimate Prepared\nWaiting for Customer Approval\nApproved\nIn Repair\nQuality Check\nReady for Invoice\nInvoiced\nGate Pass Issued\nClosed - Diagnosis Only"
   }
  ]
 };

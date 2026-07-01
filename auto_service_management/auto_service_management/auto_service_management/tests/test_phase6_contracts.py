@@ -126,7 +126,7 @@ class TestPhase6Contracts(UnitTestCase):
 	def test_report_runner_applies_permissions_filters_and_ordering(self):
 		from auto_service_management.auto_service_management.reporting.runner import run_report
 
-		rows = [{"name": "RJ-2026-00001", "job_status": "In Progress"}]
+		rows = [{"name": "RJ-2026-00001", "job_status": "In Repair"}]
 		with (
 			patch(
 				"auto_service_management.auto_service_management.reporting.runner.frappe.has_permission",
@@ -156,3 +156,31 @@ class TestPhase6Contracts(UnitTestCase):
 		):
 			with self.assertRaises(Exception):
 				run_report("Open Repair Jobs", {})
+
+	# ── Desk desktop visibility ──
+
+	def test_hooks_declares_add_to_apps_screen(self):
+		"""hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop Icon."""
+		hooks_root = Path(__file__).parents[2]  # hooks.py is at single-nested package level
+		hooks_source = (hooks_root / "hooks.py").read_text(encoding="utf-8")
+		self.assertIn("add_to_apps_screen", hooks_source)
+		self.assertIn("auto_service_management", hooks_source)
+		self.assertIn("/app/workshop-management", hooks_source)
+
+	def test_hooks_declares_lifecycle_hooks_for_desktop_icon(self):
+		"""hooks.py must declare after_install and after_migrate to ensure Desktop Icon exists."""
+		hooks_root = Path(__file__).parents[2]  # hooks.py is at single-nested package level
+		hooks_source = (hooks_root / "hooks.py").read_text(encoding="utf-8")
+		self.assertIn("after_install", hooks_source)
+		self.assertIn("after_migrate", hooks_source)
+		self.assertIn("desktop.create_app_desktop_icon", hooks_source)
+
+	def test_desktop_module_exists_with_required_functions(self):
+		"""desktop.py must exist and export create_app_desktop_icon and ensure_permission."""
+		module_root = Path(__file__).parents[1]
+		desktop_path = module_root / "desktop.py"
+		self.assertTrue(desktop_path.is_file(), "desktop.py must exist")
+		source = desktop_path.read_text(encoding="utf-8")
+		self.assertIn("def create_app_desktop_icon", source)
+		self.assertIn("def ensure_permission", source)
+		self.assertIn("Desktop Icon", source)

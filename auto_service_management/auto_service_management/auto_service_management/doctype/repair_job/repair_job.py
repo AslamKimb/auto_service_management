@@ -12,26 +12,36 @@ from frappe.model.document import Document
 # ---------------------------------------------------------------------------
 VALID_TRANSITIONS = {
 	"Draft": ["Checked In", "Cancelled"],
-	"Checked In": ["Under Diagnosis", "Cancelled"],
-	"Under Diagnosis": ["Diagnosed", "Cancelled"],
-	"Diagnosed": ["Awaiting Authorization", "Cancelled"],
-	"Awaiting Authorization": ["Authorized", "Cancelled"],
-	"Authorized": ["In Progress", "Cancelled"],
-	"In Progress": ["QC Hold", "Cancelled"],
-	"QC Hold": ["In Progress", "Ready for Release", "Cancelled"],
-	"Ready for Release": ["Released", "Cancelled"],
-	"Released": ["Closed"],
+	"Checked In": ["Walkaround Inspection", "Cancelled"],
+	"Walkaround Inspection": ["Diagnosis", "Cancelled"],
+	"Diagnosis": ["Estimate Prepared", "Ready for Invoice", "Cancelled"],
+	"Estimate Prepared": ["Waiting for Customer Approval", "Approved", "Ready for Invoice", "Cancelled"],
+	"Waiting for Customer Approval": ["Approved", "Ready for Invoice", "Cancelled"],
+	"Approved": ["In Repair", "Cancelled"],
+	"In Repair": ["Quality Check", "Cancelled"],
+	"Quality Check": ["In Repair", "Ready for Invoice", "Cancelled"],
+	"Ready for Invoice": ["Invoiced", "Cancelled"],
+	"Invoiced": ["Gate Pass Issued"],
+	"Gate Pass Issued": ["Closed", "Closed - Diagnosis Only"],
 	"Closed": [],
+	"Closed - Diagnosis Only": [],
 	"Cancelled": [],
 }
 
 
 class RepairJob(Document):
 	def validate(self):
+		self.validate_intake_requirements()
 		self.validate_status_transition()
 		self.calculate_totals()
 		self.set_currency_from_settings()
 		self.fetch_vehicle_details()
+
+	def validate_intake_requirements(self):
+		if self.odometer_in is None:
+			frappe.throw(_("Odometer In (km) is required before creating a Repair Job."))
+		if not self.customer_concern or not str(self.customer_concern).strip():
+			frappe.throw(_("Reason for visit is required before creating a Repair Job."))
 
 	def before_save(self):
 		if self.is_new():
@@ -69,8 +79,7 @@ class RepairJob(Document):
 	def calculate_totals(self):
 		total = 0
 		for line in self.service_lines or []:
-			if line.service_type != "Parts":
-				line.calculate_amount()
+			line.calculate_amount()
 			total += line.amount or 0
 		self.total_amount = total
 
@@ -115,28 +124,47 @@ class RepairJob(Document):
 	@frappe.whitelist()
 	def start_diagnosis(self):
 		self._require_write_permission()
-		self._transition_to("Under Diagnosis")
+		self._transition_to("Diagnosis")
 		self.save()
 		self._write_log("start_diagnosis")
 
 	@frappe.whitelist()
+	def prepare_estimate(self):
+		self._require_write_permission()
+		self._transition_to("Estimate Prepared")
+		self._normalize_pending_approval_lines()
+		self.save()
+		self._write_log("estimate_prepared")
+
+	@frappe.whitelist()
 	def complete_diagnosis(self):
 		self._require_write_permission()
-		self._transition_to("Diagnosed")
-		self.save()
+		if self.job_status != "Estimate Prepared":
+			self._transition_to("Estimate Prepared")
+			self._normalize_pending_approval_lines()
+			self.save()
 		self._write_log("complete_diagnosis")
 
 	@frappe.whitelist()
 	def request_authorization(self):
 		self._require_write_permission()
-		self._transition_to("Awaiting Authorization")
+		if self.job_status == "Diagnosis":
+			self._transition_to("Estimate Prepared")
+			self._normalize_pending_approval_lines()
+			self.save()
+			self._write_log("estimate_prepared")
+		self._transition_to("Waiting for Customer Approval")
+		self._normalize_pending_approval_lines()
 		self.save()
 		self._write_log("request_authorization")
 
 	@frappe.whitelist()
 	def authorize(self):
 		self._require_write_permission()
-		self._transition_to("Authorized")
+		self._approve_remaining_pending_lines()
+		if not any(line.status == "Approved" for line in self.service_lines or []):
+			frappe.throw(_("At least one service line must be approved before starting repair work."))
+		self._transition_to("Approved")
 		self.customer_authorized = 1
 		self.authorization_date = datetime.now()
 		self.authorized_by = frappe.session.user
@@ -144,19 +172,54 @@ class RepairJob(Document):
 		self._write_log("authorized")
 
 	@frappe.whitelist()
+	def approve_service_lines(self, line_names: list | str | None = None):
+		self._require_write_permission()
+		names = self._coerce_line_names(line_names)
+		self._apply_service_line_status(
+			"Approved",
+			names,
+			{"Pending Approval", "Rejected", "Approved"},
+			"service_lines_approved",
+		)
+
+	@frappe.whitelist()
+	def reject_service_lines(self, line_names: list | str | None = None):
+		self._require_write_permission()
+		names = self._coerce_line_names(line_names)
+		self._apply_service_line_status(
+			"Rejected",
+			names,
+			{"Pending Approval", "Approved", "Rejected"},
+			"service_lines_rejected",
+		)
+
+	@frappe.whitelist()
 	def start_work(self):
 		"""Begin repair work. Requires authorization."""
 		self._require_write_permission()
 		if not self.customer_authorized:
 			frappe.throw(_("Customer authorization is required before starting work."))
-		self._transition_to("In Progress")
+		if not any(line.status == "Approved" for line in self.service_lines or []):
+			frappe.throw(_("At least one approved service line is required before starting work."))
+		self._transition_to("In Repair")
 		self.save()
 		self._write_log("start_work")
 
 	@frappe.whitelist()
+	def complete_service_lines(self, line_names: list | str | None = None):
+		self._require_write_permission()
+		names = self._coerce_line_names(line_names)
+		self._apply_service_line_status(
+			"Completed",
+			names,
+			{"Approved", "Completed"},
+			"service_lines_completed",
+		)
+
+	@frappe.whitelist()
 	def hold_for_qc(self):
 		self._require_write_permission()
-		self._transition_to("QC Hold")
+		self._transition_to("Quality Check")
 		self.save()
 		self._write_log("hold_for_qc")
 
@@ -164,14 +227,23 @@ class RepairJob(Document):
 	def pass_qc(self):
 		self._require_write_permission()
 		self.quality_check_passed = 1
-		self._transition_to("Ready for Release")
+		self._transition_to("Ready for Invoice")
 		self.save()
 		self._write_log("pass_qc")
 
 	@frappe.whitelist()
+	def mark_ready_for_invoice(self):
+		self._require_write_permission()
+		if not any(line.status == "Completed" for line in self.service_lines or []):
+			frappe.throw(_("At least one completed service line is required before invoicing."))
+		self._transition_to("Ready for Invoice")
+		self.save()
+		self._write_log("ready_for_invoice")
+
+	@frappe.whitelist()
 	def release(self):
 		self._require_write_permission()
-		self._transition_to("Released")
+		self._transition_to("Gate Pass Issued")
 		self.save()
 		self._write_log("released")
 
@@ -186,6 +258,19 @@ class RepairJob(Document):
 		self._update_vehicle_after_closure()
 		self._create_service_history()
 		self._write_log("closed")
+
+	@frappe.whitelist()
+	def close_as_diagnosis_only(self):
+		self._require_write_permission()
+		if any(line.status in {"Pending Approval", "Approved"} for line in self.service_lines or []):
+			frappe.throw(_("Diagnosis-only closure requires all repair recommendations to be rejected, cancelled, or completed."))
+		self._transition_to("Closed - Diagnosis Only")
+		self.closed_on = datetime.now()
+		self.closed_by = frappe.session.user
+		self.save()
+		self._update_vehicle_after_closure()
+		self._create_service_history()
+		self._write_log("closed_diagnosis_only")
 
 	@frappe.whitelist()
 	def cancel(self):
@@ -240,6 +325,10 @@ class RepairJob(Document):
 
 		si_name = create_sales_invoice(self)
 		self.reload()
+		if self.job_status != "Invoiced":
+			self._transition_to("Invoiced")
+			self.save()
+		self.reload()
 		return si_name
 
 	@frappe.whitelist()
@@ -267,6 +356,40 @@ class RepairJob(Document):
 
 	def _transition_to(self, target_status):
 		self.job_status = target_status
+
+	def _coerce_line_names(self, line_names):
+		if not line_names:
+			return None
+		if isinstance(line_names, str):
+			line_names = frappe.parse_json(line_names)
+		return {str(name) for name in line_names if name}
+
+	def _normalize_pending_approval_lines(self):
+		for line in self.service_lines or []:
+			if line.status in (None, "", "Pending"):
+				line.status = "Pending Approval"
+
+	def _approve_remaining_pending_lines(self):
+		for line in self.service_lines or []:
+			if line.status == "Pending Approval":
+				line.status = "Approved"
+
+	def _apply_service_line_status(self, target_status, line_names, allowed_current_statuses, event_type):
+		updated = []
+		for line in self.service_lines or []:
+			if line_names and line.name not in line_names:
+				continue
+			if line.status not in allowed_current_statuses:
+				continue
+			old_status = line.status
+			line.status = target_status
+			updated.append(f"{line.service_description or line.name}:{old_status}->{target_status}")
+
+		if not updated:
+			frappe.throw(_("No eligible service lines were updated."))
+
+		self.save()
+		self._write_log(event_type, new_value="\n".join(updated))
 
 	def _ensure_project(self):
 		"""Create the ERPNext Project if one does not yet exist."""

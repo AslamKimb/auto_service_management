@@ -60,7 +60,7 @@ WORKSHOP_REPORTS = {
 		),
 		fields=("parent", "item_code", "service_description", "quantity", "status"),
 		filters=("item_code", "status"),
-		base_filters={"service_type": "Parts", "status": ["in", ["Pending", "Approved"]]},
+		base_filters={"service_type": "Parts", "status": ["in", ["Pending Approval", "Approved"]]},
 		order_by="parent asc, idx asc",
 	),
 	"Technician Productivity": ReportDefinition(

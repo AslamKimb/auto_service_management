@@ -184,13 +184,14 @@ PY
 echo "  PASS: Workspace verified"
 
 echo ""
-echo "Step 12: End-to-end lifecycle with PDF rendering"
+echo "Step 12: End-to-end walk-in repair lifecycle with PDF rendering"
 SITE_NAME="$SITE" SITES_PATH="$SITES_PATH" "$PYTHON_BIN" - <<'PY'
 import os
 import frappe
+import frappe.utils.pdf as frappe_pdf
 from frappe.utils.pdf import get_pdf
 from frappe.www.printview import get_rendered_template
-from unittest.mock import patch
+from frappe.website.utils import abs_url
 
 os.chdir(os.environ["BENCH_ROOT"])
 frappe.init(site=os.environ["SITE_NAME"], sites_path=os.environ["SITES_PATH"])
@@ -199,15 +200,68 @@ frappe.connect()
 try:
     def render_pdf(doctype, doc_name, print_format_name):
         frappe.flags.ignore_print_permissions = True
+        assets_json = frappe.parse_json(frappe.read_file("assets/assets.json")) or {}
+        assets_rtl_json = frappe.read_file("assets/assets-rtl.json")
+        if assets_rtl_json:
+            assets_json.update(frappe.parse_json(assets_rtl_json))
+        previous_bundled_asset = frappe_pdf.bundled_asset
+
+        def deterministic_bundled_asset(path, rtl=None):
+            if ".bundle." in path and not path.startswith("/assets"):
+                if path.endswith(".css") and rtl:
+                    path = f"rtl_{path}"
+                path = assets_json.get(path) or path
+            return abs_url(path)
+
+        frappe_pdf.bundled_asset = deterministic_bundled_asset
         doc = frappe.get_doc(doctype, doc_name)
         print_format = frappe.get_doc("Print Format", print_format_name)
-        html = get_rendered_template(doc, print_format=print_format, meta=frappe.get_meta(doctype))
-        pdf = get_pdf(html, options={"load-error-handling": "ignore", "load-media-error-handling": "ignore"})
+        try:
+            html = get_rendered_template(doc, print_format=print_format, meta=frappe.get_meta(doctype))
+            pdf = get_pdf(
+                html,
+                options={"load-error-handling": "ignore", "load-media-error-handling": "ignore"},
+            )
+        finally:
+            frappe_pdf.bundled_asset = previous_bundled_asset
         assert pdf[:4] == b"%PDF", f"Invalid PDF header for {print_format_name}"
         return pdf
 
+    def ensure_item(item_code, item_name, is_stock_item, price_list, rate):
+        if not frappe.db.exists("Item", item_code):
+            item = frappe.get_doc(
+                {
+                    "doctype": "Item",
+                    "item_code": item_code,
+                    "item_name": item_name,
+                    "item_group": "All Item Groups",
+                    "stock_uom": "Nos",
+                    "is_stock_item": 1 if is_stock_item else 0,
+                    "include_item_in_manufacturing": 0,
+                }
+            )
+            item.insert(ignore_permissions=True)
+        if not frappe.db.exists("Item Price", {"item_code": item_code, "price_list": price_list}):
+            frappe.get_doc(
+                {
+                    "doctype": "Item Price",
+                    "item_code": item_code,
+                    "price_list": price_list,
+                    "price_list_rate": rate,
+                }
+            ).insert(ignore_permissions=True)
+
     timestamp = frappe.utils.now_datetime().strftime("%Y%m%d%H%M%S")
     customer_name = f"Acceptance Test Customer {timestamp}"
+    settings = frappe.get_single("Auto Service Settings")
+    price_list = settings.selling_price_list or settings.price_list
+    assert settings.company, "Auto Service Settings.company is required"
+    assert price_list, "Auto Service Settings selling/price list is required"
+
+    parts_item_code = f"ASM-BATTERY-{timestamp[-6:]}"
+    labour_item_code = f"ASM-LABOUR-{timestamp[-6:]}"
+    ensure_item(parts_item_code, "Acceptance Battery", True, price_list, 175000)
+    ensure_item(labour_item_code, "Acceptance Labour", False, price_list, 120000)
 
     customer = frappe.get_doc(
         {
@@ -234,19 +288,46 @@ try:
     )
     vehicle.insert(ignore_permissions=True)
 
+    search_registration = frappe.get_all(
+        "Customer Vehicle",
+        filters={"registration_number": vehicle.registration_number},
+        pluck="name",
+    )
+    search_vin = frappe.get_all(
+        "Customer Vehicle",
+        filters={"vin_chassis_number": vehicle.vin_chassis_number},
+        pluck="name",
+    )
+    search_engine = frappe.get_all(
+        "Customer Vehicle",
+        filters={"engine_number": vehicle.engine_number},
+        pluck="name",
+    )
+    search_customer = frappe.get_all(
+        "Customer Vehicle",
+        filters={"customer": customer.name},
+        pluck="name",
+    )
+    assert vehicle.name in search_registration, "Vehicle search by registration failed"
+    assert vehicle.name in search_vin, "Vehicle search by VIN failed"
+    assert vehicle.name in search_engine, "Vehicle search by engine failed"
+    assert vehicle.name in search_customer, "Vehicle search by customer failed"
+
     job = frappe.get_doc(
         {
             "doctype": "Repair Job",
             "customer": customer.name,
             "customer_vehicle": vehicle.name,
-            "description": "Acceptance test repair job",
+            "description": "Battery replacement, brake noise, engine check",
             "priority": "Normal",
             "promised_date": frappe.utils.add_days(frappe.utils.today(), 7),
+            "odometer_in": 84521,
         }
     )
     job.insert(ignore_permissions=True)
     job.check_in()
     frappe.db.commit()
+    job.reload()
 
     walkaround = frappe.get_doc(
         {
@@ -256,6 +337,10 @@ try:
             "inspection_date": frappe.utils.now_datetime(),
             "inspected_by": "Administrator",
             "overall_condition": "Fair",
+            "odometer_reading": 84521,
+            "fuel_level": "1/2",
+            "customer_present": 1,
+            "condition_notes": "Minor front bumper scratches. Brake noise confirmed by customer.",
         }
     )
     walkaround.insert(ignore_permissions=True)
@@ -265,11 +350,53 @@ try:
     job.start_diagnosis()
     frappe.db.commit()
     job.reload()
-    job.complete_diagnosis()
+
+    diagnosis = frappe.get_doc(
+        {
+            "doctype": "Diagnosis Report",
+            "repair_job": job.name,
+            "customer_vehicle": vehicle.name,
+            "diagnosis_date": frappe.utils.now_datetime(),
+            "diagnosed_by": "Administrator",
+            "customer_complaint": "Battery weak, brake noise, engine warning check required",
+            "findings": "Battery failed load test; front pads worn; engine scan found minor sensor alert.",
+            "recommendations": "Replace battery, inspect front brakes, clear and monitor sensor alert.",
+            "estimated_hours": 2.5,
+            "required_parts": "Battery, brake pads",
+            "status": "Submitted",
+        }
+    )
+    diagnosis.insert(ignore_permissions=True)
+
+    job.append(
+        "service_lines",
+        {
+            "service_type": "Parts",
+            "service_description": "Battery replacement",
+            "item_code": parts_item_code,
+            "quantity": 2,
+            "rate": 175000,
+            "status": "Approved",
+        },
+    )
+    job.append(
+        "service_lines",
+        {
+            "service_type": "Labour",
+            "service_description": "Brake inspection and engine check",
+            "item_code": labour_item_code,
+            "quantity": 1,
+            "rate": 120000,
+            "status": "Approved",
+        },
+    )
+    job.save(ignore_permissions=True)
     frappe.db.commit()
+
     job.reload()
     job.request_authorization()
     frappe.db.commit()
+    job.reload()
 
     authorization = frappe.get_doc(
         {
@@ -278,7 +405,7 @@ try:
             "customer": customer.name,
             "authorized_by_user": "Administrator",
             "authorization_date": frappe.utils.now_datetime(),
-            "approved_amount": 500000,
+            "approved_amount": job.total_amount,
             "status": "Pending",
         }
     )
@@ -292,6 +419,13 @@ try:
     job.reload()
     job.start_work()
     frappe.db.commit()
+    job.reload()
+
+    for line in job.service_lines:
+        line.status = "Completed"
+    job.odometer_out = 84533
+    job.save(ignore_permissions=True)
+    frappe.db.commit()
 
     quality_check = frappe.get_doc(
         {
@@ -301,6 +435,13 @@ try:
             "qc_date": frappe.utils.now_datetime(),
             "checked_by": "Administrator",
             "status": "Passed",
+            "completion_check": 1,
+            "fitment_check": 1,
+            "fluid_levels_check": 1,
+            "warning_lights_clear": 1,
+            "cleanliness_check": 1,
+            "road_test_check": 0,
+            "qc_notes": "Battery replaced and brake inspection completed.",
         }
     )
     quality_check.insert(ignore_permissions=True)
@@ -313,26 +454,22 @@ try:
     job.pass_qc()
     frappe.db.commit()
     job.reload()
-    job.release()
+
+    sales_invoice_name = job.create_sales_invoice()
+    frappe.db.commit()
+    sales_invoice = frappe.get_doc("Sales Invoice", sales_invoice_name)
+    if sales_invoice.docstatus == 0:
+        sales_invoice.submit()
     frappe.db.commit()
 
-    gate_pass = frappe.get_doc(
-        {
-            "doctype": "Gate Pass",
-            "repair_job": job.name,
-            "customer_vehicle": vehicle.name,
-            "sales_invoice": "SI-ACCEPT-001",
-            "recipient_name": customer_name,
-            "status": "Pending",
-        }
-    )
-    gate_pass.flags.ignore_links = True
-    with patch.object(type(gate_pass), "validate_invoice_submitted"):
-        gate_pass.insert(ignore_permissions=True)
-    with patch.object(type(gate_pass), "validate_invoice_submitted"):
-        gate_pass.issue()
-    with patch.object(type(gate_pass), "validate_invoice_submitted"):
-        gate_pass.use_gate_pass()
+    job.reload()
+    gate_pass_name = job.create_gate_pass()
+    frappe.db.commit()
+    gate_pass = frappe.get_doc("Gate Pass", gate_pass_name)
+    gate_pass.issue()
+    frappe.db.commit()
+    gate_pass.reload()
+    gate_pass.use_gate_pass()
     frappe.db.commit()
 
     job.reload()
@@ -349,17 +486,33 @@ try:
 
     logs = frappe.get_all("Repair Job Log", filters={"repair_job": job.name}, pluck="name")
 
+    print(f"  search_registration: {search_registration}")
+    print(f"  search_vin: {search_vin}")
+    print(f"  search_engine: {search_engine}")
+    print(f"  search_customer_count: {len(search_customer)}")
     print(f"  Repair Job: {job.name}")
+    print(f"  Project: {job.project}")
     print(f"  Walkaround Inspection: {walkaround.name}")
+    print(f"  Diagnosis Report: {diagnosis.name}")
     print(f"  Customer Authorization: {authorization.name}")
     print(f"  Quality Check: {quality_check.name}")
+    print(f"  Sales Invoice: {sales_invoice.name}")
     print(f"  Gate Pass: {gate_pass.name}")
     if service_history:
         print(f"  Service History: {service_history.name}")
     else:
         print(f"  Service History: (not yet created)")
     print(f"  Repair Job Logs: {len(logs)}")
-    assert len(logs) >= 4, f"Expected at least 4 logs, got {len(logs)}"
+    print(f"  service_lines: {[(line.service_type, line.amount, line.status, line.item_code) for line in job.service_lines]}")
+    print(f"  total_amount: {job.total_amount}")
+    print(f"  status_after_close: {job.job_status}")
+    assert job.project, "Repair Job project was not created on check-in"
+    assert job.job_status == "Closed", f"Expected Closed, got {job.job_status}"
+    assert job.total_amount == 470000, f"Expected total 470000, got {job.total_amount}"
+    assert sales_invoice.docstatus == 1, "Sales Invoice was not submitted"
+    assert gate_pass.status == "Used", f"Expected Used gate pass, got {gate_pass.status}"
+    assert service_history is not None, "Service History was not created"
+    assert len(logs) >= 10, f"Expected at least 10 logs, got {len(logs)}"
 
     # PDF rendering for all 6 print formats
     print("")
@@ -377,11 +530,11 @@ try:
         pdf = render_pdf(doctype, doc_name, print_format_name)
         print(f"    Rendered {print_format_name}: {len(pdf)} bytes")
 
-    print("  PASS: End-to-end lifecycle and PDF rendering verified")
+    print("  PASS: End-to-end walk-in repair lifecycle and PDF rendering verified")
 finally:
     frappe.destroy()
 PY
-echo "  PASS: End-to-end lifecycle with PDF rendering verified"
+echo "  PASS: End-to-end walk-in repair lifecycle with PDF rendering verified"
 
 echo ""
 echo "Step 13: Verify clean uninstall and reinstall on test site"

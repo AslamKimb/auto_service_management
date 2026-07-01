@@ -46,7 +46,7 @@ CONTROL_REPORTS = {
 		fields=("name", "customer", "sales_invoice", "payment_status", "closed_on"),
 		filters=("customer", "sales_invoice"),
 		base_filters={
-			"job_status": ["in", ["Released", "Closed"]],
+			"job_status": ["in", ["Gate Pass Issued", "Closed"]],
 			"payment_status": ["!=", "Paid"],
 		},
 		date_field="closed_on",

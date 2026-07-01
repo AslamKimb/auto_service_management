@@ -35,12 +35,13 @@ class GatePass(Document):
 		self.issued_by = frappe.session.user
 		self.issue_date = datetime.now()
 		self.save()
-		# Update Repair Job
-		frappe.db.set_value(
-			"Repair Job",
-			self.repair_job,
-			{"gate_pass_issued": 1, "gate_pass_number": self.name},
-		)
+		if self.repair_job:
+			job = frappe.get_doc("Repair Job", self.repair_job)
+			job.gate_pass_issued = 1
+			job.gate_pass_number = self.name
+			if job.job_status != "Gate Pass Issued":
+				job.job_status = "Gate Pass Issued"
+			job.save(ignore_permissions=True)
 
 	@frappe.whitelist()
 	def use_gate_pass(self):

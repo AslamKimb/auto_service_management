@@ -21,11 +21,11 @@ class CustomerAuthorization(Document):
 		"""Authorization is needed before work can begin."""
 		if self.repair_job:
 			status = frappe.db.get_value("Repair Job", self.repair_job, "job_status")
-			if status not in ("Diagnosed", "Awaiting Authorization"):
+			if status not in ("Estimate Prepared", "Waiting for Customer Approval", "Approved"):
 				frappe.throw(
 					_(
 						"Customer Authorization can only be created when the Repair Job "
-						"is in 'Diagnosed' or 'Awaiting Authorization' state. Current: {0}"
+						"is in 'Estimate Prepared', 'Waiting for Customer Approval', or 'Approved' state. Current: {0}"
 					).format(status)
 				)
 
@@ -53,17 +53,11 @@ class CustomerAuthorization(Document):
 			frappe.throw(_("Only pending authorizations can be approved."))
 		self.status = "Approved"
 		self.save()
-		# Update Repair Job authorization state
 		if self.repair_job:
-			frappe.db.set_value(
-				"Repair Job",
-				self.repair_job,
-				{
-					"customer_authorized": 1,
-					"authorization_date": self.authorization_date,
-					"authorized_by": self.authorized_by_user,
-				},
-			)
+			job = frappe.get_doc("Repair Job", self.repair_job)
+			job.authorization_date = self.authorization_date
+			job.authorized_by = self.authorized_by_user
+			job.authorize()
 
 	@frappe.whitelist()
 	def reject(self):

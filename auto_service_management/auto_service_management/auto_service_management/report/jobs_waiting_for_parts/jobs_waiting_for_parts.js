@@ -10,7 +10,7 @@ frappe.query_reports["Jobs Waiting for Parts"] = {
    "fieldname": "status",
    "label": "Line Status",
    "fieldtype": "Select",
-   "options": "Pending\nApproved"
+   "options": "Pending Approval\nApproved"
   }
  ]
 };
