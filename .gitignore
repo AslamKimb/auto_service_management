@@ -28,3 +28,9 @@ Thumbs.db
 
 # Isolated worktrees
 .worktrees/
+
+# Docker bench runtime data
+bench-data/
+.ruff_cache/
+.playwright-cli/
+.output/
