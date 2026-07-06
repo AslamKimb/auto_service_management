@@ -145,7 +145,6 @@ services:
       - ./bench-data/bench-home:/home/frappe/bench-home
     ports:
       - "8000:8000"
-      - "9000:9000"
     depends_on:
       setup:
         condition: service_completed_successfully
@@ -231,7 +230,7 @@ services:
   websocket:
     image: frappe/bench:latest
     restart: unless-stopped
-    command: ["bench", "serve", "--port", "9000"]
+    command: ["bench", "socketio"]
     working_dir: /home/frappe/bench-home/frappe-bench
     volumes:
       - ./bench-data/bench-home:/home/frappe/bench-home
