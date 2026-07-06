@@ -83,6 +83,8 @@ services:
         echo "=== Installing auto_service_management from local source ==="
         rm -rf apps/auto_service_management
         cp -r /app-source apps/auto_service_management
+        echo "=== Editable install for Python 3.14 compatibility ==="
+        env/bin/pip install -e apps/auto_service_management --no-deps
         printf 'auto_service_management\n' >> sites/apps.txt
         echo "App contents:"
         ls apps/auto_service_management/
@@ -107,6 +109,9 @@ services:
         bench --site auto-service.localhost install-app erpnext
         bench --site auto-service.localhost install-app auto_service_management
         bench --site auto-service.localhost migrate
+
+        echo "=== Configuring Socket.IO CORS ==="
+        bench set-config -gp allow_cors '["http://auto-service.localhost:8080", "http://auto-service.localhost"]'
 
         echo "=== Creating auto-service-test.localhost ==="
         bench new-site auto-service-test.localhost \

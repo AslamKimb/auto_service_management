@@ -6,10 +6,32 @@ from auto_service_management.auto_service_management.user_defaults import (
 	backfill_default_workspace_for_existing_users,
 )
 
+# All custom roles the app needs — created here because the exported Role
+# fixtures only export *existing* roles, they never create new ones.
+APP_ROLES = [
+	"Workshop Manager",
+	"Service Advisor",
+	"Parts Interpreter",
+	"Cashier",
+	"Security Gate Officer",
+	"Workshop Technician",
+]
+
 
 def execute():
+	_ensure_app_roles()
 	backfill_default_workspace_for_existing_users()
 	ensure_cashier_sales_invoice_custom_docperm()
+
+
+def _ensure_app_roles():
+	"""Insert any missing custom roles so downstream patches can reference them."""
+	for role_name in APP_ROLES:
+		if not frappe.db.exists("Role", role_name):
+			frappe.get_doc(
+				{"doctype": "Role", "role_name": role_name, "desk_access": 1}
+			).insert(ignore_permissions=True)
+	frappe.clear_cache()
 
 
 def ensure_cashier_sales_invoice_custom_docperm():

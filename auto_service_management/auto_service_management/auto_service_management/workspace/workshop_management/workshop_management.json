@@ -1,118 +1,120 @@
 {
- "charts": [],
- "content": "[{\"type\":\"header\",\"data\":{\"text\":\"Workshop Operations\",\"level\":4,\"col\":12}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vehicle Search\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Repair Job\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Open Repair Jobs\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Approval Queue\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Repair Queue\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Parts Queue\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"QC Queue\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Invoice Queue\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Gate Passes\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Service History\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Reports\",\"col\":3}}]",
- "doctype": "Workspace",
- "for_user": "",
- "hide_custom": 0,
- "icon": "toolbox",
- "is_hidden": 0,
- "label": "Workshop Management",
- "links": [],
- "module": "Auto Service Management",
- "name": "Workshop Management",
- "number_cards": [],
- "parent_page": "",
- "public": 1,
- "quick_lists": [],
- "roles": [
-  {
-   "role": "Workshop Manager"
-  },
-  {
-   "role": "Service Advisor"
-  },
-  {
-   "role": "Parts Interpreter"
-  },
-  {
-   "role": "Cashier"
-  },
-  {
-   "role": "Security Gate Officer"
-  },
-  {
-   "role": "Workshop Technician"
-  }
- ],
- "sequence_id": 1,
- "shortcuts": [
-  {
-   "color": "Blue",
-   "doc_view": "List",
-   "label": "Vehicle Search",
-   "link_to": "Customer Vehicle",
-   "type": "DocType"
-  },
-  {
-   "color": "Green",
-   "doc_view": "New",
-   "label": "New Repair Job",
-   "link_to": "Repair Job",
-   "type": "DocType"
-  },
-  {
-   "color": "Blue",
-   "doc_view": "",
-   "label": "Open Repair Jobs",
-   "link_to": "Open Repair Jobs",
-   "type": "Report"
-  },
-  {
-   "color": "Orange",
-   "doc_view": "List",
-   "label": "Approval Queue",
-   "link_to": "Customer Authorization",
-   "type": "DocType"
-  },
-  {
-   "color": "Blue",
-   "doc_view": "List",
-   "label": "Repair Queue",
-   "link_to": "Repair Job",
-   "type": "DocType"
-  },
-  {
-   "color": "Orange",
-   "doc_view": "",
-   "label": "Parts Queue",
-   "link_to": "Jobs Waiting for Parts",
-   "type": "Report"
-  },
-  {
-   "color": "Blue",
-   "doc_view": "List",
-   "label": "QC Queue",
-   "link_to": "Quality Check",
-   "type": "DocType"
-  },
-  {
-   "color": "Green",
-   "doc_view": "List",
-   "label": "Invoice Queue",
-   "link_to": "Sales Invoice",
-   "type": "DocType"
-  },
-  {
-   "color": "Blue",
-   "doc_view": "List",
-   "label": "Gate Passes",
-   "link_to": "Gate Pass",
-   "type": "DocType"
-  },
-  {
-   "color": "Blue",
-   "doc_view": "List",
-   "label": "Service History",
-   "link_to": "Service History",
-   "type": "DocType"
-  },
-  {
-   "color": "Blue",
-   "doc_view": "",
-   "label": "Reports",
-   "link_to": "Jobs by Status",
-   "type": "Report"
-  }
- ],
- "title": "Workshop Management"
+  "charts": [],
+  "content": "[{\"type\":\"header\",\"data\":{\"text\":\"Workshop Operations\",\"level\":4,\"col\":12}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vehicle Search\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Repair Job\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Open Repair Jobs\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Approval Queue\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Repair Queue\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Parts Queue\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"QC Queue\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Invoice Queue\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Gate Passes\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Service History\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Reports\",\"col\":3}}]",
+  "doctype": "Workspace",
+  "for_user": "",
+  "hide_custom": 0,
+  "icon": "toolbox",
+  "is_hidden": 0,
+  "label": "Workshop Management",
+  "links": [],
+  "module": "Auto Service Management",
+  "name": "Workshop Management",
+  "number_cards": [],
+  "parent_page": "",
+  "public": 1,
+  "quick_lists": [],
+  "roles": [
+    {
+      "role": "Workshop Manager"
+    },
+    {
+      "role": "Service Advisor"
+    },
+    {
+      "role": "Parts Interpreter"
+    },
+    {
+      "role": "Cashier"
+    },
+    {
+      "role": "Security Gate Officer"
+    },
+    {
+      "role": "Workshop Technician"
+    }
+  ],
+  "sequence_id": 1,
+  "shortcuts": [
+    {
+      "color": "Blue",
+      "doc_view": "List",
+      "label": "Vehicle Search",
+      "link_to": "Customer Vehicle",
+      "type": "DocType"
+    },
+    {
+      "color": "Green",
+      "doc_view": "New",
+      "label": "New Repair Job",
+      "link_to": "Repair Job",
+      "type": "DocType"
+    },
+    {
+      "color": "Blue",
+      "doc_view": "",
+      "label": "Open Repair Jobs",
+      "link_to": "Open Repair Jobs",
+      "type": "Report"
+    },
+    {
+      "color": "Orange",
+      "doc_view": "List",
+      "label": "Approval Queue",
+      "link_to": "Customer Authorization",
+      "type": "DocType"
+    },
+    {
+      "color": "Blue",
+      "doc_view": "List",
+      "label": "Repair Queue",
+      "link_to": "Repair Job",
+      "type": "DocType"
+    },
+    {
+      "color": "Orange",
+      "doc_view": "",
+      "label": "Parts Queue",
+      "link_to": "Jobs Waiting for Parts",
+      "type": "Report"
+    },
+    {
+      "color": "Blue",
+      "doc_view": "List",
+      "label": "QC Queue",
+      "link_to": "Quality Check",
+      "type": "DocType"
+    },
+    {
+      "color": "Green",
+      "doc_view": "List",
+      "label": "Invoice Queue",
+      "link_to": "Sales Invoice",
+      "type": "DocType"
+    },
+    {
+      "color": "Blue",
+      "doc_view": "List",
+      "label": "Gate Passes",
+      "link_to": "Gate Pass",
+      "type": "DocType"
+    },
+    {
+      "color": "Blue",
+      "doc_view": "List",
+      "label": "Service History",
+      "link_to": "Service History",
+      "type": "DocType"
+    },
+    {
+      "color": "Blue",
+      "doc_view": "",
+      "label": "Reports",
+      "link_to": "Jobs by Status",
+      "type": "Report"
+    }
+  ],
+  "title": "Workshop Management",
+  "type": "Workspace",
+  "app": "auto_service_management"
 }

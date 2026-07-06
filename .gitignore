@@ -34,3 +34,22 @@ bench-data/
 .ruff_cache/
 .playwright-cli/
 .output/
+# Debug and temp files
+_verify.sql
+check.py
+check_app_modules.py
+check_build.py
+check_module.py
+check_modules2.py
+check_redis.py
+cookies.txt
+cookies2.txt
+cookies3.txt
+desk_full.html
+flush_cache.py
+clear_cache.py
+query_db.py
+tmp_sql.txt
+tmp_sql2.txt
+tmp_sql3.txt
+output/
