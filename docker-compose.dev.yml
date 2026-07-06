@@ -1,0 +1,246 @@
+services:
+  db:
+    image: mariadb:11.8
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --innodb-buffer-pool-size=512M
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+    volumes:
+      - ./bench-data/db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uroot -padmin --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  redis-cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - ./bench-data/redis-cache:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redis-queue:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - ./bench-data/redis-queue:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redis-socketio:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - ./bench-data/redis-socketio:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  setup:
+    image: frappe/bench:latest
+    restart: "no"
+    command:
+      - bash
+      - -c
+      - |
+        set -ex
+        cd /home/frappe/bench-home
+
+        if [ -f frappe-bench/sites/apps.txt ]; then
+          echo "Bench already initialized"
+        else
+          echo "=== Initializing bench ==="
+          bench init --frappe-branch version-16 --python python3 --skip-redis-config-generation frappe-bench
+        fi
+
+        cd frappe-bench
+
+        if grep -q "auto_service_management" sites/apps.txt 2>/dev/null; then
+          echo "App already installed, skipping setup"
+          exit 0
+        fi
+
+        echo "=== Getting ERPNext ==="
+        if [ ! -d apps/erpnext ]; then
+          bench get-app erpnext --branch version-16
+        fi
+
+        echo "=== Installing auto_service_management from local source ==="
+        rm -rf apps/auto_service_management
+        cp -r /app-source apps/auto_service_management
+        printf 'auto_service_management\n' >> sites/apps.txt
+        echo "App contents:"
+        ls apps/auto_service_management/
+        test -f apps/auto_service_management/auto_service_management/__init__.py
+
+        echo "=== Configuring site ==="
+        bench set-config -gp redis_cache '"redis://redis-cache:6379"'
+        bench set-config -gp redis_queue '"redis://redis-queue:6379"'
+        bench set-config -gp redis_socketio '"redis://redis-socketio:6379"'
+        bench set-config -gp db_host '"db"'
+        bench set-config -gp db_port 3306
+        bench set-config -gp socketio_port 9000
+
+        echo "=== Creating auto-service.localhost ==="
+        bench new-site auto-service.localhost \
+          --mariadb-root-password admin \
+          --mariadb-user-host-login-scope=% \
+          --admin-password admin \
+          --set-default
+
+        echo "=== Installing apps on auto-service.localhost ==="
+        bench --site auto-service.localhost install-app erpnext
+        bench --site auto-service.localhost install-app auto_service_management
+        bench --site auto-service.localhost migrate
+
+        echo "=== Creating auto-service-test.localhost ==="
+        bench new-site auto-service-test.localhost \
+          --mariadb-root-password admin \
+          --mariadb-user-host-login-scope=% \
+          --admin-password admin
+
+        echo "=== Installing apps on auto-service-test.localhost ==="
+        bench --site auto-service-test.localhost install-app erpnext
+        bench --site auto-service-test.localhost install-app auto_service_management
+        bench --site auto-service-test.localhost migrate
+
+        echo "=== Building assets ==="
+        bench build --app auto_service_management
+
+        echo "=== Setup complete ==="
+    volumes:
+      - ./bench-data/bench-home:/home/frappe/bench-home
+      - ./auto_service_management:/app-source:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      redis-queue:
+        condition: service_healthy
+      redis-socketio:
+        condition: service_healthy
+
+  backend:
+    image: frappe/bench:latest
+    restart: unless-stopped
+    command: ["bench", "serve", "--port", "8000", "--noreload"]
+    working_dir: /home/frappe/bench-home/frappe-bench
+    volumes:
+      - ./bench-data/bench-home:/home/frappe/bench-home
+    ports:
+      - "8000:8000"
+      - "9000:9000"
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      redis-queue:
+        condition: service_healthy
+      redis-socketio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/api/method/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  frontend:
+    image: nginx:alpine
+    restart: unless-stopped
+    volumes:
+      - ./bench-data/bench-home:/home/frappe/bench-home:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  scheduler:
+    image: frappe/bench:latest
+    restart: unless-stopped
+    command: ["bench", "schedule"]
+    working_dir: /home/frappe/bench-home/frappe-bench
+    volumes:
+      - ./bench-data/bench-home:/home/frappe/bench-home
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+
+  queue-default:
+    image: frappe/bench:latest
+    restart: unless-stopped
+    command: ["bench", "worker", "--queue", "default"]
+    working_dir: /home/frappe/bench-home/frappe-bench
+    volumes:
+      - ./bench-data/bench-home:/home/frappe/bench-home
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+
+  queue-short:
+    image: frappe/bench:latest
+    restart: unless-stopped
+    command: ["bench", "worker", "--queue", "short"]
+    working_dir: /home/frappe/bench-home/frappe-bench
+    volumes:
+      - ./bench-data/bench-home:/home/frappe/bench-home
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+
+  queue-long:
+    image: frappe/bench:latest
+    restart: unless-stopped
+    command: ["bench", "worker", "--queue", "long"]
+    working_dir: /home/frappe/bench-home/frappe-bench
+    volumes:
+      - ./bench-data/bench-home:/home/frappe/bench-home
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+
+  websocket:
+    image: frappe/bench:latest
+    restart: unless-stopped
+    command: ["bench", "serve", "--port", "9000"]
+    working_dir: /home/frappe/bench-home/frappe-bench
+    volumes:
+      - ./bench-data/bench-home:/home/frappe/bench-home
+    ports:
+      - "9000:9000"
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis-socketio:
+        condition: service_healthy
