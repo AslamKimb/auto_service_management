@@ -188,10 +188,12 @@ def create_sales_order(repair_job):
 def create_material_request(repair_job):
 	"""Create a Material Request for parts needed by this Repair Job.
 
+	Tracks requested quantities on each Parts service line.
 	Returns the Material Request name.
 	"""
 	settings = get_settings()
 	items = []
+	eligible_lines = []
 	for line in repair_job.service_lines:
 		if line.service_type == "Parts" and line.item_code:
 			items.append(
@@ -202,6 +204,7 @@ def create_material_request(repair_job):
 					"schedule_date": frappe.utils.today(),
 				}
 			)
+			eligible_lines.append(line)
 
 	if not items:
 		frappe.throw(_("No parts service lines to request."))
@@ -215,6 +218,19 @@ def create_material_request(repair_job):
 		}
 	)
 	mr.insert(ignore_permissions=True)
+
+	# Track requested quantities on child lines
+	for line in eligible_lines:
+		frappe.db.set_value(
+			"Repair Service Line",
+			line.name,
+			{
+				"requested_qty": line.quantity,
+				"material_request": mr.name,
+				"stock_request_status": "Requested",
+			},
+		)
+
 	return mr.name
 
 
@@ -269,6 +285,64 @@ def create_sales_invoice(repair_job):
 	si.insert(ignore_permissions=True)
 	frappe.db.set_value("Repair Job", repair_job.name, {"sales_invoice": si.name})
 	return si.name
+
+
+# ---------------------------------------------------------------------------
+# Stock Entry (Material Issue)
+# ---------------------------------------------------------------------------
+
+
+def create_stock_entry_for_material_issue(repair_job):
+	"""Create a Stock Entry (Material Issue) for requested Parts lines.
+
+	Only covers lines where stock_request_status == "Requested".
+	Updates issued_qty and stock_request_status on each line.
+	Returns the Stock Entry name.
+	"""
+	settings = get_settings()
+	items = []
+	eligible_lines = []
+	for line in repair_job.service_lines:
+		if (
+			line.service_type == "Parts"
+			and line.item_code
+			and line.stock_request_status == "Requested"
+		):
+			items.append(
+				{
+					"item_code": line.item_code,
+					"qty": line.quantity,
+					"warehouse": getattr(settings, "source_warehouse", None),
+				}
+			)
+			eligible_lines.append(line)
+
+	if not items:
+		frappe.throw(_("No requested Parts lines to issue."))
+
+	se = frappe.get_doc(
+		{
+			"doctype": "Stock Entry",
+			"stock_entry_type": "Material Issue",
+			"company": settings.company,
+			"items": items,
+		}
+	)
+	se.insert(ignore_permissions=True)
+
+	# Update issued quantities on child lines
+	for line in eligible_lines:
+		frappe.db.set_value(
+			"Repair Service Line",
+			line.name,
+			{
+				"issued_qty": line.quantity,
+				"stock_entry": se.name,
+				"stock_request_status": "Fully Issued",
+			},
+		)
+
+	return se.name
 
 
 # ---------------------------------------------------------------------------

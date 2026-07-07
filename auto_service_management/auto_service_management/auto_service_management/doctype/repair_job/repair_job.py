@@ -78,10 +78,36 @@ class RepairJob(Document):
 
 	def calculate_totals(self):
 		total = 0
+		labour_hours = 0
+		labour_amount = 0
 		for line in self.service_lines or []:
 			line.calculate_amount()
 			total += line.amount or 0
+			if line.service_type == "Labour":
+				labour_hours += line.quantity or 0
+				labour_amount += line.amount or 0
 		self.total_amount = total
+		self.labour_total_hours = labour_hours
+		self.labour_total_amount = labour_amount
+
+	def get_labour_summary(self):
+		"""Return structured labour summary grouped by technician."""
+		lines = []
+		total_hours = 0
+		total_amount = 0
+		for line in self.service_lines or []:
+			if line.service_type != "Labour":
+				continue
+			entry = {
+				"technician": line.assigned_to,
+				"description": line.service_description,
+				"hours": line.quantity or 0,
+				"amount": line.amount or 0,
+			}
+			lines.append(entry)
+			total_hours += entry["hours"]
+			total_amount += entry["amount"]
+		return {"lines": lines, "total_hours": total_hours, "total_amount": total_amount}
 
 	def set_currency_from_settings(self):
 		if not self.currency:
@@ -308,7 +334,23 @@ class RepairJob(Document):
 
 	@frappe.whitelist()
 	def create_material_request(self):
+		"""Create Material Request for Parts lines. Blocks duplicate requests."""
 		self._require_write_permission()
+		# Guard: block if any eligible Parts line already has an active MR
+		for line in self.service_lines or []:
+			if (
+				line.service_type == "Parts"
+				and line.item_code
+				and line.status in ("Approved", "Completed")
+				and line.stock_request_status == "Requested"
+			):
+				frappe.throw(
+					_(
+						"Material Request already exists for line '{0}' (status: Requested). "
+						"Cancel the existing request before creating a new one."
+					).format(line.service_description or line.name)
+				)
+
 		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
 			create_material_request,
 		)
@@ -317,8 +359,30 @@ class RepairJob(Document):
 		return mr_name
 
 	@frappe.whitelist()
-	def create_sales_invoice(self):
+	def create_stock_entry(self):
+		"""Create Stock Entry (Material Issue) for requested Parts lines."""
 		self._require_write_permission()
+		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
+			create_stock_entry_for_material_issue,
+		)
+
+		se_name = create_stock_entry_for_material_issue(self)
+		self.reload()
+		return se_name
+
+	@frappe.whitelist()
+	def create_sales_invoice(self):
+		"""Create Sales Invoice. Blocks double-billing."""
+		self._require_write_permission()
+		# Guard: prevent double-billing
+		if self.sales_invoice:
+			frappe.throw(
+				_(
+					"Sales Invoice '{0}' already exists for this Repair Job. "
+					"Cannot create a duplicate invoice."
+				).format(self.sales_invoice)
+			)
+
 		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
 			create_sales_invoice,
 		)
@@ -349,6 +413,30 @@ class RepairJob(Document):
 		gp.insert(ignore_permissions=True)
 		self.reload()
 		return gp.name
+
+	# ------------------------------------------------------------------ #
+	#  Reporting helpers                                                   #
+	# ------------------------------------------------------------------ #
+
+	def get_shortage_report(self):
+		"""Return Parts lines where issued_qty < quantity (shortage)."""
+		shortages = []
+		for line in self.service_lines or []:
+			if line.service_type != "Parts":
+				continue
+			issued = line.issued_qty or 0
+			needed = line.quantity or 0
+			if needed > 0 and issued < needed:
+				shortages.append({
+					"line_name": line.name,
+					"description": line.service_description,
+					"item_code": line.item_code,
+					"requested_qty": line.requested_qty or 0,
+					"issued_qty": issued,
+					"needed_qty": needed,
+					"shortage_qty": needed - issued,
+				})
+		return shortages
 
 	# ------------------------------------------------------------------ #
 	#  Internal helpers                                                    #

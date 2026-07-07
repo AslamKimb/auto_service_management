@@ -1,83 +1,128 @@
 {
- "name": "Repair Service Line",
- "module": "Auto Service Management",
- "doctype": "DocType",
- "document_type": "Document",
- "engine": "InnoDB",
- "istable": 1,
- "fields": [
-  {
-   "fieldname": "service_type",
-   "fieldtype": "Select",
-   "label": "Service Type",
-   "options": "\nLabour\nParts\nSubcontract",
-   "reqd": 1
-  },
-  {
-   "fieldname": "service_description",
-   "fieldtype": "Small Text",
-   "label": "Description",
-   "reqd": 1
-  },
-  {
-   "fieldname": "column_break_service",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "item_code",
-   "fieldtype": "Link",
-   "label": "Item",
-   "options": "Item"
-  },
-  {
-   "fieldname": "quantity",
-   "fieldtype": "Float",
-   "label": "Quantity",
-   "default": 1
-  },
-  {
-   "fieldname": "column_break_service2",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "rate",
-   "fieldtype": "Currency",
-   "label": "Rate",
-   "options": "currency"
-  },
-  {
-   "fieldname": "amount",
-   "fieldtype": "Currency",
-   "label": "Amount",
-   "options": "currency",
-   "read_only": 1
-  },
-  {
-   "fieldname": "status",
-   "fieldtype": "Select",
-   "label": "Status",
-   "options": "\nPending Approval\nApproved\nRejected\nCompleted\nCancelled",
-   "default": "Pending Approval"
-  },
-  {
-   "fieldname": "assigned_to",
-   "fieldtype": "Link",
-   "label": "Assigned Technician",
-   "options": "User"
-  },
-  {
-   "fieldname": "estimated_hours",
-   "fieldtype": "Float",
-   "label": "Estimated Hours"
-  },
-  {
-   "fieldname": "actual_hours",
-   "fieldtype": "Float",
-   "label": "Actual Hours",
-   "read_only": 1
-  }
- ],
- "permissions": [],
- "sort_field": "modified",
- "sort_order": "DESC"
+  "module": "Auto Service Management",
+  "sort_order": "DESC",
+  "engine": "InnoDB",
+  "permissions": [],
+  "istable": true,
+  "document_type": "Document",
+  "sort_field": "modified",
+  "name": "Repair Service Line",
+  "fields": [
+    {
+      "reqd": 1,
+      "fieldtype": "Select",
+      "options": "\nLabour\nParts\nSubcontract",
+      "label": "Service Type",
+      "fieldname": "service_type"
+    },
+    {
+      "reqd": 1,
+      "fieldtype": "Small Text",
+      "label": "Description",
+      "fieldname": "service_description"
+    },
+    {
+      "fieldname": "column_break_service",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldtype": "Link",
+      "options": "Item",
+      "label": "Item",
+      "fieldname": "item_code"
+    },
+    {
+      "fieldtype": "Float",
+      "default": 1,
+      "label": "Quantity",
+      "fieldname": "quantity"
+    },
+    {
+      "fieldname": "column_break_service2",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldtype": "Currency",
+      "options": "currency",
+      "label": "Rate",
+      "fieldname": "rate"
+    },
+    {
+      "read_only": 1,
+      "fieldtype": "Currency",
+      "options": "currency",
+      "label": "Amount",
+      "fieldname": "amount"
+    },
+    {
+      "default": "Pending Approval",
+      "fieldtype": "Select",
+      "options": "\nPending Approval\nApproved\nRejected\nCompleted\nCancelled",
+      "label": "Status",
+      "fieldname": "status"
+    },
+    {
+      "fieldtype": "Link",
+      "options": "User",
+      "label": "Assigned Technician",
+      "fieldname": "assigned_to"
+    },
+    {
+      "fieldtype": "Float",
+      "label": "Estimated Hours",
+      "fieldname": "estimated_hours"
+    },
+    {
+      "read_only": 1,
+      "fieldtype": "Float",
+      "label": "Actual Hours",
+      "fieldname": "actual_hours"
+    },
+    {
+      "fieldtype": "Section Break",
+      "label": "Stock Tracking",
+      "fieldname": "stock_section_break"
+    },
+    {
+      "read_only": 1,
+      "fieldtype": "Float",
+      "default": 0,
+      "label": "Requested Qty",
+      "fieldname": "requested_qty"
+    },
+    {
+      "read_only": 1,
+      "fieldtype": "Float",
+      "default": 0,
+      "label": "Issued Qty",
+      "fieldname": "issued_qty"
+    },
+    {
+      "fieldname": "stock_column_break",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "stock_request_status",
+      "default": "Not Requested",
+      "fieldtype": "Select",
+      "label": "Stock Request Status",
+      "options": "\nNot Requested\nRequested\nFully Issued\nCancelled",
+      "read_only": 1
+    },
+    {
+      "read_only": 1,
+      "fieldtype": "Link",
+      "options": "Material Request",
+      "label": "Material Request",
+      "fieldname": "material_request"
+    },
+    {
+      "read_only": 1,
+      "fieldtype": "Link",
+      "options": "Stock Entry",
+      "label": "Stock Entry",
+      "fieldname": "stock_entry"
+    }
+  ],
+  "doctype": "DocType"
 }

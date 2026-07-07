@@ -230,10 +230,29 @@
       "label": "Road Test Passed"
     },
     {
-      "fieldname": "billing_section",
       "fieldtype": "Section Break",
+      "collapsible": 1,
+      "label": "Labour Summary",
+      "fieldname": "labour_section"
+    },
+    {
+      "read_only": 1,
+      "fieldtype": "Float",
+      "label": "Total Labour Hours",
+      "fieldname": "labour_total_hours"
+    },
+    {
+      "read_only": 1,
+      "fieldtype": "Currency",
+      "label": "Total Labour Cost",
+      "fieldname": "labour_total_amount",
+      "options": "currency"
+    },
+    {
+      "fieldtype": "Section Break",
+      "collapsible": 1,
       "label": "Billing and Release",
-      "collapsible": 1
+      "fieldname": "billing_section"
     },
     {
       "fieldname": "sales_invoice",
