@@ -73,3 +73,7 @@ after_install = [
 after_migrate = [
 	"auto_service_management.auto_service_management.desktop.create_app_desktop_icon",
 ]
+before_tests = [
+	"auto_service_management.auto_service_management.desktop.setup_desktop",
+]
+
