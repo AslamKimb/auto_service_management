@@ -24,6 +24,20 @@ def _ensure_workspace_app_field():
 	)
 
 
+def _ensure_workspace_type_field():
+	"""Set the ``type`` field on the Workspace if it is NULL.
+
+	Required for Frappe v16 — ``type`` is a required field on Workspace.
+	"""
+	frappe.db.set_value(
+		"Workspace",
+		"Workshop Management",
+		"type",
+		"Workspace",
+		update_modified=False,
+	)
+
+
 def _ensure_workspace_sidebar():
 	"""Create the Workspace Sidebar entry if it does not exist.
 
@@ -71,35 +85,56 @@ def create_app_desktop_icon():
 	Called from ``after_install``, ``after_migrate``, and ``before_tests``
 	/hooks so fresh installs, existing deployments, and test runs all get
 	the icon automatically.
+
+	In Frappe v16, desk icons must use ``link_type = "Workspace Sidebar"``
+	with ``link_to`` set to the workspace name — NOT ``link_type = "External"``.
 	"""
 	app_name = "auto_service_management"
 	app_title = "Auto Service Management"
+	workspace_name = "Workshop Management"
 
-	# Skip if an App-type icon already exists for this app
-	if frappe.db.exists("Desktop Icon", {"icon_type": "App", "app": app_name}):
+	# Clean up any stale External-type icon left from earlier code
+	stale = frappe.db.exists(
+		"Desktop Icon",
+		{"icon_type": "App", "app": app_name, "link_type": "External"},
+	)
+	if stale:
+		frappe.delete_doc("Desktop Icon", stale, ignore_permissions=True)
+
+	# Skip if a correct Workspace-Sidebar-type icon already exists
+	if frappe.db.exists(
+		"Desktop Icon",
+		{"icon_type": "App", "app": app_name, "link_type": "Workspace Sidebar"},
+	):
 		return
 
 	icon = frappe.new_doc("Desktop Icon")
 	icon.label = app_title
 	icon.icon_type = "App"
-	icon.link_type = "External"
+	icon.link_type = "Workspace Sidebar"
+	icon.link_to = workspace_name
 	icon.app = app_name
-	icon.link = "/app/workshop-management"
 	icon.standard = 1
 	icon.idx = 0
-	icon.insert(ignore_if_duplicate=True)
+	icon.insert(ignore_if_duplicate=True, ignore_links=True)
 
 	frappe.clear_cache()
 
 
 def setup_desktop():
-	"""Run all desktop setup steps: icon, workspace app field, sidebar.
+	"""Run all desktop setup steps: icon, workspace fields, sidebar.
 
-	Called from ``before_tests`` hook.
+	Called from ``after_install``, ``after_migrate``, and ``before_tests``
+	/hooks so fresh installs, existing deployments, and test runs all get
+	the full desk setup automatically.
+
+	Order matters: workspace fields and sidebar must exist before the
+	Desktop Icon (which validates its link_to against Workspace Sidebar).
 	"""
-	create_app_desktop_icon()
 	_ensure_workspace_app_field()
+	_ensure_workspace_type_field()
 	_ensure_workspace_sidebar()
+	create_app_desktop_icon()
 
 
 def ensure_permission():

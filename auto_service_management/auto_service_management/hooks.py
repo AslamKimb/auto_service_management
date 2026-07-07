@@ -68,12 +68,13 @@ doc_events = {
 
 # Lifecycle hooks — ensure Desktop Icon records exist after install/migrate
 after_install = [
-	"auto_service_management.auto_service_management.desktop.create_app_desktop_icon",
+	"auto_service_management.auto_service_management.desktop.setup_desktop",
 ]
 after_migrate = [
-	"auto_service_management.auto_service_management.desktop.create_app_desktop_icon",
+	"auto_service_management.auto_service_management.desktop.setup_desktop",
 ]
 before_tests = [
 	"auto_service_management.auto_service_management.desktop.setup_desktop",
 ]
+
 
