@@ -103,6 +103,63 @@ class TestPhase6Contracts(UnitTestCase):
 		self.assertIn("vehicle-silhouette", html)
 		self.assertIn("damage_marks", html)
 
+	def test_job_card_print_includes_intake_fuel_level(self):
+		module_root = Path(__file__).parents[1]
+		path = module_root / "print_format" / "job_card" / "job_card.json"
+		html = json.loads(path.read_text(encoding="utf-8"))["html"]
+
+		self.assertIn("doc.fuel_level", html)
+
+	def test_repair_job_related_document_contract_uses_links_not_inline_fields(self):
+		module_root = Path(__file__).parents[1]
+		path = module_root / "doctype" / "repair_job" / "repair_job.json"
+		doctype = json.loads(path.read_text(encoding="utf-8"))
+		fields = {field["fieldname"]: field for field in doctype["fields"]}
+
+		self.assertIn("walkaround_inspection", fields)
+		self.assertEqual(fields["walkaround_inspection"]["fieldtype"], "Link")
+		self.assertEqual(fields["walkaround_inspection"]["options"], "Walkaround Inspection")
+		self.assertIn("diagnosis_report", fields)
+		self.assertEqual(fields["diagnosis_report"]["fieldtype"], "Link")
+		self.assertEqual(fields["diagnosis_report"]["options"], "Diagnosis Report")
+		self.assertIn("customer_authorization", fields)
+		self.assertEqual(fields["customer_authorization"]["fieldtype"], "Link")
+		self.assertEqual(fields["customer_authorization"]["options"], "Customer Authorization")
+		self.assertIn("quality_check", fields)
+		self.assertEqual(fields["quality_check"]["fieldtype"], "Link")
+		self.assertEqual(fields["quality_check"]["options"], "Quality Check")
+		self.assertIn("road_test_report", fields)
+		self.assertEqual(fields["road_test_report"]["fieldtype"], "Link")
+		self.assertEqual(fields["road_test_report"]["options"], "Road Test Report")
+		self.assertIn("gate_pass", fields)
+		self.assertEqual(fields["gate_pass"]["fieldtype"], "Link")
+		self.assertEqual(fields["gate_pass"]["options"], "Gate Pass")
+
+		for removed in (
+			"walkaround_inspection_done",
+			"customer_authorized",
+			"authorization_date",
+			"authorized_by",
+			"authorization_notes",
+			"quality_check_passed",
+			"quality_check_notes",
+			"road_test_required",
+			"road_test_passed",
+			"gate_pass_issued",
+			"gate_pass_number",
+			"labour_total_hours",
+			"labour_total_amount",
+		):
+			self.assertNotIn(removed, fields)
+
+	def test_repair_summary_print_uses_linked_quality_check_status(self):
+		module_root = Path(__file__).parents[1]
+		path = module_root / "print_format" / "repair_summary" / "repair_summary.json"
+		html = json.loads(path.read_text(encoding="utf-8"))["html"]
+
+		self.assertIn("doc.quality_check", html)
+		self.assertIn("Quality Check", html)
+
 	def test_workspace_content_references_declared_shortcuts(self):
 		module_root = Path(__file__).parents[1]
 		path = module_root / "workspace" / "workshop_management" / "workshop_management.json"
@@ -168,12 +225,12 @@ class TestPhase6Contracts(UnitTestCase):
 		self.assertIn("/app/workshop-management", hooks_source)
 
 	def test_hooks_declares_lifecycle_hooks_for_desktop_icon(self):
-		"""hooks.py must declare after_install and after_migrate to ensure Desktop Icon exists."""
+		"""hooks.py must declare lifecycle hooks that run the full desktop setup."""
 		hooks_root = Path(__file__).parents[2]  # hooks.py is at single-nested package level
 		hooks_source = (hooks_root / "hooks.py").read_text(encoding="utf-8")
 		self.assertIn("after_install", hooks_source)
 		self.assertIn("after_migrate", hooks_source)
-		self.assertIn("desktop.create_app_desktop_icon", hooks_source)
+		self.assertIn("desktop.setup_desktop", hooks_source)
 
 	def test_desktop_module_exists_with_required_functions(self):
 		"""desktop.py must exist and export create_app_desktop_icon and ensure_permission."""

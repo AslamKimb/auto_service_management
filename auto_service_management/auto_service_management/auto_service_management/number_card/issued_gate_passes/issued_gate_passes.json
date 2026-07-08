@@ -1,0 +1,15 @@
+{
+ "document_type": "Gate Pass",
+ "doctype": "Number Card",
+ "filters_json": "[[\"Gate Pass\",\"status\",\"=\",\"Issued\"]]",
+ "function": "Count",
+ "is_public": 1,
+ "is_standard": 1,
+ "label": "Issued Gate Passes",
+ "module": "Auto Service Management",
+ "name": "Issued Gate Passes",
+ "show_full_number": 0,
+ "show_percentage_stats": 1,
+ "stats_time_interval": "Daily",
+ "type": "Document Type"
+}

@@ -6,7 +6,15 @@ Management workspace is automatically linked as a child icon by Frappe's
 ``create_desktop_icons_from_workspace`` logic.
 """
 
+import json
+
 import frappe
+
+from auto_service_management.auto_service_management.workspace_dashboard import (
+	WORKSPACE_LINK_CARDS,
+	WORKSPACE_SIDEBAR_HOME,
+	WORKSPACE_SIDEBAR_SECTIONS,
+)
 
 
 def _ensure_workspace_app_field():
@@ -39,44 +47,64 @@ def _ensure_workspace_type_field():
 
 
 def _ensure_workspace_sidebar():
-	"""Create the Workspace Sidebar entry if it does not exist.
+	"""Rebuild the app-owned Workspace Sidebar for the workshop workspace.
 
 	Frappe v16's desk loads workspace route resolution from Workspace
 	Sidebar records. Without it, clicking the app icon gives a 404.
+	The app owns this sidebar explicitly so migrate/tests converge existing
+	sites to the approved grouped navigation.
 	"""
 	sidebar_name = "Workshop Management"
 	if frappe.db.exists("Workspace Sidebar", sidebar_name):
-		return
+		sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
+	else:
+		sidebar = frappe.new_doc("Workspace Sidebar")
+		sidebar.name = sidebar_name
 
-	frappe.get_doc(
-		{
-			"doctype": "Workspace Sidebar",
-			"name": sidebar_name,
-			"title": sidebar_name,
-			"app": "auto_service_management",
-			"standard": 1,
-		}
-	).insert(ignore_permissions=True, ignore_if_duplicate=True)
+	sidebar.title = sidebar_name
+	sidebar.app = "auto_service_management"
+	sidebar.standard = 1
+	sidebar.set("items", [])
 
-	# Add the sidebar item linking to the workspace
-	existing_item = frappe.db.exists(
-		"Workspace Sidebar Item",
-		{"parent": sidebar_name, "link_to": "Workshop Management"},
-	)
-	if not existing_item:
-		frappe.get_doc(
-			{
-				"doctype": "Workspace Sidebar Item",
-				"parent": sidebar_name,
-				"parenttype": "Workspace Sidebar",
-				"parentfield": "items",
-				"label": "Workshop Management",
-				"link_type": "Workspace",
-				"link_to": "Workshop Management",
-				"type": "Link",
-				"idx": 0,
-			}
-		).insert(ignore_permissions=True)
+	for item in _get_workspace_sidebar_items():
+		sidebar.append("items", item)
+
+	if sidebar.is_new():
+		sidebar.insert(ignore_permissions=True)
+	else:
+		sidebar.save(ignore_permissions=True)
+
+	frappe.clear_cache()
+
+
+def _build_sidebar_link(item, idx, *, child=0):
+	sidebar_item = {
+		"label": item["label"],
+		"type": "Link",
+		"link_type": item["link_type"],
+		"link_to": item["link_to"],
+		"idx": idx,
+		"child": child,
+	}
+	if item.get("is_query_report"):
+		sidebar_item["is_query_report"] = item["is_query_report"]
+	if item.get("route_options") is not None:
+		sidebar_item["route_options"] = json.dumps(item["route_options"])
+	return sidebar_item
+
+
+def _get_workspace_sidebar_items():
+	items = [_build_sidebar_link(WORKSPACE_SIDEBAR_HOME, 1)]
+	idx = 2
+
+	for section_label in WORKSPACE_LINK_CARDS:
+		items.append({"label": section_label, "type": "Section Break", "idx": idx})
+		idx += 1
+		for item in WORKSPACE_SIDEBAR_SECTIONS[section_label]:
+			items.append(_build_sidebar_link(item, idx, child=1))
+			idx += 1
+
+	return items
 
 
 def create_app_desktop_icon():

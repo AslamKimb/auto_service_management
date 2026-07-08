@@ -30,8 +30,13 @@ VALID_TRANSITIONS = {
 
 
 class RepairJob(Document):
+	def before_validate(self):
+		self.sync_customer_and_vehicle()
+		self.resolve_primary_related_documents()
+
 	def validate(self):
 		self.validate_intake_requirements()
+		self.validate_primary_related_documents()
 		self.validate_status_transition()
 		self.calculate_totals()
 		self.set_currency_from_settings()
@@ -42,6 +47,63 @@ class RepairJob(Document):
 			frappe.throw(_("Odometer In (km) is required before creating a Repair Job."))
 		if not self.customer_concern or not str(self.customer_concern).strip():
 			frappe.throw(_("Reason for visit is required before creating a Repair Job."))
+		if not self.customer_vehicle:
+			frappe.throw(_("Customer Vehicle is required before creating a Repair Job."))
+		if not self.customer:
+			frappe.throw(_("Customer is required before creating a Repair Job."))
+
+	def sync_customer_and_vehicle(self):
+		if not self.customer_vehicle:
+			return
+		vehicle_customer = frappe.db.get_value("Customer Vehicle", self.customer_vehicle, "customer")
+		if not vehicle_customer:
+			return
+		if not self.customer:
+			self.customer = vehicle_customer
+		elif self.customer != vehicle_customer:
+			frappe.throw(_("Selected Customer Vehicle does not belong to customer {0}.").format(self.customer))
+
+	def resolve_primary_related_documents(self):
+		if self.is_new():
+			return
+		for fieldname, doctype in (
+			("walkaround_inspection", "Walkaround Inspection"),
+			("diagnosis_report", "Diagnosis Report"),
+			("customer_authorization", "Customer Authorization"),
+			("quality_check", "Quality Check"),
+			("road_test_report", "Road Test Report"),
+			("gate_pass", "Gate Pass"),
+		):
+			if getattr(self, fieldname, None):
+				continue
+			linked_name = frappe.db.get_value(doctype, {"repair_job": self.name}, "name")
+			if linked_name:
+				setattr(self, fieldname, linked_name)
+
+	def validate_primary_related_documents(self):
+		for fieldname, doctype, matching_field in (
+			("walkaround_inspection", "Walkaround Inspection", "customer_vehicle"),
+			("diagnosis_report", "Diagnosis Report", "customer_vehicle"),
+			("customer_authorization", "Customer Authorization", "customer"),
+			("quality_check", "Quality Check", "customer_vehicle"),
+			("road_test_report", "Road Test Report", "customer_vehicle"),
+			("gate_pass", "Gate Pass", "customer_vehicle"),
+		):
+			linked_name = getattr(self, fieldname, None)
+			if not linked_name:
+				continue
+			linked_row = frappe.db.get_value(doctype, linked_name, ["repair_job", matching_field], as_dict=True)
+			if not linked_row:
+				frappe.throw(_("{0} {1} does not exist.").format(doctype, linked_name))
+			if linked_row.repair_job and not self.is_new() and linked_row.repair_job != self.name:
+				frappe.throw(_("{0} {1} is linked to a different Repair Job.").format(doctype, linked_name))
+			expected_value = getattr(self, matching_field, None)
+			if expected_value and linked_row.get(matching_field) and linked_row.get(matching_field) != expected_value:
+				frappe.throw(
+					_("{0} {1} does not match this Repair Job's {2}.").format(
+						doctype, linked_name, frappe.unscrub(matching_field)
+					)
+				)
 
 	def before_save(self):
 		if self.is_new():
@@ -78,17 +140,10 @@ class RepairJob(Document):
 
 	def calculate_totals(self):
 		total = 0
-		labour_hours = 0
-		labour_amount = 0
 		for line in self.service_lines or []:
 			line.calculate_amount()
 			total += line.amount or 0
-			if line.service_type == "Labour":
-				labour_hours += line.quantity or 0
-				labour_amount += line.amount or 0
 		self.total_amount = total
-		self.labour_total_hours = labour_hours
-		self.labour_total_amount = labour_amount
 
 	def get_labour_summary(self):
 		"""Return structured labour summary grouped by technician."""
@@ -150,6 +205,7 @@ class RepairJob(Document):
 	@frappe.whitelist()
 	def start_diagnosis(self):
 		self._require_write_permission()
+		self._require_primary_document("walkaround_inspection", "Walkaround Inspection")
 		self._transition_to("Diagnosis")
 		self.save()
 		self._write_log("start_diagnosis")
@@ -157,6 +213,7 @@ class RepairJob(Document):
 	@frappe.whitelist()
 	def prepare_estimate(self):
 		self._require_write_permission()
+		self._require_primary_document("diagnosis_report", "Diagnosis Report")
 		self._transition_to("Estimate Prepared")
 		self._normalize_pending_approval_lines()
 		self.save()
@@ -165,6 +222,7 @@ class RepairJob(Document):
 	@frappe.whitelist()
 	def complete_diagnosis(self):
 		self._require_write_permission()
+		self._require_primary_document("diagnosis_report", "Diagnosis Report")
 		if self.job_status != "Estimate Prepared":
 			self._transition_to("Estimate Prepared")
 			self._normalize_pending_approval_lines()
@@ -174,6 +232,7 @@ class RepairJob(Document):
 	@frappe.whitelist()
 	def request_authorization(self):
 		self._require_write_permission()
+		self._require_primary_document("diagnosis_report", "Diagnosis Report")
 		if self.job_status == "Diagnosis":
 			self._transition_to("Estimate Prepared")
 			self._normalize_pending_approval_lines()
@@ -187,13 +246,11 @@ class RepairJob(Document):
 	@frappe.whitelist()
 	def authorize(self):
 		self._require_write_permission()
+		self._require_approved_authorization()
 		self._approve_remaining_pending_lines()
 		if not any(line.status == "Approved" for line in self.service_lines or []):
 			frappe.throw(_("At least one service line must be approved before starting repair work."))
 		self._transition_to("Approved")
-		self.customer_authorized = 1
-		self.authorization_date = datetime.now()
-		self.authorized_by = frappe.session.user
 		self.save()
 		self._write_log("authorized")
 
@@ -223,8 +280,7 @@ class RepairJob(Document):
 	def start_work(self):
 		"""Begin repair work. Requires authorization."""
 		self._require_write_permission()
-		if not self.customer_authorized:
-			frappe.throw(_("Customer authorization is required before starting work."))
+		self._require_approved_authorization()
 		if not any(line.status == "Approved" for line in self.service_lines or []):
 			frappe.throw(_("At least one approved service line is required before starting work."))
 		self._transition_to("In Repair")
@@ -252,7 +308,8 @@ class RepairJob(Document):
 	@frappe.whitelist()
 	def pass_qc(self):
 		self._require_write_permission()
-		self.quality_check_passed = 1
+		self._require_passed_quality_check()
+		self._require_passed_road_test_if_needed()
 		self._transition_to("Ready for Invoice")
 		self.save()
 		self._write_log("pass_qc")
@@ -277,6 +334,7 @@ class RepairJob(Document):
 	def close(self):
 		"""Close the job. Creates Service History and updates vehicle."""
 		self._require_write_permission()
+		self._require_issued_gate_pass()
 		self._transition_to("Closed")
 		self.closed_on = datetime.now()
 		self.closed_by = frappe.session.user
@@ -288,6 +346,7 @@ class RepairJob(Document):
 	@frappe.whitelist()
 	def close_as_diagnosis_only(self):
 		self._require_write_permission()
+		self._require_issued_gate_pass()
 		if any(line.status in {"Pending Approval", "Approved"} for line in self.service_lines or []):
 			frappe.throw(_("Diagnosis-only closure requires all repair recommendations to be rejected, cancelled, or completed."))
 		self._transition_to("Closed - Diagnosis Only")
@@ -444,6 +503,40 @@ class RepairJob(Document):
 
 	def _transition_to(self, target_status):
 		self.job_status = target_status
+
+	def _require_primary_document(self, fieldname, label):
+		self.resolve_primary_related_documents()
+		if not getattr(self, fieldname, None):
+			frappe.throw(_("{0} must be linked to this Repair Job before continuing.").format(label))
+
+	def _require_approved_authorization(self):
+		self._require_primary_document("customer_authorization", "Customer Authorization")
+		authorization = frappe.get_doc("Customer Authorization", self.customer_authorization)
+		if authorization.status != "Approved":
+			frappe.throw(_("Customer Authorization must be approved before continuing."))
+
+	def _require_passed_quality_check(self):
+		self._require_primary_document("quality_check", "Quality Check")
+		quality_check = frappe.get_doc("Quality Check", self.quality_check)
+		if quality_check.status != "Passed":
+			frappe.throw(_("Quality Check must be in Passed status before continuing."))
+
+	def _require_passed_road_test_if_needed(self):
+		if not self.diagnosis_report:
+			return
+		road_test_required = frappe.db.get_value("Diagnosis Report", self.diagnosis_report, "road_test_required")
+		if not road_test_required:
+			return
+		self._require_primary_document("road_test_report", "Road Test Report")
+		road_test = frappe.get_doc("Road Test Report", self.road_test_report)
+		if road_test.status != "Passed":
+			frappe.throw(_("Road Test Report must be in Passed status before continuing."))
+
+	def _require_issued_gate_pass(self):
+		self._require_primary_document("gate_pass", "Gate Pass")
+		gate_pass = frappe.get_doc("Gate Pass", self.gate_pass)
+		if gate_pass.status not in {"Issued", "Used"}:
+			frappe.throw(_("Gate Pass must be issued before closing the Repair Job."))
 
 	def _coerce_line_names(self, line_names):
 		if not line_names:

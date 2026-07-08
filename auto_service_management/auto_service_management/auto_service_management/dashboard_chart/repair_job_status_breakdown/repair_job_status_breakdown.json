@@ -1,0 +1,15 @@
+{
+ "chart_name": "Repair Job Status Breakdown",
+ "chart_type": "Group By",
+ "doctype": "Dashboard Chart",
+ "document_type": "Repair Job",
+ "filters_json": "[]",
+ "group_by_based_on": "job_status",
+ "group_by_type": "Count",
+ "is_public": 1,
+ "is_standard": 1,
+ "module": "Auto Service Management",
+ "name": "Repair Job Status Breakdown",
+ "number_of_groups": 20,
+ "type": "Donut"
+}

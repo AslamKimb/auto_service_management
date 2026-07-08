@@ -1,0 +1,15 @@
+{
+ "document_type": "Fleet Service Campaign",
+ "doctype": "Number Card",
+ "filters_json": "[]",
+ "function": "Count",
+ "is_public": 1,
+ "is_standard": 1,
+ "label": "Fleet Service Campaigns",
+ "module": "Auto Service Management",
+ "name": "Fleet Service Campaigns",
+ "show_full_number": 0,
+ "show_percentage_stats": 1,
+ "stats_time_interval": "Monthly",
+ "type": "Document Type"
+}

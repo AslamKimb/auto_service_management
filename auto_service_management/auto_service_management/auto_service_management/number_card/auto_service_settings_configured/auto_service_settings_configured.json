@@ -1,0 +1,14 @@
+{
+ "document_type": "Repair Job",
+ "doctype": "Number Card",
+ "filters_json": "[]",
+ "is_public": 1,
+ "is_standard": 1,
+ "label": "Auto Service Settings Configured",
+ "method": "auto_service_management.auto_service_management.workspace_dashboard.get_auto_service_settings_configured_card_data",
+ "module": "Auto Service Management",
+ "name": "Auto Service Settings Configured",
+ "show_full_number": 1,
+ "show_percentage_stats": 0,
+ "type": "Custom"
+}

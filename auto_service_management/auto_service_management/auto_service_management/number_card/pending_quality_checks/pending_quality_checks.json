@@ -1,0 +1,15 @@
+{
+ "document_type": "Quality Check",
+ "doctype": "Number Card",
+ "filters_json": "[[\"Quality Check\",\"status\",\"=\",\"Pending\"]]",
+ "function": "Count",
+ "is_public": 1,
+ "is_standard": 1,
+ "label": "Pending Quality Checks",
+ "module": "Auto Service Management",
+ "name": "Pending Quality Checks",
+ "show_full_number": 0,
+ "show_percentage_stats": 1,
+ "stats_time_interval": "Daily",
+ "type": "Document Type"
+}

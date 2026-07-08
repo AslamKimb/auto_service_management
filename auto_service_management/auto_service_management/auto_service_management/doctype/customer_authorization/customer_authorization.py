@@ -10,9 +10,25 @@ from frappe.model.document import Document
 
 class CustomerAuthorization(Document):
 	def validate(self):
+		self.sync_with_repair_job()
 		self.validate_repair_job_state()
+		self.validate_unique_for_repair_job()
 		self.validate_amount()
 		self.check_expiry()
+
+	def on_update(self):
+		self.sync_primary_link()
+
+	def sync_with_repair_job(self):
+		if not self.repair_job:
+			return
+		job = frappe.get_doc("Repair Job", self.repair_job)
+		if not self.customer:
+			self.customer = job.customer
+		elif self.customer != job.customer:
+			frappe.throw(_("Customer Authorization customer must match the linked Repair Job customer."))
+		if not self.currency and job.currency:
+			self.currency = job.currency
 
 	def _require_write_permission(self):
 		self.check_permission("write")
@@ -28,6 +44,16 @@ class CustomerAuthorization(Document):
 						"is in 'Estimate Prepared', 'Waiting for Customer Approval', or 'Approved' state. Current: {0}"
 					).format(status)
 				)
+
+	def validate_unique_for_repair_job(self):
+		if not self.repair_job:
+			return
+		existing = frappe.db.exists(
+			"Customer Authorization",
+			{"repair_job": self.repair_job, "name": ["!=", self.name or ""]},
+		)
+		if existing:
+			frappe.throw(_("Only one Customer Authorization may be linked to a Repair Job."))
 
 	def validate_amount(self):
 		"""Approved amount must be positive."""
@@ -55,8 +81,11 @@ class CustomerAuthorization(Document):
 		self.save()
 		if self.repair_job:
 			job = frappe.get_doc("Repair Job", self.repair_job)
-			job.authorization_date = self.authorization_date
-			job.authorized_by = self.authorized_by_user
+			if job.customer_authorization != self.name:
+				frappe.db.set_value(
+					"Repair Job", self.repair_job, "customer_authorization", self.name, update_modified=False
+				)
+				job.reload()
 			job.authorize()
 
 	@frappe.whitelist()
@@ -67,3 +96,11 @@ class CustomerAuthorization(Document):
 			frappe.throw(_("Only pending authorizations can be rejected."))
 		self.status = "Rejected"
 		self.save()
+
+	def sync_primary_link(self):
+		if not self.repair_job:
+			return
+		if frappe.db.get_value("Repair Job", self.repair_job, "customer_authorization") != self.name:
+			frappe.db.set_value(
+				"Repair Job", self.repair_job, "customer_authorization", self.name, update_modified=False
+			)

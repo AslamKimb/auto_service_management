@@ -1,0 +1,16 @@
+{
+ "based_on": "creation",
+ "chart_name": "Repair Job Intake Trend",
+ "chart_type": "Count",
+ "doctype": "Dashboard Chart",
+ "document_type": "Repair Job",
+ "filters_json": "[]",
+ "is_public": 1,
+ "is_standard": 1,
+ "module": "Auto Service Management",
+ "name": "Repair Job Intake Trend",
+ "time_interval": "Monthly",
+ "timeseries": 1,
+ "timespan": "Last Year",
+ "type": "Line"
+}

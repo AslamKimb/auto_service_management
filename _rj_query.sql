@@ -1,0 +1,1 @@
+SELECT fieldname FROM tabDocField WHERE parent='Repair Job' AND fieldname IN ('labour_total_hours','labour_total_amount');

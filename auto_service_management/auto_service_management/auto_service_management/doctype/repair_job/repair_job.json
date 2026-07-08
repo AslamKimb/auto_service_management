@@ -16,8 +16,7 @@
       "fieldname": "customer",
       "fieldtype": "Link",
       "label": "Customer",
-      "options": "Customer",
-      "reqd": 1
+      "options": "Customer"
     },
     {
       "fieldname": "customer_vehicle",
@@ -48,6 +47,12 @@
       "fieldtype": "Float",
       "fieldname": "odometer_in",
       "reqd": 1
+    },
+    {
+      "fieldname": "fuel_level",
+      "fieldtype": "Select",
+      "label": "Fuel Level",
+      "options": "\nEmpty\n1/4\n1/2\n3/4\nFull"
     },
     {
       "fieldname": "job_section",
@@ -117,23 +122,55 @@
       "read_only": 1
     },
     {
-      "fieldname": "inspection_section",
+      "fieldname": "related_documents_section",
       "fieldtype": "Section Break",
-      "label": "Inspection and Diagnosis",
+      "label": "Related Documents",
       "collapsible": 1
     },
     {
-      "fieldname": "walkaround_inspection_done",
-      "fieldtype": "Check",
-      "label": "Walkaround Inspection Done"
+      "fieldname": "walkaround_inspection",
+      "fieldtype": "Link",
+      "label": "Walkaround Inspection",
+      "options": "Walkaround Inspection"
     },
     {
       "fieldname": "diagnosis_report",
-      "fieldtype": "Long Text",
-      "label": "Diagnosis Report"
+      "fieldtype": "Link",
+      "label": "Diagnosis Report",
+      "options": "Diagnosis Report"
     },
     {
-      "fieldname": "column_break_inspection",
+      "fieldname": "customer_authorization",
+      "fieldtype": "Link",
+      "label": "Customer Authorization",
+      "options": "Customer Authorization"
+    },
+    {
+      "fieldname": "quality_check",
+      "fieldtype": "Link",
+      "label": "Quality Check",
+      "options": "Quality Check"
+    },
+    {
+      "fieldname": "road_test_report",
+      "fieldtype": "Link",
+      "label": "Road Test Report",
+      "options": "Road Test Report"
+    },
+    {
+      "fieldname": "gate_pass",
+      "fieldtype": "Link",
+      "label": "Gate Pass",
+      "options": "Gate Pass"
+    },
+    {
+      "fieldname": "intake_notes_section",
+      "fieldtype": "Section Break",
+      "label": "Intake Notes",
+      "collapsible": 1
+    },
+    {
+      "fieldname": "column_break_related_documents",
       "fieldtype": "Column Break"
     },
     {
@@ -141,37 +178,6 @@
       "fieldtype": "Text Editor",
       "label": "Customer Concern",
       "reqd": 1
-    },
-    {
-      "fieldname": "authorization_section",
-      "fieldtype": "Section Break",
-      "label": "Authorization",
-      "collapsible": 1
-    },
-    {
-      "fieldname": "customer_authorized",
-      "fieldtype": "Check",
-      "label": "Customer Authorized"
-    },
-    {
-      "fieldname": "authorization_date",
-      "fieldtype": "Datetime",
-      "label": "Authorization Date"
-    },
-    {
-      "fieldname": "column_break_auth",
-      "fieldtype": "Column Break"
-    },
-    {
-      "fieldname": "authorized_by",
-      "fieldtype": "Link",
-      "label": "Authorized By",
-      "options": "User"
-    },
-    {
-      "fieldname": "authorization_notes",
-      "fieldtype": "Small Text",
-      "label": "Authorization Notes"
     },
     {
       "fieldname": "services_section",
@@ -200,53 +206,10 @@
       "read_only": 1
     },
     {
-      "fieldname": "qc_section",
-      "fieldtype": "Section Break",
-      "label": "Quality Check",
-      "collapsible": 1
-    },
-    {
-      "fieldname": "quality_check_passed",
-      "fieldtype": "Check",
-      "label": "Quality Check Passed"
-    },
-    {
-      "fieldname": "quality_check_notes",
-      "fieldtype": "Small Text",
-      "label": "QC Notes"
-    },
-    {
-      "fieldname": "column_break_qc",
-      "fieldtype": "Column Break"
-    },
-    {
-      "fieldname": "road_test_required",
-      "fieldtype": "Check",
-      "label": "Road Test Required"
-    },
-    {
-      "fieldname": "road_test_passed",
-      "fieldtype": "Check",
-      "label": "Road Test Passed"
-    },
-    {
       "fieldtype": "Section Break",
       "collapsible": 1,
-      "label": "Labour Summary",
-      "fieldname": "labour_section"
-    },
-    {
-      "read_only": 1,
-      "fieldtype": "Float",
-      "label": "Total Labour Hours",
-      "fieldname": "labour_total_hours"
-    },
-    {
-      "read_only": 1,
-      "fieldtype": "Currency",
-      "label": "Total Labour Cost",
-      "fieldname": "labour_total_amount",
-      "options": "currency"
+      "label": "Road Test",
+      "fieldname": "road_test_section"
     },
     {
       "fieldtype": "Section Break",
@@ -271,17 +234,6 @@
     {
       "fieldname": "column_break_billing",
       "fieldtype": "Column Break"
-    },
-    {
-      "fieldname": "gate_pass_issued",
-      "fieldtype": "Check",
-      "label": "Gate Pass Issued"
-    },
-    {
-      "fieldname": "gate_pass_number",
-      "fieldtype": "Data",
-      "label": "Gate Pass Number",
-      "read_only": 1
     },
     {
       "fieldname": "odometer_out",

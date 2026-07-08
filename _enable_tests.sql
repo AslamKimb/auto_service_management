@@ -1,0 +1,1 @@
+UPDATE tabSingles SET value='1' WHERE doctype='System Settings' AND field='allow_tests';

@@ -1,0 +1,17 @@
+{
+ "based_on": "closed_on",
+ "chart_name": "Closed Repair Revenue Trend",
+ "chart_type": "Sum",
+ "doctype": "Dashboard Chart",
+ "document_type": "Repair Job",
+ "filters_json": "[[\"Repair Job\",\"job_status\",\"in\",[\"Closed\",\"Closed - Diagnosis Only\"]]]",
+ "is_public": 1,
+ "is_standard": 1,
+ "module": "Auto Service Management",
+ "name": "Closed Repair Revenue Trend",
+ "time_interval": "Monthly",
+ "timeseries": 1,
+ "timespan": "Last Year",
+ "type": "Bar",
+ "value_based_on": "total_amount"
+}

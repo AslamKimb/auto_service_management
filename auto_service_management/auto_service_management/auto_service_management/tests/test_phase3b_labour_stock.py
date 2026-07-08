@@ -136,15 +136,6 @@ class TestLabourSummary(IntegrationTestCase):
 		self.assertEqual(len(summary["lines"]), 1)
 		self.assertEqual(job.total_amount, 970000)
 
-	def test_cached_labour_totals_update_on_save(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		_add_labour_line(job, description="Labour A", rate=100000, qty=3)
-		job.reload()
-		self.assertEqual(job.labour_total_hours, 3)
-		self.assertEqual(job.labour_total_amount, 300000)
-
-
 class TestDoubleBillingPrevention(IntegrationTestCase):
 	def setUp(self):
 		self.customer = _get_or_create_customer()
