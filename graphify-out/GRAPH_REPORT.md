@@ -1,16 +1,16 @@
 # Graph Report - DMS  (2026-07-09)
 
 ## Corpus Check
-- 145 files · ~46,997 words
+- 158 files · ~48,632 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1026 nodes · 1496 edges · 177 communities (107 shown, 70 thin omitted)
+- 1034 nodes · 1527 edges · 187 communities (110 shown, 77 thin omitted)
 - Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 78 edges (avg confidence: 0.78)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `09fe1926`
+- Built from commit: `7c25d1b9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -86,20 +86,20 @@
 - [[_COMMUNITY_Community 68|Community 68]]
 - [[_COMMUNITY_Community 69|Community 69]]
 - [[_COMMUNITY_Community 70|Community 70]]
-- [[_COMMUNITY_Community 84|Community 84]]
-- [[_COMMUNITY_Community 85|Community 85]]
-- [[_COMMUNITY_Community 88|Community 88]]
-- [[_COMMUNITY_Community 89|Community 89]]
-- [[_COMMUNITY_Community 143|Community 143]]
-- [[_COMMUNITY_Community 144|Community 144]]
-- [[_COMMUNITY_Community 145|Community 145]]
-- [[_COMMUNITY_Community 146|Community 146]]
-- [[_COMMUNITY_Community 147|Community 147]]
-- [[_COMMUNITY_Community 148|Community 148]]
-- [[_COMMUNITY_Community 149|Community 149]]
-- [[_COMMUNITY_Community 150|Community 150]]
-- [[_COMMUNITY_Community 151|Community 151]]
-- [[_COMMUNITY_Community 152|Community 152]]
+- [[_COMMUNITY_Community 71|Community 71]]
+- [[_COMMUNITY_Community 72|Community 72]]
+- [[_COMMUNITY_Community 73|Community 73]]
+- [[_COMMUNITY_Community 74|Community 74]]
+- [[_COMMUNITY_Community 75|Community 75]]
+- [[_COMMUNITY_Community 76|Community 76]]
+- [[_COMMUNITY_Community 77|Community 77]]
+- [[_COMMUNITY_Community 78|Community 78]]
+- [[_COMMUNITY_Community 79|Community 79]]
+- [[_COMMUNITY_Community 80|Community 80]]
+- [[_COMMUNITY_Community 94|Community 94]]
+- [[_COMMUNITY_Community 95|Community 95]]
+- [[_COMMUNITY_Community 98|Community 98]]
+- [[_COMMUNITY_Community 99|Community 99]]
 - [[_COMMUNITY_Community 153|Community 153]]
 - [[_COMMUNITY_Community 154|Community 154]]
 - [[_COMMUNITY_Community 155|Community 155]]
@@ -124,6 +124,16 @@
 - [[_COMMUNITY_Community 174|Community 174]]
 - [[_COMMUNITY_Community 175|Community 175]]
 - [[_COMMUNITY_Community 176|Community 176]]
+- [[_COMMUNITY_Community 177|Community 177]]
+- [[_COMMUNITY_Community 178|Community 178]]
+- [[_COMMUNITY_Community 179|Community 179]]
+- [[_COMMUNITY_Community 180|Community 180]]
+- [[_COMMUNITY_Community 181|Community 181]]
+- [[_COMMUNITY_Community 182|Community 182]]
+- [[_COMMUNITY_Community 183|Community 183]]
+- [[_COMMUNITY_Community 184|Community 184]]
+- [[_COMMUNITY_Community 185|Community 185]]
+- [[_COMMUNITY_Community 186|Community 186]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `_create_repair_job()` - 40 edges
@@ -138,18 +148,18 @@
 10. `_create_repair_job()` - 18 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `execute()` --calls--> `ensure_trace_custom_fields()`  [INFERRED]
-  patches/phase8_service_operations.py → auto_service_management/custom_fields.py
-- `execute()` --calls--> `ensure_trace_custom_fields()`  [INFERRED]
-  patches/phase9_type_specific_service_components.py → auto_service_management/custom_fields.py
-- `create_stock_entry()` --calls--> `create_stock_entry_for_material_issue()`  [INFERRED]
-  auto_service_management/doctype/repair_job/repair_job.py → auto_service_management/integration/erpnext/adapters.py
 - `_eligible_components()` --calls--> `iter_repair_job_components()`  [INFERRED]
-  auto_service_management/integration/erpnext/adapters.py → auto_service_management/doctype/repair_job_service/repair_job_service.py
-- `execute()` --calls--> `run_report()`  [INFERRED]
-  auto_service_management/auto_service_management/auto_service_management/report/corporate_credit_releases/corporate_credit_releases.py → auto_service_management/reporting/runner.py
+  auto_service_management/integration/erpnext/adapters.py → repair_job_service.py
+- `quantity()` --calls--> `calculate_amount()`  [EXTRACTED]
+  repair_job_service.py → repair_job_service.js
+- `RepairJobServiceConsumable` --uses--> `RepairJobServiceComponent`  [INFERRED]
+  auto_service_management/doctype/repair_job_service_consumable/repair_job_service_consumable.py → repair_job_service.py
+- `RepairJobServiceLabour` --uses--> `RepairJobServiceComponent`  [INFERRED]
+  auto_service_management/doctype/repair_job_service_labour/repair_job_service_labour.py → repair_job_service.py
+- `RepairJobServicePart` --uses--> `RepairJobServiceComponent`  [INFERRED]
+  auto_service_management/doctype/repair_job_service_part/repair_job_service_part.py → repair_job_service.py
 
-## Communities (177 total, 70 thin omitted)
+## Communities (187 total, 77 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.05
@@ -168,7 +178,7 @@ Cohesion: 0.09
 Nodes (17): _create_test_vehicle(), _get_job_components(), _get_or_create_customer(), Create or reuse a test Customer Vehicle., Create or reuse a test Customer Vehicle., _add_labour_line(), _add_parts_line(), _add_subcontract_line() (+9 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.09
+Cohesion: 0.1
 Nodes (22): RepairJobServiceConsumable, RepairJobServiceLabour, RepairJobServicePart, calculate_component_amount(), component_has_downstream(), _component_quantity(), get_repair_job_services(), get_service_components() (+14 more)
 
 ### Community 5 - "Community 5"
@@ -176,36 +186,32 @@ Cohesion: 0.05
 Nodes (39): 10. Workspace Fixture Must Include `type` Field, 11. Workspace Fixture Must Include `app` Field, 12. Workspace Sidebar Entry Required for Desk Navigation, 1. Stale Redis Cache â€” Module Map Empty, 2. Desktop Icon Must Use Workspace Sidebar, 3. Editable Install on Python 3.14, 4. Browser Cache After Server Fixes, 5. PowerShell Gotchas (+31 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.05
-Nodes (19): hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop I, hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop I, hooks.py must declare after_install and after_migrate to ensure Desktop Icon exi, hooks.py must declare lifecycle hooks that run the full desktop setup., desktop.py must exist and export create_app_desktop_icon and ensure_permission., desktop.py must exist and export create_app_desktop_icon and ensure_permission., hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop I, hooks.py must declare lifecycle hooks that run the full desktop setup. (+11 more)
-
-### Community 7 - "Community 7"
 Cohesion: 0.08
 Nodes (29): _build_sidebar_link(), create_app_desktop_icon(), ensure_permission(), _ensure_workspace_app_field(), _ensure_workspace_sidebar(), _ensure_workspace_type_field(), _get_workspace_sidebar_items(), Desk desktop visibility for Auto Service Management.  Ensures an App-type Deskto (+21 more)
 
-### Community 8 - "Community 8"
-Cohesion: 0.08
-Nodes (17): execute(), execute(), execute(), execute(), execute(), execute(), execute(), execute() (+9 more)
-
-### Community 9 - "Community 9"
+### Community 7 - "Community 7"
 Cohesion: 0.08
 Nodes (6): get_auto_service_settings_configured_card_data(), FleetServiceCampaign, TestFleetServiceCampaign, TestPhase7HardeningContracts, TestWorkspaceDashboardContracts, UnitTestCase
 
-### Community 10 - "Community 10"
+### Community 8 - "Community 8"
 Cohesion: 0.2
 Nodes (14): ensure_trace_custom_fields(), _get_insert_after(), get_trace_custom_fields(), _append_typed_component_from_legacy_line(), execute(), _migrate_legacy_repair_job_service_lines(), execute(), _legacy_line_to_component_row() (+6 more)
 
-### Community 11 - "Community 11"
+### Community 9 - "Community 9"
 Cohesion: 0.15
 Nodes (12): assign_default_workspace(), backfill_default_workspace_for_existing_users(), Assign the workshop workspace when a qualifying user has no explicit default., Backfill the workshop workspace for qualifying users with a blank default., _roles_from_user_doc(), _should_assign_default_workspace(), _ensure_app_roles(), ensure_cashier_sales_invoice_custom_docperm() (+4 more)
 
-### Community 12 - "Community 12"
+### Community 10 - "Community 10"
 Cohesion: 0.1
 Nodes (19): I. Core ERP & Financial Modules (Main Navigation Sidebar), II. DMS (Dealer Management System) Module Features, III. Job Card Execution & Action Sidebar Features, Phase 1: Demand Generation (Determining What to Buy), Phase 1: Quoting (Estimation & Authorization), Phase 2: Deposits & Prepayments (Down Payments), Phase 2: Purchase Order (PO) Creation, Phase 3: Goods Receiving (Purchase Receipt / GRN) (+11 more)
 
-### Community 13 - "Community 13"
+### Community 11 - "Community 11"
 Cohesion: 0.15
 Nodes (9): approve(), CustomerAuthorization, Authorization is needed before work can begin., Approved amount must be positive., Authorization is needed before work can begin., Warn if authorization is expired., Approved amount must be positive., Warn if authorization is expired. (+1 more)
+
+### Community 13 - "Community 13"
+Cohesion: 0.18
+Nodes (9): execute(), execute(), execute(), execute(), execute(), _build_filters(), _get_rows(), _get_scoped_child_rows() (+1 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.12
@@ -228,103 +234,119 @@ Cohesion: 0.13
 Nodes (14): Acceptance Scenario, Approved Architecture Corrections, Automobile Repair Management Specification, Configuration and Masters, Domain Model, ERPNext Integrations, Non-Functional Requirements, Objective and Boundaries (+6 more)
 
 ### Community 19 - "Community 19"
+Cohesion: 0.15
+Nodes (6): AutoServiceSettings, Document, FleetServiceCampaignJob, RepairServiceTemplateComponent, RepairServiceTemplateLabour, VehicleDamageMark
+
+### Community 20 - "Community 20"
 Cohesion: 0.23
 Nodes (5): GatePass, issue(), Gate pass requires a submitted invoice., Gate pass requires a submitted invoice., use_gate_pass()
 
-### Community 20 - "Community 20"
+### Community 21 - "Community 21"
 Cohesion: 0.26
 Nodes (3): Ensure linked Repair Job is in an appropriate state., Ensure linked Repair Job is in an appropriate state., WalkaroundInspection
 
-### Community 21 - "Community 21"
+### Community 22 - "Community 22"
 Cohesion: 0.17
 Nodes (11): Auto Service Management Implementation Plan, Evidence Rules, Phase 0 — Repository Governance, Phase 1 — Reproducible v16 Development, Phase 2 — Domain and Control Foundation, Phase 3 — Intake and Workshop Operations, Phase 4 — Estimates, Pricing, and Inventory, Phase 5 — QC, Billing, Release, and Closure (+3 more)
 
-### Community 22 - "Community 22"
+### Community 23 - "Community 23"
+Cohesion: 0.27
+Nodes (8): auto_fill_rate(), BILLABLE_CHILDREN, calculate_amount(), discount_percentage(), item_code(), rate(), refresh(), setup()
+
+### Community 24 - "Community 24"
 Cohesion: 0.18
 Nodes (11): 10. Cancellation Before Completion, 2. First-Time Customer With a New Vehicle, 4. Partial Approval, 5. Fleet Service Campaign, 6. Walkaround Upsell, 7. Corporate Credit Release, 8. QC Failure and Rework, 9. Road-Test-Required Job (+3 more)
 
-### Community 23 - "Community 23"
+### Community 25 - "Community 25"
 Cohesion: 0.29
 Nodes (3): DiagnosisReport, Diagnosis can only happen after check-in., Diagnosis can only happen after check-in.
 
-### Community 24 - "Community 24"
-Cohesion: 0.2
-Nodes (5): AutoServiceSettings, Document, FleetServiceCampaignJob, RepairServiceTemplateLabour, VehicleDamageMark
-
-### Community 26 - "Community 26"
+### Community 27 - "Community 27"
 Cohesion: 0.32
 Nodes (6): _ensure_erpnext_basics(), _get_or_create_test_customer(), Create or reuse a test Customer for vehicle tests., Two vehicles with the same VIN should not coexist., Create minimal ERPNext setup data if missing., TestCustomerVehicle
 
-### Community 27 - "Community 27"
+### Community 28 - "Community 28"
 Cohesion: 0.25
 Nodes (7): Conclusion, Global Finding, Goal, Method, Phase 6 Role UI Walkthrough — 2026-06-30, Role Results, Verification Source
 
-### Community 28 - "Community 28"
+### Community 29 - "Community 29"
 Cohesion: 0.52
 Nodes (5): add_related_document_button(), customer(), customer_vehicle(), refresh(), setup()
 
-### Community 29 - "Community 29"
-Cohesion: 0.29
-Nodes (6): Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle.
-
 ### Community 30 - "Community 30"
 Cohesion: 0.29
-Nodes (6): App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden.
+Nodes (6): hooks.py must declare after_install and after_migrate to ensure Desktop Icon exi, hooks.py must declare lifecycle hooks that run the full desktop setup., hooks.py must declare lifecycle hooks that run the full desktop setup., hooks.py must declare lifecycle hooks that run the full desktop setup., hooks.py must declare lifecycle hooks that run the full desktop setup., hooks.py must declare lifecycle hooks that run the full desktop setup.
+
+### Community 31 - "Community 31"
+Cohesion: 0.29
+Nodes (6): hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop I, hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop I, hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop I, hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop I, hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop I, hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop I
 
 ### Community 32 - "Community 32"
 Cohesion: 0.29
-Nodes (6): Auto Service Management, code:bash (cd $PATH_TO_YOUR_BENCH), code:bash (cd apps/auto_service_management), Contributing, Installation, License
+Nodes (6): desktop.py must exist and export create_app_desktop_icon and ensure_permission., desktop.py must exist and export create_app_desktop_icon and ensure_permission., desktop.py must exist and export create_app_desktop_icon and ensure_permission., desktop.py must exist and export create_app_desktop_icon and ensure_permission., desktop.py must exist and export create_app_desktop_icon and ensure_permission., desktop.py must exist and export create_app_desktop_icon and ensure_permission.
 
 ### Community 33 - "Community 33"
-Cohesion: 0.33
-Nodes (6): 3. Diagnosis Only, code:text (Draft -> Checked In -> Walkaround Inspection -> Diagnosis ->), Status journey, Use Case 8: The Quality Reject — Rework Required, What happens, What the system enforces
+Cohesion: 0.29
+Nodes (6): Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle.
 
 ### Community 34 - "Community 34"
+Cohesion: 0.29
+Nodes (6): App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden.
+
+### Community 36 - "Community 36"
+Cohesion: 0.29
+Nodes (6): Auto Service Management, code:bash (cd $PATH_TO_YOUR_BENCH), code:bash (cd apps/auto_service_management), Contributing, Installation, License
+
+### Community 37 - "Community 37"
 Cohesion: 0.33
 Nodes (6): 1. Normal Walk-In Repair, code:text (Draft -> Checked In -> Walkaround Inspection -> Diagnosis ->), Status journey, Use Case 3: Diagnosis Only — "Just Tell Me What's Wrong", What happens, What the system enforces
 
-### Community 35 - "Community 35"
+### Community 38 - "Community 38"
 Cohesion: 0.33
 Nodes (6): code:text (Draft), Status journey, The Core Status Journey, Use Case 1: The Normal Walk-In Repair, What happens, What the system enforces
 
-### Community 58 - "Community 58"
-Cohesion: 0.67
-Nodes (3): Use Case 2: First-Time Customer, New Vehicle, What happens, What's different
-
-### Community 59 - "Community 59"
-Cohesion: 0.67
-Nodes (3): Use Case 4: Partial Approval — "Fix This, Not That", What happens, What the system enforces
+### Community 39 - "Community 39"
+Cohesion: 0.33
+Nodes (6): 3. Diagnosis Only, code:text (Draft -> Checked In -> Walkaround Inspection -> Diagnosis ->), Status journey, Use Case 8: The Quality Reject — Rework Required, What happens, What the system enforces
 
 ### Community 60 - "Community 60"
 Cohesion: 0.67
-Nodes (3): Use Case 10: The Angry Customer — Cancellation Mid-Work, What happens, What the system enforces
+Nodes (3): Use Case 4: Partial Approval — "Fix This, Not That", What happens, What the system enforces
 
 ### Community 61 - "Community 61"
 Cohesion: 0.67
-Nodes (3): Use Case 5: The Corporate Fleet — Batch Service, What happens, What the system enforces
+Nodes (3): Use Case 10: The Angry Customer — Cancellation Mid-Work, What happens, What the system enforces
 
 ### Community 62 - "Community 62"
 Cohesion: 0.67
 Nodes (3): Use Case 9: The Diagnostic Dilemma — Road Test Required, What happens, What the system enforces
 
+### Community 63 - "Community 63"
+Cohesion: 0.67
+Nodes (3): Use Case 2: First-Time Customer, New Vehicle, What happens, What's different
+
+### Community 64 - "Community 64"
+Cohesion: 0.67
+Nodes (3): Use Case 5: The Corporate Fleet — Batch Service, What happens, What the system enforces
+
 ## Knowledge Gaps
-- **335 isolated node(s):** `Enforce server-side state machine.`, `Return structured labour summary grouped by technician.`, `Return service/component rows for print formats and summaries.`, `Check in the vehicle. Creates the ERPNext Project on first check-in.`, `Begin repair work. Requires authorization.` (+330 more)
+- **336 isolated node(s):** `BILLABLE_CHILDREN`, `Enforce server-side state machine.`, `Return structured labour summary grouped by technician.`, `Return service/component rows for print formats and summaries.`, `Check in the vehicle. Creates the ERPNext Project on first check-in.` (+331 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **70 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **77 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `RepairServiceLine` connect `Community 17` to `Community 24`?**
-  _High betweenness centrality (0.134) - this node is a cross-community bridge._
+- **Why does `FleetServiceCampaign` connect `Community 7` to `Community 19`?**
+  _High betweenness centrality (0.127) - this node is a cross-community bridge._
 - **Why does `TestRepairServiceLine` connect `Community 17` to `Community 1`?**
-  _High betweenness centrality (0.133) - this node is a cross-community bridge._
-- **Why does `FleetServiceCampaign` connect `Community 9` to `Community 24`?**
-  _High betweenness centrality (0.111) - this node is a cross-community bridge._
+  _High betweenness centrality (0.126) - this node is a cross-community bridge._
+- **Why does `RepairServiceLine` connect `Community 17` to `Community 19`?**
+  _High betweenness centrality (0.124) - this node is a cross-community bridge._
 - **Are the 7 inferred relationships involving `_create_test_vehicle()` (e.g. with `_create_repair_job()` and `.setUp()`) actually correct?**
   _`_create_test_vehicle()` has 7 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `Enforce server-side state machine.`, `Return structured labour summary grouped by technician.`, `Return service/component rows for print formats and summaries.` to the rest of the system?**
-  _335 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **What connects `BILLABLE_CHILDREN`, `Enforce server-side state machine.`, `Return structured labour summary grouped by technician.` to the rest of the system?**
+  _336 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.05 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**

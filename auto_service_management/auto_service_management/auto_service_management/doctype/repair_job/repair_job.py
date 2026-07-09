@@ -8,13 +8,14 @@ from frappe import _
 from frappe.model.document import Document
 
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
-	EXCLUDED_COMPONENT_STATUSES,
-	STOCK_COMPONENT_TYPES,
+		STOCK_COMPONENT_TYPES,
 	component_has_downstream,
 	get_service_components,
 	get_repair_job_services,
 	iter_repair_job_components,
 )
+
+EXCLUDED_COMPONENT_STATUSES = frozenset({"Cancelled", "Rejected"})
 
 # ---------------------------------------------------------------------------
 # State machine - spec-aligned workflow
