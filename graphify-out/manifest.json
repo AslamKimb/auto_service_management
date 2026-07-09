@@ -1,8 +1,4 @@
 {
-  "C:\\Users\\user\\Documents\\Coded\\DMS\\check.sql": {
-    "mtime": 1783407077.8293564,
-    "hash": "a5a482e9517449e3d48bbe613e879ac0"
-  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\setup.py": {
     "mtime": 1783266064.9949713,
     "hash": "214e97865e2d435d6dc5f89f4858f3d3"
@@ -104,8 +100,8 @@
     "hash": "328d2ca8f8bfde30a2cd91f997eb7d35"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\repair_job\\repair_job.js": {
-    "mtime": 1783472946.6932385,
-    "hash": "7925de05ab7eebaa7e3e393054634fa1"
+    "mtime": 1783584159.8534658,
+    "hash": "82aa03b304b6888719b289659e059d52"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\repair_job\\repair_job.py": {
     "mtime": 1783502126.5608382,
@@ -528,8 +524,8 @@
     "hash": "b358ae2e8ed935847e8a5a8b0ad09701"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\patches\\phase9_type_specific_service_components.py": {
-    "mtime": 1783502554.654246,
-    "hash": "63a6dbf8847f0f3ca3017edbe852dd2e"
+    "mtime": 1783510609.3693373,
+    "hash": "8dacbda891eae2b38935c3d550bfa438"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\patches\\__init__.py": {
     "mtime": 1782726628.0,

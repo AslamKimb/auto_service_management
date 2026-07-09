@@ -1,57 +1,279 @@
 {
-  "name": "Repair Job Service Part",
-  "module": "Auto Service Management",
-  "doctype": "DocType",
-  "document_type": "Document",
-  "engine": "InnoDB",
-  "istable": true,
-  "editable_grid": 1,
-  "fields": [
-    {"fieldname": "context_section", "fieldtype": "Section Break", "label": "Context"},
-    {"fieldname": "repair_job", "fieldtype": "Link", "label": "Repair Job", "options": "Repair Job", "read_only": 1, "in_list_view": 1},
-    {"fieldname": "repair_job_service", "fieldtype": "Link", "label": "Repair Job Service", "options": "Repair Job Service", "read_only": 1},
-    {"fieldname": "customer_vehicle", "fieldtype": "Link", "label": "Customer Vehicle", "options": "Customer Vehicle", "read_only": 1},
-    {"fieldname": "component_column_break", "fieldtype": "Column Break"},
-    {"fieldname": "description", "fieldtype": "Small Text", "label": "Description", "reqd": 1, "in_list_view": 1},
-    {"fieldname": "status", "fieldtype": "Select", "label": "Status", "options": "\nPending Approval\nApproved\nRejected\nDeferred\nCompleted\nCancelled", "default": "Pending Approval", "in_list_view": 1},
-    {"fieldname": "billable", "fieldtype": "Check", "label": "Billable", "default": 1},
-    {"fieldname": "part_section", "fieldtype": "Section Break", "label": "Part"},
-    {"fieldname": "item_code", "fieldtype": "Link", "label": "Item", "options": "Item", "reqd": 1, "in_list_view": 1},
-    {"fieldname": "quantity", "fieldtype": "Float", "label": "Quantity", "default": 1, "in_list_view": 1},
-    {"fieldname": "uom", "fieldtype": "Link", "label": "UOM", "options": "UOM"},
-    {"fieldname": "part_column_break", "fieldtype": "Column Break"},
-    {"fieldname": "warehouse", "fieldtype": "Link", "label": "Warehouse", "options": "Warehouse"},
-    {"fieldname": "required_by", "fieldtype": "Date", "label": "Required By"},
-    {"fieldname": "stock_section", "fieldtype": "Section Break", "label": "Stock", "collapsible": 1},
-    {"fieldname": "requested_qty", "fieldtype": "Float", "label": "Requested Qty", "default": 0, "read_only": 1},
-    {"fieldname": "issued_qty", "fieldtype": "Float", "label": "Issued Qty", "default": 0, "read_only": 1},
-    {"fieldname": "stock_request_status", "fieldtype": "Select", "label": "Stock Request Status", "options": "\nNot Requested\nRequested\nFully Issued\nCancelled", "default": "Not Requested", "read_only": 1},
-    {"fieldname": "material_request", "fieldtype": "Link", "label": "Material Request", "options": "Material Request", "read_only": 1},
-    {"fieldname": "material_request_item", "fieldtype": "Data", "label": "Material Request Row", "read_only": 1},
-    {"fieldname": "stock_entry", "fieldtype": "Link", "label": "Stock Entry", "options": "Stock Entry", "read_only": 1},
-    {"fieldname": "stock_entry_detail", "fieldtype": "Data", "label": "Stock Entry Row", "read_only": 1},
-    {"fieldname": "pricing_section", "fieldtype": "Section Break", "label": "Pricing", "collapsible": 1},
-    {"fieldname": "currency", "fieldtype": "Link", "label": "Currency", "options": "Currency", "read_only": 1},
-    {"fieldname": "rate", "fieldtype": "Currency", "label": "Rate", "options": "currency"},
-    {"fieldname": "amount", "fieldtype": "Currency", "label": "Amount", "options": "currency", "read_only": 1, "in_list_view": 1},
-    {"fieldname": "pricing_column_break", "fieldtype": "Column Break"},
-    {"fieldname": "discount_percentage", "fieldtype": "Percent", "label": "Discount %"},
-    {"fieldname": "discount_amount", "fieldtype": "Currency", "label": "Discount Amount", "options": "currency", "read_only": 1},
-    {"fieldname": "tax_amount", "fieldtype": "Currency", "label": "Tax Amount", "options": "currency"},
-    {"fieldname": "cost_rate", "fieldtype": "Currency", "label": "Cost Rate", "options": "currency"},
-    {"fieldname": "cost_amount", "fieldtype": "Currency", "label": "Cost Amount", "options": "currency", "read_only": 1},
-    {"fieldname": "margin_amount", "fieldtype": "Currency", "label": "Margin Amount", "options": "currency", "read_only": 1},
-    {"fieldname": "margin_percentage", "fieldtype": "Percent", "label": "Margin %", "read_only": 1},
-    {"fieldname": "billing_section", "fieldtype": "Section Break", "label": "Billing Trace", "collapsible": 1},
-    {"fieldname": "quotation", "fieldtype": "Link", "label": "Quotation", "options": "Quotation", "read_only": 1},
-    {"fieldname": "quotation_item", "fieldtype": "Data", "label": "Quotation Row", "read_only": 1},
-    {"fieldname": "sales_order", "fieldtype": "Link", "label": "Sales Order", "options": "Sales Order", "read_only": 1},
-    {"fieldname": "sales_order_item", "fieldtype": "Data", "label": "Sales Order Row", "read_only": 1},
-    {"fieldname": "sales_invoice", "fieldtype": "Link", "label": "Sales Invoice", "options": "Sales Invoice", "read_only": 1},
-    {"fieldname": "sales_invoice_item", "fieldtype": "Data", "label": "Sales Invoice Row", "read_only": 1},
-    {"fieldname": "legacy_repair_service_line", "fieldtype": "Data", "label": "Legacy Repair Service Line", "read_only": 1}
-  ],
-  "permissions": [],
-  "sort_field": "modified",
-  "sort_order": "DESC"
+ "name": "Repair Job Service Part",
+ "module": "Auto Service Management",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "istable": true,
+ "editable_grid": 1,
+ "fields": [
+  {
+   "fieldname": "context_section",
+   "fieldtype": "Section Break",
+   "label": "Context"
+  },
+  {
+   "fieldname": "repair_job",
+   "fieldtype": "Link",
+   "label": "Repair Job",
+   "options": "Repair Job",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "repair_job_service",
+   "fieldtype": "Link",
+   "label": "Repair Job Service",
+   "options": "Repair Job Service",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_vehicle",
+   "fieldtype": "Link",
+   "label": "Customer Vehicle",
+   "options": "Customer Vehicle",
+   "read_only": 1
+  },
+  {
+   "fieldname": "component_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description",
+   "reqd": 0,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "billable",
+   "fieldtype": "Check",
+   "label": "Billable",
+   "default": 1
+  },
+  {
+   "fieldname": "part_section",
+   "fieldtype": "Section Break",
+   "label": "Part"
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Float",
+   "label": "Quantity",
+   "default": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM"
+  },
+  {
+   "fieldname": "part_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "required_by",
+   "fieldtype": "Date",
+   "label": "Required By"
+  },
+  {
+   "fieldname": "stock_section",
+   "fieldtype": "Section Break",
+   "label": "Stock",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "requested_qty",
+   "fieldtype": "Float",
+   "label": "Requested Qty",
+   "default": 0,
+   "read_only": 1
+  },
+  {
+   "fieldname": "issued_qty",
+   "fieldtype": "Float",
+   "label": "Issued Qty",
+   "default": 0,
+   "read_only": 1
+  },
+  {
+   "fieldname": "stock_request_status",
+   "fieldtype": "Select",
+   "label": "Stock Request Status",
+   "options": "\nNot Requested\nRequested\nFully Issued\nCancelled",
+   "default": "Not Requested",
+   "read_only": 1
+  },
+  {
+   "fieldname": "material_request",
+   "fieldtype": "Link",
+   "label": "Material Request",
+   "options": "Material Request",
+   "read_only": 1
+  },
+  {
+   "fieldname": "material_request_item",
+   "fieldtype": "Data",
+   "label": "Material Request Row",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stock_entry",
+   "fieldtype": "Link",
+   "label": "Stock Entry",
+   "options": "Stock Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stock_entry_detail",
+   "fieldtype": "Data",
+   "label": "Stock Entry Row",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pricing_section",
+   "fieldtype": "Section Break",
+   "label": "Pricing",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "label": "Rate",
+   "options": "currency"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "options": "currency",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "pricing_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "discount_percentage",
+   "fieldtype": "Percent",
+   "label": "Discount %"
+  },
+  {
+   "fieldname": "discount_amount",
+   "fieldtype": "Currency",
+   "label": "Discount Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tax_amount",
+   "fieldtype": "Currency",
+   "label": "Tax Amount",
+   "options": "currency"
+  },
+  {
+   "fieldname": "cost_rate",
+   "fieldtype": "Currency",
+   "label": "Cost Rate",
+   "options": "currency"
+  },
+  {
+   "fieldname": "cost_amount",
+   "fieldtype": "Currency",
+   "label": "Cost Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "margin_amount",
+   "fieldtype": "Currency",
+   "label": "Margin Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "margin_percentage",
+   "fieldtype": "Percent",
+   "label": "Margin %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "billing_section",
+   "fieldtype": "Section Break",
+   "label": "Billing Trace",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "quotation",
+   "fieldtype": "Link",
+   "label": "Quotation",
+   "options": "Quotation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "quotation_item",
+   "fieldtype": "Data",
+   "label": "Quotation Row",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "label": "Sales Order",
+   "options": "Sales Order",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_order_item",
+   "fieldtype": "Data",
+   "label": "Sales Order Row",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_invoice_item",
+   "fieldtype": "Data",
+   "label": "Sales Invoice Row",
+   "read_only": 1
+  },
+  {
+   "fieldname": "legacy_repair_service_line",
+   "fieldtype": "Data",
+   "label": "Legacy Repair Service Line",
+   "read_only": 1
+  }
+ ],
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
 }

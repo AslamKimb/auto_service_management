@@ -9,7 +9,6 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
-EXCLUDED_COMPONENT_STATUSES = {"Rejected", "Deferred", "Cancelled"}
 STOCK_COMPONENT_TYPES = {"Part", "Consumable"}
 STATUS_ALIASES = {
 	"Parts": "Part",
@@ -89,7 +88,6 @@ class RepairJobService(Document):
 
 	def validate(self):
 		self.validate_diagnosis_report()
-		self.validate_downstream_status_changes()
 		self.calculate_totals()
 		self.derive_status_from_components()
 
@@ -167,25 +165,14 @@ class RepairJobService(Document):
 			row.currency = self.currency
 			if row.billable is None:
 				row.billable = 1
-			if not row.status:
-				row.status = "Pending Approval"
 			calculate_component_amount(row, component.component_type)
-
-	def validate_downstream_status_changes(self):
-		for component in get_service_components(self):
-			if component.status in EXCLUDED_COMPONENT_STATUSES and component_has_downstream(component):
-				frappe.throw(
-					_(
-						"Service component {0} has linked ERPNext records. Cancel or reverse those records before rejecting, deferring, or cancelling it."
-					).format(component.service_description)
-				)
 
 	def calculate_totals(self):
 		total = 0
 		cost_total = 0
 		for component in get_service_components(self):
 			calculate_component_amount(component.row, component.component_type)
-			if component.status in EXCLUDED_COMPONENT_STATUSES or not component.billable:
+			if not component.billable:
 				continue
 			total += component.amount or 0
 			cost_total += component.cost_amount or 0
@@ -198,18 +185,7 @@ class RepairJobService(Document):
 	def derive_status_from_components(self):
 		if self.status in {"Rejected", "Deferred", "Cancelled"}:
 			return
-		active_rows = [
-			component
-			for component in get_service_components(self)
-			if component.status not in EXCLUDED_COMPONENT_STATUSES
-		]
-		if not active_rows:
-			self.status = self.status or "Pending Approval"
-		elif all(component.status == "Completed" for component in active_rows):
-			self.status = "Completed"
-		elif any(component.status == "Approved" for component in active_rows):
-			self.status = "Approved"
-		elif self.status in {None, "", "Draft"}:
+		if self.status in {None, "", "Draft"}:
 			self.status = "Pending Approval"
 
 
@@ -219,8 +195,6 @@ class RepairJobServiceComponent(Document):
 	def validate(self):
 		if self.billable is None:
 			self.billable = 1
-		if not self.status:
-			self.status = "Pending Approval"
 		calculate_component_amount(self, self.component_type)
 
 
@@ -231,7 +205,6 @@ def _template_row_to_service_row(template_row, component_type):
 		"rate": getattr(template_row, "rate", None),
 		"cost_rate": getattr(template_row, "cost_rate", None),
 		"billable": getattr(template_row, "billable", 1),
-		"status": "Pending Approval",
 	}
 	if component_type in STOCK_COMPONENT_TYPES:
 		values.update(
@@ -331,22 +304,16 @@ def get_repair_job_services(repair_job_name):
 def iter_repair_job_components(
 	repair_job_name,
 	*,
-	statuses=None,
 	component_types=None,
 	billable_only=False,
 	include_excluded=False,
 ):
-	statuses = set(statuses or [])
 	component_types = {_normalize_service_type(component_type) for component_type in set(component_types or [])}
 	for service in get_repair_job_services(repair_job_name):
-		if not include_excluded and service.status in EXCLUDED_COMPONENT_STATUSES:
+		if not include_excluded and service.status in {"Rejected", "Deferred", "Cancelled"}:
 			continue
 		for component in get_service_components(service, component_types=component_types):
-			if statuses and component.status not in statuses:
-				continue
 			if billable_only and not component.billable:
-				continue
-			if not include_excluded and component.status in EXCLUDED_COMPONENT_STATUSES:
 				continue
 			yield service, component
 
@@ -361,6 +328,6 @@ def sync_repair_job_total(repair_job_name):
 		return
 	total = 0
 	for service in get_repair_job_services(repair_job_name):
-		if service.status not in EXCLUDED_COMPONENT_STATUSES:
+		if service.status not in {"Rejected", "Deferred", "Cancelled"}:
 			total += service.total_amount or 0
 	frappe.db.set_value("Repair Job", repair_job_name, "total_amount", total, update_modified=False)
