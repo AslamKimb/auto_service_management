@@ -8,7 +8,7 @@
  "label": "Repair Service Lines",
  "module": "Auto Service Management",
  "name": "Repair Service Lines",
- "parent_document_type": "Repair Job",
+ "parent_document_type": "Repair Job Service",
  "show_full_number": 0,
  "show_percentage_stats": 1,
  "stats_time_interval": "Monthly",

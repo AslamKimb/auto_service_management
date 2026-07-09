@@ -49,3 +49,35 @@ class TestRepairServiceLine(IntegrationTestCase):
 		)
 		line.calculate_amount()
 		self.assertEqual(line.amount, 0)
+
+	def test_legacy_component_type_aliases_are_normalized(self):
+		line = frappe.get_doc(
+			{
+				"doctype": "Repair Service Line",
+				"service_type": "Parts",
+				"service_description": "Battery",
+				"quantity": 1,
+				"rate": 250000,
+			}
+		)
+		line.normalize_component()
+
+		self.assertEqual(line.service_type, "Part")
+
+	def test_cost_and_margin_are_calculated(self):
+		line = frappe.get_doc(
+			{
+				"doctype": "Repair Service Line",
+				"service_type": "Part",
+				"service_description": "Battery",
+				"quantity": 2,
+				"rate": 150000,
+				"cost_rate": 100000,
+				"discount_percentage": 10,
+			}
+		)
+		line.calculate_amount()
+
+		self.assertEqual(line.amount, 270000)
+		self.assertEqual(line.cost_amount, 200000)
+		self.assertEqual(line.margin_amount, 70000)

@@ -22,7 +22,16 @@ WORKSPACE_DOC_TYPE_COVERAGE = {
 	"Customer Vehicle": "Customer Vehicles",
 	"Workshop Bay": "Workshop Bays",
 	"Repair Job": "Repair Jobs",
-	"Repair Service Line": "Repair Service Lines",
+	"Repair Job Service": "Repair Job Services",
+	"Repair Job Service Part": "Repair Job Service Parts",
+	"Repair Job Service Labour": "Repair Job Service Labour",
+	"Repair Job Service Consumable": "Repair Job Service Consumables",
+	"Repair Job Service Subcontracted Service": "Repair Job Service Subcontracted Services",
+	"Repair Service Template": "Repair Service Templates",
+	"Repair Service Template Part": "Repair Service Template Parts",
+	"Repair Service Template Labour": "Repair Service Template Labour",
+	"Repair Service Template Consumable": "Repair Service Template Consumables",
+	"Repair Service Template Subcontracted Service": "Repair Service Template Subcontracted Services",
 	"Repair Job Override": "Repair Job Overrides",
 	"Repair Job Log": "Repair Job Logs",
 	"Walkaround Inspection": "Walkaround Inspections",
@@ -75,6 +84,7 @@ WORKSPACE_SIDEBAR_SECTIONS = {
 		{"label": "Customer Vehicle", "link_type": "DocType", "link_to": "Customer Vehicle"},
 		{"label": "Workshop Bay", "link_type": "DocType", "link_to": "Workshop Bay"},
 		{"label": "Repair Job", "link_type": "DocType", "link_to": "Repair Job"},
+		{"label": "Repair Service Template", "link_type": "DocType", "link_to": "Repair Service Template"},
 		{
 			"label": "Walkaround Inspection",
 			"link_type": "DocType",
@@ -89,6 +99,7 @@ WORKSPACE_SIDEBAR_SECTIONS = {
 	),
 	"Workshop Execution": (
 		{"label": "Repair Job", "link_type": "DocType", "link_to": "Repair Job"},
+		{"label": "Repair Job Service", "link_type": "DocType", "link_to": "Repair Job Service"},
 		{
 			"label": "Repair Queue",
 			"link_type": "DocType",

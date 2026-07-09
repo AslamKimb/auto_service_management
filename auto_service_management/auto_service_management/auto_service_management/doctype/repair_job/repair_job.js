@@ -14,6 +14,7 @@ frappe.ui.form.on("Repair Job", {
 			["quality_check"],
 			["road_test_report"],
 			["gate_pass"],
+			["repair_job_service"],
 		]) {
 			frm.set_query(fieldname, () => {
 				if (!frm.doc.name) {
@@ -28,6 +29,22 @@ frappe.ui.form.on("Repair Job", {
 		if (frm.is_new()) {
 			return;
 		}
+
+		frm.add_custom_button("Create Service", () => {
+			frappe.new_doc("Repair Job Service", {
+				repair_job: frm.doc.name,
+				customer: frm.doc.customer,
+				customer_vehicle: frm.doc.customer_vehicle,
+				diagnosis_report: frm.doc.diagnosis_report,
+				currency: frm.doc.currency,
+			});
+		}, "Services");
+
+		frm.add_custom_button("Open Services", () => {
+			frappe.set_route("List", "Repair Job Service", {
+				repair_job: frm.doc.name,
+			});
+		}, "Services");
 
 		add_related_document_button(frm, {
 			fieldname: "walkaround_inspection",
@@ -107,6 +124,19 @@ frappe.ui.form.on("Repair Job", {
 				customer_vehicle: frm.doc.customer_vehicle,
 				sales_invoice: frm.doc.sales_invoice,
 				recipient_name: frm.doc.customer,
+			},
+		});
+
+		add_related_document_button(frm, {
+			fieldname: "repair_job_service",
+			doctype: "Repair Job Service",
+			create_label: "Create Repair Job Service",
+			open_label: "Open Repair Job Service",
+			route_options: {
+				repair_job: frm.doc.name,
+				customer: frm.doc.customer,
+				customer_vehicle: frm.doc.customer_vehicle,
+				currency: frm.doc.currency,
 			},
 		});
 	},

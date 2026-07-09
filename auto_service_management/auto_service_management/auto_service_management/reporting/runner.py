@@ -24,11 +24,28 @@ def run_report(report_name, filters=None):
 	if definition.group_by:
 		query_args["group_by"] = definition.group_by
 
-	if definition.parent_field:
-		rows = _get_scoped_child_rows(definition, query_args, ignore_permissions=not has_read_permission)
+	if isinstance(definition.source_doctype, tuple):
+		rows = []
+		for source_doctype in definition.source_doctype:
+			source_query_args = {
+				**query_args,
+				"filters": dict(query_args["filters"]),
+			}
+			rows.extend(
+				_get_rows(
+					source_doctype,
+					definition,
+					source_query_args,
+					has_read_permission=has_read_permission,
+				)
+			)
 	else:
-		get_rows = frappe.get_list if has_read_permission else frappe.get_all
-		rows = get_rows(definition.source_doctype, **query_args)
+		rows = _get_rows(
+			definition.source_doctype,
+			definition,
+			query_args,
+			has_read_permission=has_read_permission,
+		)
 
 	return list(definition.columns), rows
 
@@ -52,11 +69,23 @@ def _build_filters(definition, filters):
 	return query_filters
 
 
-def _get_scoped_child_rows(definition, query_args, ignore_permissions=False):
+def _get_rows(source_doctype, definition, query_args, has_read_permission=False):
+	if definition.parent_field:
+		return _get_scoped_child_rows(
+			source_doctype,
+			definition,
+			query_args,
+			ignore_permissions=not has_read_permission,
+		)
+	get_rows = frappe.get_list if has_read_permission else frappe.get_all
+	return get_rows(source_doctype, **query_args)
+
+
+def _get_scoped_child_rows(source_doctype, definition, query_args, ignore_permissions=False):
 	get_parents = frappe.get_list if not ignore_permissions else frappe.get_all
 	allowed_parents = get_parents(definition.permission_doctype, pluck="name", limit_page_length=0)
 	if not allowed_parents:
 		return []
 
 	query_args["filters"][definition.parent_field] = ["in", allowed_parents]
-	return frappe.get_all(definition.source_doctype, **query_args)
+	return frappe.get_all(source_doctype, **query_args)

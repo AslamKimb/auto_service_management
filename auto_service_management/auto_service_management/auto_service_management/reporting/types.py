@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class ReportDefinition:
-	source_doctype: str
+	source_doctype: str | tuple[str, ...]
 	columns: tuple[dict, ...]
 	fields: tuple[str, ...]
 	filters: tuple[str, ...]

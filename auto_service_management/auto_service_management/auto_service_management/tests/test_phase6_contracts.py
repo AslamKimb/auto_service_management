@@ -149,8 +149,146 @@ class TestPhase6Contracts(UnitTestCase):
 			"gate_pass_number",
 			"labour_total_hours",
 			"labour_total_amount",
+			"service_lines",
 		):
 			self.assertNotIn(removed, fields)
+
+	def test_service_operation_model_contract(self):
+		module_root = Path(__file__).parents[1]
+		job_service_path = module_root / "doctype" / "repair_job_service" / "repair_job_service.json"
+		job_service = json.loads(job_service_path.read_text(encoding="utf-8"))
+		job_service_fields = {field["fieldname"]: field for field in job_service["fields"]}
+
+		self.assertEqual(job_service["name"], "Repair Job Service")
+		self.assertEqual(job_service_fields["repair_job"]["options"], "Repair Job")
+		self.assertNotIn("components", job_service_fields)
+		self.assertEqual(job_service_fields["parts"]["options"], "Repair Job Service Part")
+		self.assertEqual(job_service_fields["labour"]["options"], "Repair Job Service Labour")
+		self.assertEqual(job_service_fields["consumables"]["options"], "Repair Job Service Consumable")
+		self.assertEqual(
+			job_service_fields["subcontracted_services"]["options"],
+			"Repair Job Service Subcontracted Service",
+		)
+
+		for doctype_folder, expected_fields in {
+			"repair_job_service_part": {
+				"repair_job",
+				"repair_job_service",
+				"customer_vehicle",
+				"item_code",
+				"quantity",
+				"uom",
+				"warehouse",
+				"requested_qty",
+				"issued_qty",
+				"material_request",
+				"stock_entry",
+				"legacy_repair_service_line",
+			},
+			"repair_job_service_consumable": {
+				"repair_job",
+				"repair_job_service",
+				"customer_vehicle",
+				"item_code",
+				"quantity",
+				"uom",
+				"warehouse",
+				"consumption_basis",
+				"requested_qty",
+				"issued_qty",
+				"material_request",
+				"stock_entry",
+				"legacy_repair_service_line",
+			},
+			"repair_job_service_labour": {
+				"repair_job",
+				"repair_job_service",
+				"customer_vehicle",
+				"item_code",
+				"assigned_to",
+				"activity_type",
+				"task",
+				"estimated_hours",
+				"actual_hours",
+				"timesheet",
+				"timesheet_detail",
+				"legacy_repair_service_line",
+			},
+			"repair_job_service_subcontracted_service": {
+				"repair_job",
+				"repair_job_service",
+				"customer_vehicle",
+				"item_code",
+				"supplier",
+				"supplier_quotation",
+				"supplier_purchase_order",
+				"supplier_purchase_invoice",
+				"external_job_reference",
+				"expected_return_date",
+				"legacy_repair_service_line",
+			},
+		}.items():
+			with self.subTest(component_doctype=doctype_folder):
+				component_path = module_root / "doctype" / doctype_folder / f"{doctype_folder}.json"
+				component = json.loads(component_path.read_text(encoding="utf-8"))
+				component_fields = {field["fieldname"]: field for field in component["fields"]}
+				self.assertTrue(component["istable"])
+				self.assertTrue(expected_fields.issubset(component_fields))
+				for shared_field in (
+					"description",
+					"status",
+					"billable",
+					"currency",
+					"rate",
+					"amount",
+					"discount_percentage",
+					"discount_amount",
+					"tax_amount",
+					"cost_rate",
+					"cost_amount",
+					"margin_amount",
+					"margin_percentage",
+					"quotation",
+					"quotation_item",
+					"sales_order",
+					"sales_order_item",
+					"sales_invoice",
+					"sales_invoice_item",
+				):
+					self.assertIn(shared_field, component_fields)
+
+		template_path = module_root / "doctype" / "repair_service_template" / "repair_service_template.json"
+		template = json.loads(template_path.read_text(encoding="utf-8"))
+		template_fields = {field["fieldname"]: field for field in template["fields"]}
+		self.assertNotIn("components", template_fields)
+		self.assertEqual(template_fields["parts"]["options"], "Repair Service Template Part")
+		self.assertEqual(template_fields["labour"]["options"], "Repair Service Template Labour")
+		self.assertEqual(template_fields["consumables"]["options"], "Repair Service Template Consumable")
+		self.assertEqual(
+			template_fields["subcontracted_services"]["options"],
+			"Repair Service Template Subcontracted Service",
+		)
+
+	def test_erpnext_child_row_trace_custom_fields_are_fixture_owned(self):
+		fixture_root = Path(__file__).parents[2] / "fixtures"
+		fixture = json.loads((fixture_root / "custom_field.json").read_text(encoding="utf-8"))
+		names = {row["name"] for row in fixture}
+
+		for child_doctype in (
+			"Timesheet Detail",
+			"Material Request Item",
+			"Stock Entry Detail",
+			"Sales Invoice Item",
+		):
+			for fieldname in (
+				"repair_job",
+				"customer_vehicle",
+				"repair_job_service",
+				"repair_component_doctype",
+				"repair_component_row",
+				"repair_service_line",
+			):
+				self.assertIn(f"{child_doctype}-{fieldname}", names)
 
 	def test_repair_summary_print_uses_linked_quality_check_status(self):
 		module_root = Path(__file__).parents[1]
@@ -159,6 +297,7 @@ class TestPhase6Contracts(UnitTestCase):
 
 		self.assertIn("doc.quality_check", html)
 		self.assertIn("Quality Check", html)
+		self.assertIn("doc.get_service_groups", html)
 
 	def test_workspace_content_references_declared_shortcuts(self):
 		module_root = Path(__file__).parents[1]

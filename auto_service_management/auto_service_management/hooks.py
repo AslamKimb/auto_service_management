@@ -5,6 +5,8 @@ app_description = "Automobile Repair Management for Frappe/ERPNext"
 app_email = "kimbugwe43@gmail.com"
 app_license = "gpl-3.0"
 
+from auto_service_management.auto_service_management.custom_fields import TRACE_CUSTOM_FIELD_NAMES
+
 # Apps
 required_apps = ["erpnext"]
 
@@ -54,6 +56,12 @@ fixtures = [
 			["property", "=", "reqd"],
 		],
 	},
+	{
+		"dt": "Custom Field",
+		"filters": [
+			["name", "in", list(TRACE_CUSTOM_FIELD_NAMES)],
+		],
+	},
 ]
 
 # DocType Events
@@ -63,6 +71,10 @@ doc_events = {
 	},
 	"Sales Invoice": {
 		"on_submit": "auto_service_management.auto_service_management.integration.erpnext.adapters.on_invoice_submit",
+	},
+	"Timesheet": {
+		"on_submit": "auto_service_management.auto_service_management.integration.erpnext.adapters.sync_timesheet_actuals",
+		"on_cancel": "auto_service_management.auto_service_management.integration.erpnext.adapters.sync_timesheet_actuals",
 	},
 }
 

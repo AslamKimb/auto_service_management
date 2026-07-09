@@ -7,8 +7,17 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
+	EXCLUDED_COMPONENT_STATUSES,
+	STOCK_COMPONENT_TYPES,
+	component_has_downstream,
+	get_service_components,
+	get_repair_job_services,
+	iter_repair_job_components,
+)
+
 # ---------------------------------------------------------------------------
-# State machine — spec-aligned workflow
+# State machine - spec-aligned workflow
 # ---------------------------------------------------------------------------
 VALID_TRANSITIONS = {
 	"Draft": ["Checked In", "Cancelled"],
@@ -112,7 +121,7 @@ class RepairJob(Document):
 			self.log_state_change()
 
 	# ------------------------------------------------------------------ #
-	#  Status workflow                                                     #
+	#  Status workflow                                                    #
 	# ------------------------------------------------------------------ #
 
 	def validate_status_transition(self):
@@ -135,14 +144,15 @@ class RepairJob(Document):
 		self._write_log("status_change", old_status, self.job_status)
 
 	# ------------------------------------------------------------------ #
-	#  Financials                                                         #
+	#  Financials                                                        #
 	# ------------------------------------------------------------------ #
 
 	def calculate_totals(self):
 		total = 0
-		for line in self.service_lines or []:
-			line.calculate_amount()
-			total += line.amount or 0
+		if not self.is_new():
+			for service in self._get_services():
+				if service.status not in EXCLUDED_COMPONENT_STATUSES:
+					total += service.total_amount or 0
 		self.total_amount = total
 
 	def get_labour_summary(self):
@@ -150,19 +160,40 @@ class RepairJob(Document):
 		lines = []
 		total_hours = 0
 		total_amount = 0
-		for line in self.service_lines or []:
-			if line.service_type != "Labour":
-				continue
+		for service, line in self._get_service_components(component_types={"Labour"}):
 			entry = {
 				"technician": line.assigned_to,
+				"service": service.service_name,
 				"description": line.service_description,
-				"hours": line.quantity or 0,
+				"hours": line.actual_hours or line.quantity or 0,
 				"amount": line.amount or 0,
 			}
 			lines.append(entry)
 			total_hours += entry["hours"]
 			total_amount += entry["amount"]
 		return {"lines": lines, "total_hours": total_hours, "total_amount": total_amount}
+
+	def get_service_groups(self, component_statuses=None):
+		"""Return service/component rows for print formats and summaries."""
+		statuses = set(component_statuses or [])
+		groups = []
+		for service in self._get_services():
+			components = []
+			for _service_component in get_service_components(service):
+				if statuses and _service_component.status not in statuses:
+					continue
+				components.append(_service_component)
+			if components or not statuses:
+				groups.append(
+					{
+						"name": service.name,
+						"service_name": service.service_name,
+						"status": service.status,
+						"total_amount": service.total_amount,
+						"components": components,
+					}
+				)
+		return groups
 
 	def set_currency_from_settings(self):
 		if not self.currency:
@@ -171,7 +202,7 @@ class RepairJob(Document):
 				self.currency = settings.default_currency
 
 	# ------------------------------------------------------------------ #
-	#  Vehicle                                                            #
+	#  Vehicle                                                           #
 	# ------------------------------------------------------------------ #
 
 	def fetch_vehicle_details(self):
@@ -186,7 +217,7 @@ class RepairJob(Document):
 			self.vehicle_details = " ".join(parts).strip()
 
 	# ------------------------------------------------------------------ #
-	#  Actions — whitelisted workflow methods                              #
+	#  Actions - whitelisted workflow methods                            #
 	# ------------------------------------------------------------------ #
 
 	def _require_write_permission(self):
@@ -198,7 +229,6 @@ class RepairJob(Document):
 		self._require_write_permission()
 		self._transition_to("Checked In")
 		self.save()
-		# Create Project idempotently
 		self._ensure_project()
 		self._write_log("check_in")
 
@@ -248,8 +278,8 @@ class RepairJob(Document):
 		self._require_write_permission()
 		self._require_approved_authorization()
 		self._approve_remaining_pending_lines()
-		if not any(line.status == "Approved" for line in self.service_lines or []):
-			frappe.throw(_("At least one service line must be approved before starting repair work."))
+		if not self._has_component_status({"Approved", "Completed"}):
+			frappe.throw(_("At least one service component must be approved before starting repair work."))
 		self._transition_to("Approved")
 		self.save()
 		self._write_log("authorized")
@@ -261,7 +291,7 @@ class RepairJob(Document):
 		self._apply_service_line_status(
 			"Approved",
 			names,
-			{"Pending Approval", "Rejected", "Approved"},
+			{"Pending Approval", "Rejected", "Deferred", "Approved"},
 			"service_lines_approved",
 		)
 
@@ -272,8 +302,19 @@ class RepairJob(Document):
 		self._apply_service_line_status(
 			"Rejected",
 			names,
-			{"Pending Approval", "Approved", "Rejected"},
+			{"Pending Approval", "Approved", "Rejected", "Deferred"},
 			"service_lines_rejected",
+		)
+
+	@frappe.whitelist()
+	def defer_service_lines(self, line_names: list | str | None = None):
+		self._require_write_permission()
+		names = self._coerce_line_names(line_names)
+		self._apply_service_line_status(
+			"Deferred",
+			names,
+			{"Pending Approval", "Approved", "Deferred"},
+			"service_lines_deferred",
 		)
 
 	@frappe.whitelist()
@@ -281,8 +322,8 @@ class RepairJob(Document):
 		"""Begin repair work. Requires authorization."""
 		self._require_write_permission()
 		self._require_approved_authorization()
-		if not any(line.status == "Approved" for line in self.service_lines or []):
-			frappe.throw(_("At least one approved service line is required before starting work."))
+		if not self._has_component_status({"Approved", "Completed"}):
+			frappe.throw(_("At least one approved service component is required before starting work."))
 		self._transition_to("In Repair")
 		self.save()
 		self._write_log("start_work")
@@ -317,8 +358,8 @@ class RepairJob(Document):
 	@frappe.whitelist()
 	def mark_ready_for_invoice(self):
 		self._require_write_permission()
-		if not any(line.status == "Completed" for line in self.service_lines or []):
-			frappe.throw(_("At least one completed service line is required before invoicing."))
+		if not self._has_component_status({"Completed"}):
+			frappe.throw(_("At least one completed service component is required before invoicing."))
 		self._transition_to("Ready for Invoice")
 		self.save()
 		self._write_log("ready_for_invoice")
@@ -347,8 +388,8 @@ class RepairJob(Document):
 	def close_as_diagnosis_only(self):
 		self._require_write_permission()
 		self._require_issued_gate_pass()
-		if any(line.status in {"Pending Approval", "Approved"} for line in self.service_lines or []):
-			frappe.throw(_("Diagnosis-only closure requires all repair recommendations to be rejected, cancelled, or completed."))
+		if self._has_component_status({"Pending Approval", "Approved"}):
+			frappe.throw(_("Diagnosis-only closure requires all repair recommendations to be rejected, deferred, cancelled, or completed."))
 		self._transition_to("Closed - Diagnosis Only")
 		self.closed_on = datetime.now()
 		self.closed_by = frappe.session.user
@@ -364,13 +405,32 @@ class RepairJob(Document):
 		self.save()
 		self._write_log("cancelled")
 
+	@frappe.whitelist()
+	def create_service(self, service_name=None, repair_service_template=None):
+		self._require_write_permission()
+		service = frappe.get_doc(
+			{
+				"doctype": "Repair Job Service",
+				"repair_job": self.name,
+				"customer": self.customer,
+				"customer_vehicle": self.customer_vehicle,
+				"diagnosis_report": self.diagnosis_report,
+				"repair_service_template": repair_service_template,
+				"service_name": service_name or _("New Repair Service"),
+				"currency": self.currency,
+			}
+		)
+		service.insert(ignore_permissions=True)
+		self.reload()
+		return service.name
+
 	# ------------------------------------------------------------------ #
-	#  ERPNext integration triggers                                        #
+	#  ERPNext integration triggers                                      #
 	# ------------------------------------------------------------------ #
 
 	@frappe.whitelist()
 	def create_quotation(self):
-		"""Generate a Quotation from approved service lines."""
+		"""Generate a Quotation from approved service components."""
 		self._require_write_permission()
 		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
 			create_quotation,
@@ -393,19 +453,16 @@ class RepairJob(Document):
 
 	@frappe.whitelist()
 	def create_material_request(self):
-		"""Create Material Request for Parts lines. Blocks duplicate requests."""
+		"""Create Material Request for approved Part and Consumable components."""
 		self._require_write_permission()
-		# Guard: block if any eligible Parts line already has an active MR
-		for line in self.service_lines or []:
-			if (
-				line.service_type == "Parts"
-				and line.item_code
-				and line.status in ("Approved", "Completed")
-				and line.stock_request_status == "Requested"
-			):
+		for _service, line in self._get_service_components(
+			statuses={"Approved", "Completed"},
+			component_types=STOCK_COMPONENT_TYPES,
+		):
+			if line.item_code and line.stock_request_status == "Requested":
 				frappe.throw(
 					_(
-						"Material Request already exists for line '{0}' (status: Requested). "
+						"Material Request already exists for component '{0}' (status: Requested). "
 						"Cancel the existing request before creating a new one."
 					).format(line.service_description or line.name)
 				)
@@ -414,12 +471,11 @@ class RepairJob(Document):
 			create_material_request,
 		)
 
-		mr_name = create_material_request(self)
-		return mr_name
+		return create_material_request(self)
 
 	@frappe.whitelist()
 	def create_stock_entry(self):
-		"""Create Stock Entry (Material Issue) for requested Parts lines."""
+		"""Create Stock Entry (Material Issue) for requested stock components."""
 		self._require_write_permission()
 		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
 			create_stock_entry_for_material_issue,
@@ -433,7 +489,6 @@ class RepairJob(Document):
 	def create_sales_invoice(self):
 		"""Create Sales Invoice. Blocks double-billing."""
 		self._require_write_permission()
-		# Guard: prevent double-billing
 		if self.sales_invoice:
 			frappe.throw(
 				_(
@@ -474,31 +529,32 @@ class RepairJob(Document):
 		return gp.name
 
 	# ------------------------------------------------------------------ #
-	#  Reporting helpers                                                   #
+	#  Reporting helpers                                                 #
 	# ------------------------------------------------------------------ #
 
 	def get_shortage_report(self):
-		"""Return Parts lines where issued_qty < quantity (shortage)."""
+		"""Return stock components where issued_qty < quantity."""
 		shortages = []
-		for line in self.service_lines or []:
-			if line.service_type != "Parts":
-				continue
+		for service, line in self._get_service_components(component_types=STOCK_COMPONENT_TYPES):
 			issued = line.issued_qty or 0
 			needed = line.quantity or 0
 			if needed > 0 and issued < needed:
-				shortages.append({
-					"line_name": line.name,
-					"description": line.service_description,
-					"item_code": line.item_code,
-					"requested_qty": line.requested_qty or 0,
-					"issued_qty": issued,
-					"needed_qty": needed,
-					"shortage_qty": needed - issued,
-				})
+				shortages.append(
+					{
+						"line_name": line.name,
+						"service": service.service_name,
+						"description": line.service_description,
+						"item_code": line.item_code,
+						"requested_qty": line.requested_qty or 0,
+						"issued_qty": issued,
+						"needed_qty": needed,
+						"shortage_qty": needed - issued,
+					}
+				)
 		return shortages
 
 	# ------------------------------------------------------------------ #
-	#  Internal helpers                                                    #
+	#  Internal helpers                                                  #
 	# ------------------------------------------------------------------ #
 
 	def _transition_to(self, target_status):
@@ -542,35 +598,88 @@ class RepairJob(Document):
 		if not line_names:
 			return None
 		if isinstance(line_names, str):
-			line_names = frappe.parse_json(line_names)
+			try:
+				parsed = frappe.parse_json(line_names)
+			except Exception:
+				parsed = [line_names]
+			line_names = parsed if isinstance(parsed, (list, tuple, set)) else [parsed]
 		return {str(name) for name in line_names if name}
 
+	def _get_services(self):
+		return get_repair_job_services(self.name)
+
+	def _get_service_components(
+		self,
+		*,
+		statuses=None,
+		component_types=None,
+		billable_only=False,
+		include_excluded=False,
+	):
+		return list(
+			iter_repair_job_components(
+				self.name,
+				statuses=statuses,
+				component_types=component_types,
+				billable_only=billable_only,
+				include_excluded=include_excluded,
+			)
+		)
+
+	def _has_component_status(self, statuses):
+		return bool(self._get_service_components(statuses=set(statuses), include_excluded=True))
+
 	def _normalize_pending_approval_lines(self):
-		for line in self.service_lines or []:
-			if line.status in (None, "", "Pending"):
-				line.status = "Pending Approval"
+		for service in self._get_services():
+			updated = False
+			for component in get_service_components(service):
+				if component.status in (None, "", "Pending"):
+					component.row.status = "Pending Approval"
+					updated = True
+			if updated:
+				service.save(ignore_permissions=True)
 
 	def _approve_remaining_pending_lines(self):
-		for line in self.service_lines or []:
-			if line.status == "Pending Approval":
-				line.status = "Approved"
+		for service in self._get_services():
+			updated = False
+			for component in get_service_components(service):
+				if component.status == "Pending Approval":
+					component.row.status = "Approved"
+					updated = True
+			if updated:
+				service.save(ignore_permissions=True)
 
 	def _apply_service_line_status(self, target_status, line_names, allowed_current_statuses, event_type):
 		updated = []
-		for line in self.service_lines or []:
-			if line_names and line.name not in line_names:
-				continue
-			if line.status not in allowed_current_statuses:
-				continue
-			old_status = line.status
-			line.status = target_status
-			updated.append(f"{line.service_description or line.name}:{old_status}->{target_status}")
+		for service in self._get_services():
+			service_updated = False
+			for component in get_service_components(service):
+				if line_names and component.name not in line_names:
+					continue
+				if component.status not in allowed_current_statuses:
+					continue
+				if target_status in EXCLUDED_COMPONENT_STATUSES and self._component_has_downstream(component):
+					frappe.throw(
+						_(
+							"Component {0} has linked ERPNext records. Cancel or reverse those records before changing it to {1}."
+						).format(component.service_description or component.name, target_status)
+					)
+				old_status = component.status
+				component.row.status = target_status
+				service_updated = True
+				updated.append(f"{component.service_description or component.name}:{old_status}->{target_status}")
+
+			if service_updated:
+				service.save(ignore_permissions=True)
 
 		if not updated:
-			frappe.throw(_("No eligible service lines were updated."))
+			frappe.throw(_("No eligible service components were updated."))
 
-		self.save()
+		self.reload()
 		self._write_log(event_type, new_value="\n".join(updated))
+
+	def _component_has_downstream(self, line):
+		return component_has_downstream(line)
 
 	def _ensure_project(self):
 		"""Create the ERPNext Project if one does not yet exist."""
@@ -613,10 +722,10 @@ class RepairJob(Document):
 
 		services = []
 		parts = []
-		for line in self.service_lines or []:
+		for service, line in self._get_service_components(statuses={"Completed"}, include_excluded=True):
 			if line.service_type == "Labour":
-				services.append(line.service_description or "")
-			elif line.service_type == "Parts":
+				services.append(f"{service.service_name}: {line.service_description or ''}")
+			elif line.service_type in STOCK_COMPONENT_TYPES:
 				parts.append(line.service_description or "")
 
 		frappe.get_doc(

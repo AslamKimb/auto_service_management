@@ -1,0 +1,202 @@
+{
+  "name": "Repair Job Service",
+  "module": "Auto Service Management",
+  "doctype": "DocType",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "autoname": "format:RJS-{YYYY}-{#####}",
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "service_context_section",
+      "fieldtype": "Section Break",
+      "label": "Service Context"
+    },
+    {
+      "fieldname": "repair_job",
+      "fieldtype": "Link",
+      "label": "Repair Job",
+      "options": "Repair Job",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "customer",
+      "fieldtype": "Link",
+      "label": "Customer",
+      "options": "Customer",
+      "read_only": 1,
+      "fetch_from": "repair_job.customer"
+    },
+    {
+      "fieldname": "customer_vehicle",
+      "fieldtype": "Link",
+      "label": "Customer Vehicle",
+      "options": "Customer Vehicle",
+      "read_only": 1,
+      "fetch_from": "repair_job.customer_vehicle"
+    },
+    {
+      "fieldname": "context_column_break",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "diagnosis_report",
+      "fieldtype": "Link",
+      "label": "Diagnosis Report",
+      "options": "Diagnosis Report"
+    },
+    {
+      "fieldname": "repair_service_template",
+      "fieldtype": "Link",
+      "label": "Service Template",
+      "options": "Repair Service Template"
+    },
+    {
+      "fieldname": "service_details_section",
+      "fieldtype": "Section Break",
+      "label": "Service Details"
+    },
+    {
+      "fieldname": "service_name",
+      "fieldtype": "Data",
+      "label": "Service Name",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "\nDraft\nPending Approval\nApproved\nIn Progress\nCompleted\nRejected\nDeferred\nCancelled",
+      "default": "Pending Approval",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "billable",
+      "fieldtype": "Check",
+      "label": "Billable",
+      "default": 1
+    },
+    {
+      "fieldname": "details_column_break",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "description",
+      "fieldtype": "Text Editor",
+      "label": "Description"
+    },
+    {
+      "fieldname": "components_section",
+      "fieldtype": "Section Break",
+      "label": "Service Components"
+    },
+    {
+      "fieldname": "parts",
+      "fieldtype": "Table",
+      "label": "Parts",
+      "options": "Repair Job Service Part"
+    },
+    {
+      "fieldname": "labour",
+      "fieldtype": "Table",
+      "label": "Labour",
+      "options": "Repair Job Service Labour"
+    },
+    {
+      "fieldname": "consumables",
+      "fieldtype": "Table",
+      "label": "Consumables",
+      "options": "Repair Job Service Consumable"
+    },
+    {
+      "fieldname": "subcontracted_services",
+      "fieldtype": "Table",
+      "label": "Subcontracted Services",
+      "options": "Repair Job Service Subcontracted Service"
+    },
+    {
+      "fieldname": "totals_section",
+      "fieldtype": "Section Break",
+      "label": "Totals",
+      "collapsible": 1
+    },
+    {
+      "fieldname": "total_amount",
+      "fieldtype": "Currency",
+      "label": "Total Amount",
+      "options": "currency",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "cost_total",
+      "fieldtype": "Currency",
+      "label": "Cost Total",
+      "options": "currency",
+      "read_only": 1
+    },
+    {
+      "fieldname": "totals_column_break",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "gross_margin",
+      "fieldtype": "Currency",
+      "label": "Gross Margin",
+      "options": "currency",
+      "read_only": 1
+    },
+    {
+      "fieldname": "margin_percentage",
+      "fieldtype": "Percent",
+      "label": "Margin %",
+      "read_only": 1
+    },
+    {
+      "fieldname": "currency",
+      "fieldtype": "Link",
+      "label": "Currency",
+      "options": "Currency",
+      "read_only": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "Workshop Manager",
+      "read": 1,
+      "report": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "Service Advisor",
+      "read": 1,
+      "report": 1,
+      "write": 1,
+      "create": 1
+    },
+    {
+      "role": "Parts Interpreter",
+      "read": 1,
+      "report": 1,
+      "write": 1
+    },
+    {
+      "role": "Workshop Technician",
+      "read": 1,
+      "write": 1
+    },
+    {
+      "role": "Cashier",
+      "read": 1,
+      "report": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "title_field": "service_name",
+  "search_fields": "repair_job,customer_vehicle,service_name,status"
+}

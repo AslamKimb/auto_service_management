@@ -1,307 +1,313 @@
 {
-  "name": "Repair Job",
-  "module": "Auto Service Management",
-  "doctype": "DocType",
-  "document_type": "Document",
-  "engine": "InnoDB",
-  "autoname": "format:RJ-{YYYY}-{#####}",
-  "track_changes": 1,
-  "fields": [
-    {
-      "fieldname": "customer_section",
-      "fieldtype": "Section Break",
-      "label": "Customer and Vehicle"
-    },
-    {
-      "fieldname": "customer",
-      "fieldtype": "Link",
-      "label": "Customer",
-      "options": "Customer"
-    },
-    {
-      "fieldname": "customer_vehicle",
-      "fieldtype": "Link",
-      "label": "Customer Vehicle",
-      "options": "Customer Vehicle",
-      "reqd": 1
-    },
-    {
-      "fieldname": "column_break_customer",
-      "fieldtype": "Column Break"
-    },
-    {
-      "fieldname": "registration_number",
-      "fieldtype": "Data",
-      "label": "Registration Number",
-      "fetch_from": "customer_vehicle.registration_number",
-      "read_only": 1
-    },
-    {
-      "fieldname": "vehicle_details",
-      "fieldtype": "Small Text",
-      "label": "Vehicle",
-      "read_only": 1
-    },
-    {
-      "label": "Odometer In (km)",
-      "fieldtype": "Float",
-      "fieldname": "odometer_in",
-      "reqd": 1
-    },
-    {
-      "fieldname": "fuel_level",
-      "fieldtype": "Select",
-      "label": "Fuel Level",
-      "options": "\nEmpty\n1/4\n1/2\n3/4\nFull"
-    },
-    {
-      "fieldname": "job_section",
-      "fieldtype": "Section Break",
-      "label": "Job Details"
-    },
-    {
-      "fieldname": "job_status",
-      "fieldtype": "Select",
-      "label": "Status",
-      "options": "\nDraft\nChecked In\nWalkaround Inspection\nDiagnosis\nEstimate Prepared\nWaiting for Customer Approval\nApproved\nIn Repair\nQuality Check\nReady for Invoice\nInvoiced\nGate Pass Issued\nClosed\nClosed - Diagnosis Only\nCancelled",
-      "default": "Draft",
-      "in_list_view": 1
-    },
-    {
-      "fieldname": "priority",
-      "fieldtype": "Select",
-      "label": "Priority",
-      "options": "\nLow\nNormal\nHigh\nUrgent",
-      "default": "Normal"
-    },
-    {
-      "fieldname": "column_break_job",
-      "fieldtype": "Column Break"
-    },
-    {
-      "fieldname": "workshop_bay",
-      "fieldtype": "Link",
-      "label": "Workshop Bay",
-      "options": "Workshop Bay"
-    },
-    {
-      "fieldname": "promised_date",
-      "fieldtype": "Datetime",
-      "label": "Promised Date"
-    },
-    {
-      "fieldname": "column_break_job2",
-      "fieldtype": "Column Break"
-    },
-    {
-      "fieldname": "project",
-      "fieldtype": "Link",
-      "label": "Project",
-      "options": "Project",
-      "read_only": 1
-    },
-    {
-      "fieldname": "fleet_service_campaign",
-      "fieldtype": "Link",
-      "label": "Fleet Service Campaign",
-      "options": "Fleet Service Campaign",
-      "read_only": 1
-    },
-    {
-      "fieldname": "quotation",
-      "fieldtype": "Link",
-      "label": "Quotation",
-      "options": "Quotation",
-      "read_only": 1
-    },
-    {
-      "fieldname": "sales_order",
-      "fieldtype": "Link",
-      "label": "Sales Order",
-      "options": "Sales Order",
-      "read_only": 1
-    },
-    {
-      "fieldname": "related_documents_section",
-      "fieldtype": "Section Break",
-      "label": "Related Documents",
-      "collapsible": 1
-    },
-    {
-      "fieldname": "walkaround_inspection",
-      "fieldtype": "Link",
-      "label": "Walkaround Inspection",
-      "options": "Walkaround Inspection"
-    },
-    {
-      "fieldname": "diagnosis_report",
-      "fieldtype": "Link",
-      "label": "Diagnosis Report",
-      "options": "Diagnosis Report"
-    },
-    {
-      "fieldname": "customer_authorization",
-      "fieldtype": "Link",
-      "label": "Customer Authorization",
-      "options": "Customer Authorization"
-    },
-    {
-      "fieldname": "quality_check",
-      "fieldtype": "Link",
-      "label": "Quality Check",
-      "options": "Quality Check"
-    },
-    {
-      "fieldname": "road_test_report",
-      "fieldtype": "Link",
-      "label": "Road Test Report",
-      "options": "Road Test Report"
-    },
-    {
-      "fieldname": "gate_pass",
-      "fieldtype": "Link",
-      "label": "Gate Pass",
-      "options": "Gate Pass"
-    },
-    {
-      "fieldname": "intake_notes_section",
-      "fieldtype": "Section Break",
-      "label": "Intake Notes",
-      "collapsible": 1
-    },
-    {
-      "fieldname": "column_break_related_documents",
-      "fieldtype": "Column Break"
-    },
-    {
-      "fieldname": "customer_concern",
-      "fieldtype": "Text Editor",
-      "label": "Customer Concern",
-      "reqd": 1
-    },
-    {
-      "fieldname": "services_section",
-      "fieldtype": "Section Break",
-      "label": "Service Lines"
-    },
-    {
-      "fieldname": "service_lines",
-      "fieldtype": "Table",
-      "label": "Service Lines",
-      "options": "Repair Service Line"
-    },
-    {
-      "fieldname": "total_amount",
-      "fieldtype": "Currency",
-      "label": "Total Amount",
-      "options": "currency",
-      "read_only": 1,
-      "in_list_view": 1
-    },
-    {
-      "fieldname": "currency",
-      "fieldtype": "Link",
-      "label": "Currency",
-      "options": "Currency",
-      "read_only": 1
-    },
-    {
-      "fieldtype": "Section Break",
-      "collapsible": 1,
-      "label": "Road Test",
-      "fieldname": "road_test_section"
-    },
-    {
-      "fieldtype": "Section Break",
-      "collapsible": 1,
-      "label": "Billing and Release",
-      "fieldname": "billing_section"
-    },
-    {
-      "fieldname": "sales_invoice",
-      "fieldtype": "Link",
-      "label": "Sales Invoice",
-      "options": "Sales Invoice",
-      "read_only": 1
-    },
-    {
-      "fieldname": "payment_status",
-      "fieldtype": "Select",
-      "label": "Payment Status",
-      "options": "\nUnpaid\nPartially Paid\nPaid",
-      "default": "Unpaid"
-    },
-    {
-      "fieldname": "column_break_billing",
-      "fieldtype": "Column Break"
-    },
-    {
-      "fieldname": "odometer_out",
-      "fieldtype": "Float",
-      "label": "Odometer Out (km)"
-    },
-    {
-      "fieldname": "closure_section",
-      "fieldtype": "Section Break",
-      "label": "Closure",
-      "collapsible": 1
-    },
-    {
-      "fieldname": "closed_on",
-      "fieldtype": "Datetime",
-      "label": "Closed On",
-      "read_only": 1
-    },
-    {
-      "fieldname": "closed_by",
-      "fieldtype": "Link",
-      "label": "Closed By",
-      "options": "User",
-      "read_only": 1
-    }
-  ],
-  "permissions": [
-    {
-      "role": "Workshop Manager",
-      "read": 1,
-      "report": 1,
-      "write": 1,
-      "create": 1,
-      "delete": 1,
-      "submit": 0,
-      "cancel": 0
-    },
-    {
-      "role": "Service Advisor",
-      "read": 1,
-      "report": 1,
-      "write": 1,
-      "create": 1
-    },
-    {
-      "role": "Parts Interpreter",
-      "read": 1,
-      "report": 1
-    },
-    {
-      "role": "Cashier",
-      "report": 1,
-      "read": 1,
-      "write": 0,
-      "create": 0
-    },
-    {
-      "role": "Workshop Technician",
-      "read": 1,
-      "write": 1
-    },
-    {
-      "role": "Accounts Manager",
-      "read": 1
-    }
-  ],
-  "sort_field": "modified",
-  "sort_order": "DESC",
-  "title_field": "customer_vehicle",
-  "search_fields": "customer_vehicle,registration_number,customer"
+ "name": "Repair Job",
+ "module": "Auto Service Management",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "autoname": "format:RJ-{YYYY}-{#####}",
+ "track_changes": 1,
+ "fields": [
+  {
+   "fieldname": "customer_section",
+   "fieldtype": "Section Break",
+   "label": "Customer and Vehicle"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "customer_vehicle",
+   "fieldtype": "Link",
+   "label": "Customer Vehicle",
+   "options": "Customer Vehicle",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_customer",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "registration_number",
+   "fieldtype": "Data",
+   "label": "Registration Number",
+   "fetch_from": "customer_vehicle.registration_number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vehicle_details",
+   "fieldtype": "Small Text",
+   "label": "Vehicle",
+   "read_only": 1
+  },
+  {
+   "label": "Odometer In (km)",
+   "fieldtype": "Float",
+   "fieldname": "odometer_in",
+   "reqd": 1
+  },
+  {
+   "fieldname": "fuel_level",
+   "fieldtype": "Select",
+   "label": "Fuel Level",
+   "options": "\nEmpty\n1/4\n1/2\n3/4\nFull"
+  },
+  {
+   "fieldname": "job_section",
+   "fieldtype": "Section Break",
+   "label": "Job Details"
+  },
+  {
+   "fieldname": "job_status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "\nDraft\nChecked In\nWalkaround Inspection\nDiagnosis\nEstimate Prepared\nWaiting for Customer Approval\nApproved\nIn Repair\nQuality Check\nReady for Invoice\nInvoiced\nGate Pass Issued\nClosed\nClosed - Diagnosis Only\nCancelled",
+   "default": "Draft",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "\nLow\nNormal\nHigh\nUrgent",
+   "default": "Normal"
+  },
+  {
+   "fieldname": "column_break_job",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "workshop_bay",
+   "fieldtype": "Link",
+   "label": "Workshop Bay",
+   "options": "Workshop Bay"
+  },
+  {
+   "fieldname": "promised_date",
+   "fieldtype": "Datetime",
+   "label": "Promised Date"
+  },
+  {
+   "fieldname": "column_break_job2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fleet_service_campaign",
+   "fieldtype": "Link",
+   "label": "Fleet Service Campaign",
+   "options": "Fleet Service Campaign",
+   "read_only": 1
+  },
+  {
+   "fieldname": "quotation",
+   "fieldtype": "Link",
+   "label": "Quotation",
+   "options": "Quotation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "label": "Sales Order",
+   "options": "Sales Order",
+   "read_only": 1
+  },
+  {
+   "fieldname": "related_documents_section",
+   "fieldtype": "Section Break",
+   "label": "Related Documents",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "walkaround_inspection",
+   "fieldtype": "Link",
+   "label": "Walkaround Inspection",
+   "options": "Walkaround Inspection"
+  },
+  {
+   "fieldname": "diagnosis_report",
+   "fieldtype": "Link",
+   "label": "Diagnosis Report",
+   "options": "Diagnosis Report"
+  },
+  {
+   "fieldname": "customer_authorization",
+   "fieldtype": "Link",
+   "label": "Customer Authorization",
+   "options": "Customer Authorization"
+  },
+  {
+   "fieldname": "quality_check",
+   "fieldtype": "Link",
+   "label": "Quality Check",
+   "options": "Quality Check"
+  },
+  {
+   "fieldname": "road_test_report",
+   "fieldtype": "Link",
+   "label": "Road Test Report",
+   "options": "Road Test Report"
+  },
+  {
+   "fieldname": "gate_pass",
+   "fieldtype": "Link",
+   "label": "Gate Pass",
+   "options": "Gate Pass"
+  },
+  {
+   "fieldname": "repair_job_service",
+   "fieldtype": "Link",
+   "options": "Repair Job Service",
+   "label": "Repair Job Service"
+  },
+  {
+   "fieldname": "intake_notes_section",
+   "fieldtype": "Section Break",
+   "label": "Intake Notes",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "column_break_related_documents",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer_concern",
+   "fieldtype": "Text Editor",
+   "label": "Customer Concern",
+   "reqd": 1
+  },
+  {
+   "fieldname": "services_section",
+   "fieldtype": "Section Break",
+   "label": "Services"
+  },
+  {
+   "fieldname": "services_help",
+   "fieldtype": "HTML",
+   "label": "Services Help",
+   "options": "<p class=\"text-muted\">Create customer-facing services from this job. Each service owns its parts, labour, consumables, subcontracted work, and billing components.</p>"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Total Amount",
+   "options": "currency",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldtype": "Section Break",
+   "collapsible": 1,
+   "label": "Road Test",
+   "fieldname": "road_test_section"
+  },
+  {
+   "fieldtype": "Section Break",
+   "collapsible": 1,
+   "label": "Billing and Release",
+   "fieldname": "billing_section"
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_status",
+   "fieldtype": "Select",
+   "label": "Payment Status",
+   "options": "\nUnpaid\nPartially Paid\nPaid",
+   "default": "Unpaid"
+  },
+  {
+   "fieldname": "column_break_billing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "odometer_out",
+   "fieldtype": "Float",
+   "label": "Odometer Out (km)"
+  },
+  {
+   "fieldname": "closure_section",
+   "fieldtype": "Section Break",
+   "label": "Closure",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "closed_on",
+   "fieldtype": "Datetime",
+   "label": "Closed On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "closed_by",
+   "fieldtype": "Link",
+   "label": "Closed By",
+   "options": "User",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "Workshop Manager",
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0
+  },
+  {
+   "role": "Service Advisor",
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "Parts Interpreter",
+   "read": 1,
+   "report": 1
+  },
+  {
+   "role": "Cashier",
+   "report": 1,
+   "read": 1,
+   "write": 0,
+   "create": 0
+  },
+  {
+   "role": "Workshop Technician",
+   "read": 1,
+   "write": 1
+  },
+  {
+   "role": "Accounts Manager",
+   "read": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "customer_vehicle",
+ "search_fields": "customer_vehicle,registration_number,customer"
 }

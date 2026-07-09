@@ -12,6 +12,10 @@ from unittest.mock import MagicMock, patch
 import frappe
 from frappe.tests import IntegrationTestCase
 
+from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
+	COMPONENT_TABLE_BY_TYPE,
+)
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -121,19 +125,83 @@ def _create_repair_job(customer=None, vehicle=None, fuel_level="1/2"):
 
 
 def _append_pending_labour_line(job, description="Workshop labour", rate=120000):
-	job.append(
-		"service_lines",
-		{
-			"service_type": "Labour",
-			"service_description": description,
-			"quantity": 1,
-			"rate": rate,
-			"status": "Pending Approval",
-		},
+	service = _create_job_service(job, description, status="Pending Approval")
+	line = _append_service_component(
+		service,
+		service_type="Labour",
+		description=description,
+		quantity=1,
+		rate=rate,
+		status="Pending Approval",
 	)
-	job.save()
 	job.reload()
-	return job.service_lines[-1].name
+	return line.name
+
+
+def _create_job_service(job, service_name="Workshop service", status="Pending Approval", template=None):
+	service = frappe.get_doc(
+		{
+			"doctype": "Repair Job Service",
+			"repair_job": job.name,
+			"customer": job.customer,
+			"customer_vehicle": job.customer_vehicle,
+			"diagnosis_report": job.diagnosis_report,
+			"repair_service_template": template,
+			"service_name": service_name,
+			"status": status,
+			"billable": 1,
+			"currency": job.currency,
+		}
+	)
+	service.insert(ignore_permissions=True)
+	return service
+
+
+def _append_service_component(
+	service,
+	*,
+	service_type="Labour",
+	description="Workshop component",
+	item_code=None,
+	quantity=1,
+	rate=120000,
+	status="Pending Approval",
+	assigned_to=None,
+):
+	table = COMPONENT_TABLE_BY_TYPE[service_type]["fieldname"]
+	row = {
+		"description": description,
+		"item_code": item_code,
+		"rate": rate,
+		"status": status,
+	}
+	if service_type in {"Part", "Consumable"}:
+		row["quantity"] = quantity
+	if service_type == "Labour":
+		row["estimated_hours"] = quantity
+		row["assigned_to"] = assigned_to
+	if service_type == "Subcontracted Service":
+		row["supplier"] = None
+	service.append(table, row)
+	service.save(ignore_permissions=True)
+	service.reload()
+	return service.get(table)[-1]
+
+
+def _get_job_components(job_name):
+	rows = []
+	for component_type, definition in COMPONENT_TABLE_BY_TYPE.items():
+		component_rows = frappe.get_all(
+			definition["doctype"],
+			filters={"repair_job": job_name},
+			fields=["name", "description", "status", "amount"],
+			order_by="creation asc, idx asc",
+		)
+		for row in component_rows:
+			row.service_type = component_type
+			row.service_description = row.description
+			rows.append(row)
+	return rows
 
 
 def _insert_walkaround(job_name, vehicle, fuel_level="1/2"):
@@ -287,20 +355,18 @@ class TestRepairJobWorkflowIntegration(IntegrationTestCase):
 	def test_parts_line_amount_contributes_to_total(self):
 		job_name = _create_repair_job(self.customer, self.vehicle)
 		job = frappe.get_doc("Repair Job", job_name)
-		job.append(
-			"service_lines",
-			{
-				"service_type": "Parts",
-				"service_description": "Battery replacement",
-				"quantity": 2,
-				"rate": 150000,
-				"status": "Pending Approval",
-			},
+		service = _create_job_service(job, "Battery replacement")
+		line = _append_service_component(
+			service,
+			service_type="Part",
+			description="Battery replacement",
+			quantity=2,
+			rate=150000,
+			status="Pending Approval",
 		)
-		job.save()
 		job.reload()
 
-		self.assertEqual(job.service_lines[0].amount, 300000)
+		self.assertEqual(line.amount, 300000)
 		self.assertEqual(job.total_amount, 300000)
 
 	def test_full_lifecycle_to_closed(self):
@@ -497,17 +563,16 @@ class TestRepairJobWorkflowIntegration(IntegrationTestCase):
 		job.start_diagnosis()
 		_insert_diagnosis(job_name, self.vehicle, complaint="Diagnosis only")
 		job = frappe.get_doc("Repair Job", job_name)
-		job.append(
-			"service_lines",
-			{
-				"service_type": "Labour",
-				"service_description": "Diagnosis fee",
-				"quantity": 1,
-				"rate": 50000,
-				"status": "Completed",
-			},
+		service = _create_job_service(job, "Diagnosis fee", status="Completed")
+		_append_service_component(
+			service,
+			service_type="Labour",
+			description="Diagnosis fee",
+			quantity=1,
+			rate=50000,
+			status="Completed",
 		)
-		job.save()
+		job.reload()
 		job.mark_ready_for_invoice()
 
 		def invoice_side_effect(repair_job):
@@ -560,28 +625,31 @@ class TestRepairJobWorkflowIntegration(IntegrationTestCase):
 		job = frappe.get_doc("Repair Job", job_name)
 		job.start_diagnosis()
 		_insert_diagnosis(job_name, self.vehicle)
+		service = _create_job_service(job, "Selective repair")
+		line_names = []
 		for description in ("Replace battery", "Replace brake pads", "Replace shock absorbers", "Engine oil"):
-			job.append(
-				"service_lines",
-				{
-					"service_type": "Labour" if description == "Engine oil" else "Parts",
-					"service_description": description,
-					"quantity": 1,
-					"rate": 100000,
-					"status": "Pending Approval",
-				},
+			line = _append_service_component(
+				service,
+				service_type="Labour" if description == "Engine oil" else "Part",
+				description=description,
+				quantity=1,
+				rate=100000,
+				status="Pending Approval",
 			)
-		job.save()
+			line_names.append(line.name)
+		job.reload()
 		job.request_authorization()
 		job.reload()
 		self.assertEqual(job.job_status, "Waiting for Customer Approval")
 
-		battery, brakes, shocks, oil = [line.name for line in job.service_lines]
+		battery, brakes, shocks, oil = line_names
 		job.approve_service_lines([battery, brakes, oil])
 		job = frappe.get_doc("Repair Job", job_name)
 		job.reject_service_lines([shocks])
 		job = frappe.get_doc("Repair Job", job_name)
-		status_by_description = {line.service_description: line.status for line in job.service_lines}
+		status_by_description = {
+			line.service_description: line.status for line in _get_job_components(job_name)
+		}
 		self.assertEqual(status_by_description["Replace battery"], "Approved")
 		self.assertEqual(status_by_description["Replace brake pads"], "Approved")
 		self.assertEqual(status_by_description["Replace shock absorbers"], "Rejected")
@@ -1158,7 +1226,6 @@ class TestERPNextAdapters(IntegrationTestCase):
 		)
 
 		job = frappe.get_doc("Repair Job", _create_repair_job(self.customer, self.vehicle))
-		job.service_lines = []
 		with self.assertRaises(frappe.ValidationError):
 			create_quotation(job)
 
@@ -1168,8 +1235,6 @@ class TestERPNextAdapters(IntegrationTestCase):
 		)
 
 		job = frappe.get_doc("Repair Job", _create_repair_job(self.customer, self.vehicle))
-		# No Parts lines
-		job.service_lines = []
 		with self.assertRaises(frappe.ValidationError):
 			create_material_request(job)
 

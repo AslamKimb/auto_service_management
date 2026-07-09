@@ -16,6 +16,11 @@ from auto_service_management.auto_service_management.workspace_dashboard import 
 	get_auto_service_settings_configured_card_data,
 )
 
+LEGACY_COMPONENT_DOCTYPES = {
+	"Repair Service Line",
+	"Repair Service Template Component",
+}
+
 
 class TestWorkspaceDashboardContracts(UnitTestCase):
 	def test_doc_type_coverage_constant_matches_app_doctype_inventory(self):
@@ -31,8 +36,8 @@ class TestWorkspaceDashboardContracts(UnitTestCase):
 				continue
 			discovered.add(json.loads(json_path.read_text(encoding="utf-8"))["name"])
 
-		self.assertEqual(set(WORKSPACE_DOC_TYPE_COVERAGE), discovered)
-		self.assertEqual(len(WORKSPACE_DOC_TYPE_COVERAGE), 17)
+		self.assertEqual(set(WORKSPACE_DOC_TYPE_COVERAGE), discovered - LEGACY_COMPONENT_DOCTYPES)
+		self.assertTrue(LEGACY_COMPONENT_DOCTYPES.issubset(discovered))
 
 	def test_workspace_declares_expected_dashboard_charts_and_number_cards(self):
 		module_root = Path(__file__).parents[1]

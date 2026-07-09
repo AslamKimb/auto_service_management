@@ -9,93 +9,239 @@
   "name": "Repair Service Line",
   "fields": [
     {
-      "reqd": 1,
-      "fieldtype": "Select",
-      "options": "\nLabour\nParts\nSubcontract",
-      "label": "Service Type",
-      "fieldname": "service_type"
+      "fieldname": "trace_section",
+      "fieldtype": "Section Break",
+      "label": "Traceability"
     },
     {
+      "fieldname": "repair_job",
+      "fieldtype": "Link",
+      "label": "Repair Job",
+      "options": "Repair Job",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "repair_job_service",
+      "fieldtype": "Link",
+      "label": "Repair Job Service",
+      "options": "Repair Job Service",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "trace_column_break",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "customer_vehicle",
+      "fieldtype": "Link",
+      "label": "Customer Vehicle",
+      "options": "Customer Vehicle",
+      "read_only": 1
+    },
+    {
+      "fieldname": "currency",
+      "fieldtype": "Link",
+      "label": "Currency",
+      "options": "Currency",
+      "read_only": 1
+    },
+    {
+      "fieldname": "component_section",
+      "fieldtype": "Section Break",
+      "label": "Component"
+    },
+    {
+      "fieldname": "service_type",
+      "fieldtype": "Select",
+      "label": "Component Type",
+      "options": "\nPart\nLabour\nConsumable\nSubcontracted Service\nOther",
       "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "service_description",
       "fieldtype": "Small Text",
       "label": "Description",
-      "fieldname": "service_description"
+      "reqd": 1,
+      "in_list_view": 1
     },
     {
-      "fieldname": "column_break_service",
+      "fieldname": "component_column_break",
       "fieldtype": "Column Break"
     },
     {
+      "fieldname": "item_code",
       "fieldtype": "Link",
-      "options": "Item",
       "label": "Item",
-      "fieldname": "item_code"
+      "options": "Item",
+      "in_list_view": 1
     },
     {
+      "fieldname": "quantity",
       "fieldtype": "Float",
-      "default": 1,
       "label": "Quantity",
-      "fieldname": "quantity"
+      "default": 1,
+      "in_list_view": 1
     },
     {
-      "fieldname": "column_break_service2",
+      "fieldname": "uom",
+      "fieldtype": "Link",
+      "label": "UOM",
+      "options": "UOM"
+    },
+    {
+      "fieldname": "warehouse",
+      "fieldtype": "Link",
+      "label": "Warehouse",
+      "options": "Warehouse"
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "\nPending Approval\nApproved\nRejected\nDeferred\nCompleted\nCancelled",
+      "default": "Pending Approval",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "billable",
+      "fieldtype": "Check",
+      "label": "Billable",
+      "default": 1
+    },
+    {
+      "fieldname": "pricing_section",
+      "fieldtype": "Section Break",
+      "label": "Pricing"
+    },
+    {
+      "fieldname": "rate",
+      "fieldtype": "Currency",
+      "label": "Rate",
+      "options": "currency"
+    },
+    {
+      "fieldname": "amount",
+      "fieldtype": "Currency",
+      "label": "Amount",
+      "options": "currency",
+      "read_only": 1
+    },
+    {
+      "fieldname": "discount_percentage",
+      "fieldtype": "Percent",
+      "label": "Discount %"
+    },
+    {
+      "fieldname": "discount_amount",
+      "fieldtype": "Currency",
+      "label": "Discount Amount",
+      "options": "currency",
+      "read_only": 1
+    },
+    {
+      "fieldname": "pricing_column_break",
       "fieldtype": "Column Break"
     },
     {
+      "fieldname": "tax_amount",
       "fieldtype": "Currency",
-      "options": "currency",
-      "label": "Rate",
-      "fieldname": "rate"
+      "label": "Tax Amount",
+      "options": "currency"
     },
     {
-      "read_only": 1,
+      "fieldname": "cost_rate",
       "fieldtype": "Currency",
+      "label": "Cost Rate",
+      "options": "currency"
+    },
+    {
+      "fieldname": "cost_amount",
+      "fieldtype": "Currency",
+      "label": "Cost Amount",
       "options": "currency",
-      "label": "Amount",
-      "fieldname": "amount"
+      "read_only": 1
     },
     {
-      "default": "Pending Approval",
-      "fieldtype": "Select",
-      "options": "\nPending Approval\nApproved\nRejected\nCompleted\nCancelled",
-      "label": "Status",
-      "fieldname": "status"
+      "fieldname": "margin_amount",
+      "fieldtype": "Currency",
+      "label": "Margin Amount",
+      "options": "currency",
+      "read_only": 1
     },
     {
+      "fieldname": "margin_percentage",
+      "fieldtype": "Percent",
+      "label": "Margin %",
+      "read_only": 1
+    },
+    {
+      "fieldname": "labour_section",
+      "fieldtype": "Section Break",
+      "label": "Labour and Task Tracking",
+      "collapsible": 1
+    },
+    {
+      "fieldname": "assigned_to",
       "fieldtype": "Link",
-      "options": "User",
       "label": "Assigned Technician",
-      "fieldname": "assigned_to"
+      "options": "User"
     },
     {
+      "fieldname": "estimated_hours",
       "fieldtype": "Float",
-      "label": "Estimated Hours",
-      "fieldname": "estimated_hours"
+      "label": "Estimated Hours"
     },
     {
-      "read_only": 1,
+      "fieldname": "actual_hours",
       "fieldtype": "Float",
       "label": "Actual Hours",
-      "fieldname": "actual_hours"
+      "read_only": 1
     },
     {
+      "fieldname": "task",
+      "fieldtype": "Link",
+      "label": "Task",
+      "options": "Task"
+    },
+    {
+      "fieldname": "labour_column_break",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "timesheet",
+      "fieldtype": "Link",
+      "label": "Timesheet",
+      "options": "Timesheet",
+      "read_only": 1
+    },
+    {
+      "fieldname": "timesheet_detail",
+      "fieldtype": "Data",
+      "label": "Timesheet Detail Row",
+      "read_only": 1
+    },
+    {
+      "fieldname": "stock_section_break",
       "fieldtype": "Section Break",
       "label": "Stock Tracking",
-      "fieldname": "stock_section_break"
+      "collapsible": 1
     },
     {
-      "read_only": 1,
+      "fieldname": "requested_qty",
       "fieldtype": "Float",
-      "default": 0,
       "label": "Requested Qty",
-      "fieldname": "requested_qty"
+      "default": 0,
+      "read_only": 1
     },
     {
-      "read_only": 1,
+      "fieldname": "issued_qty",
       "fieldtype": "Float",
-      "default": 0,
       "label": "Issued Qty",
-      "fieldname": "issued_qty"
+      "default": 0,
+      "read_only": 1
     },
     {
       "fieldname": "stock_column_break",
@@ -103,25 +249,82 @@
     },
     {
       "fieldname": "stock_request_status",
-      "default": "Not Requested",
       "fieldtype": "Select",
       "label": "Stock Request Status",
       "options": "\nNot Requested\nRequested\nFully Issued\nCancelled",
+      "default": "Not Requested",
       "read_only": 1
     },
     {
-      "read_only": 1,
+      "fieldname": "material_request",
       "fieldtype": "Link",
-      "options": "Material Request",
       "label": "Material Request",
-      "fieldname": "material_request"
+      "options": "Material Request",
+      "read_only": 1
     },
     {
-      "read_only": 1,
+      "fieldname": "material_request_item",
+      "fieldtype": "Data",
+      "label": "Material Request Item Row",
+      "read_only": 1
+    },
+    {
+      "fieldname": "stock_entry",
       "fieldtype": "Link",
-      "options": "Stock Entry",
       "label": "Stock Entry",
-      "fieldname": "stock_entry"
+      "options": "Stock Entry",
+      "read_only": 1
+    },
+    {
+      "fieldname": "stock_entry_detail",
+      "fieldtype": "Data",
+      "label": "Stock Entry Detail Row",
+      "read_only": 1
+    },
+    {
+      "fieldname": "billing_section",
+      "fieldtype": "Section Break",
+      "label": "Billing References",
+      "collapsible": 1
+    },
+    {
+      "fieldname": "quotation",
+      "fieldtype": "Link",
+      "label": "Quotation",
+      "options": "Quotation",
+      "read_only": 1
+    },
+    {
+      "fieldname": "quotation_item",
+      "fieldtype": "Data",
+      "label": "Quotation Item Row",
+      "read_only": 1
+    },
+    {
+      "fieldname": "sales_order",
+      "fieldtype": "Link",
+      "label": "Sales Order",
+      "options": "Sales Order",
+      "read_only": 1
+    },
+    {
+      "fieldname": "sales_order_item",
+      "fieldtype": "Data",
+      "label": "Sales Order Item Row",
+      "read_only": 1
+    },
+    {
+      "fieldname": "sales_invoice",
+      "fieldtype": "Link",
+      "label": "Sales Invoice",
+      "options": "Sales Invoice",
+      "read_only": 1
+    },
+    {
+      "fieldname": "sales_invoice_item",
+      "fieldtype": "Data",
+      "label": "Sales Invoice Item Row",
+      "read_only": 1
     }
   ],
   "doctype": "DocType"
