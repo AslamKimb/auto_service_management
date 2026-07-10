@@ -1,57 +1,212 @@
-frappe.ui.form.on("Repair Job Service", {
-	setup(frm) {
-		frm.set_query("diagnosis_report", () => {
-			if (!frm.doc.repair_job) { return { filters: { name: ["=", ""] } }; }
-			return { filters: { repair_job: frm.doc.repair_job } };
-		});
-	},
-	refresh(frm) {
-		if (frm.doc.repair_job) {
-			frm.add_custom_button("Open Repair Job", () => {
-				frappe.set_route("Form", "Repair Job", frm.doc.repair_job);
-			});
-		}
-	},
+frappe.ui.form.on('Repair Job Service', {
+    setup: function(frm) {
+        frm.set_query('diagnosis_report', function() {
+            if (!frm.doc.repair_job) { return { filters: { name: ['=', ''] } }; }
+            return { filters: { repair_job: frm.doc.repair_job } };
+        });
+        frm._default_labour_rate = 0;
+        frm._default_warehouse = '';
+        frm._settings_loaded = false;
+        frappe.call({
+            method: 'frappe.client.get_value',
+            args: {
+                doctype: 'Auto Service Settings',
+                filters: { name: 'Auto Service Settings' },
+                fieldname: ['default_labour_rate', 'default_warehouse'],
+            },
+            callback: function(r) {
+                if (r.message) {
+                    frm._default_labour_rate = r.message.default_labour_rate || 0;
+                    frm._default_warehouse = r.message.default_warehouse || '';
+                }
+                frm._settings_loaded = true;
+                sweep_labour_defaults(frm);
+            },
+        });
+    },
+    refresh: function(frm) {
+        if (frm.doc.repair_job) {
+            frm.add_custom_button('Open Repair Job', function() {
+                frappe.set_route('Form', 'Repair Job', frm.doc.repair_job);
+            });
+        }
+        sweep_labour_defaults(frm);
+    },
+    labour_add: function(frm, cdt, cdn) {
+        var row = locals[cdt][cdn];
+        if (!row) return;
+        if (!row.billing_hours && row.hours) {
+            frappe.model.set_value(cdt, cdn, 'billing_hours', row.hours);
+        }
+        apply_default_labour_rate(frm, cdt, cdn);
+    },
 });
 
-const BILLABLE_CHILDREN = ["Repair Job Service Part", "Repair Job Service Consumable"];
-BILLABLE_CHILDREN.forEach((cdt) => {
-	frappe.ui.form.on(cdt, {
-		item_code(frm, cdt, cdn) { auto_fill_rate(frm, cdt, cdn); },
-		quantity(frm, cdt, cdn) { calculate_amount(frm, cdt, cdn); },
-		rate(frm, cdt, cdn) { calculate_amount(frm, cdt, cdn); },
-		discount_percentage(frm, cdt, cdn) { calculate_amount(frm, cdt, cdn); },
-	});
+function sweep_labour_defaults(frm) {
+    if (!frm._settings_loaded || !frm._default_labour_rate) return;
+    var rows = frm.doc.labour || [];
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        if (row.billable && !row.billing_rate) {
+            frappe.model.set_value('Repair Job Service Labour', row.name, 'billing_rate', frm._default_labour_rate);
+            if (!row.billing_hours && row.hours) {
+                frappe.model.set_value('Repair Job Service Labour', row.name, 'billing_hours', row.hours);
+            }
+        }
+    }
+}
+
+var BILLABLE_CHILDREN = ['Repair Job Service Part', 'Repair Job Service Consumable'];
+BILLABLE_CHILDREN.forEach(function(cdt) {
+    frappe.ui.form.on(cdt, {
+        item_code: function(frm, cdt, cdn) {
+            auto_fill_rate(frm, cdt, cdn);
+            auto_fill_warehouse(frm, cdt, cdn);
+            fetch_stock_qty(frm, cdt, cdn);
+        },
+        warehouse: function(frm, cdt, cdn) {
+            fetch_stock_qty(frm, cdt, cdn);
+        },
+        quantity: function(frm, cdt, cdn) { calculate_amount(frm, cdt, cdn); },
+        rate: function(frm, cdt, cdn) { calculate_amount(frm, cdt, cdn); },
+        discount_percentage: function(frm, cdt, cdn) { calculate_amount(frm, cdt, cdn); },
+    });
 });
 
 function auto_fill_rate(frm, cdt, cdn) {
-	let row = locals[cdt][cdn];
-	if (!row.item_code) return;
-	let pl = frappe.defaults.get_default("selling_price_list");
-	let filters = { item_code: row.item_code };
-	if (pl) filters.price_list = pl;
-	frappe.call({
-		method: "frappe.client.get_value",
-		args: { doctype: "Item Price", filters: filters, fieldname: ["price_list_rate", "currency"] },
-		callback(r) {
-			if (r.message && r.message.price_list_rate) {
-				frappe.model.set_value(cdt, cdn, "rate", r.message.price_list_rate);
-				if (r.message.currency && !frm.doc.currency) frm.set_value("currency", r.message.currency);
-				calculate_amount(frm, cdt, cdn);
-			}
-		},
-	});
+    var row = locals[cdt][cdn];
+    if (!row.item_code) return;
+    var pl = frappe.defaults.get_default('selling_price_list');
+    var filters = { item_code: row.item_code };
+    if (pl) filters.price_list = pl;
+    frappe.call({
+        method: 'frappe.client.get_value',
+        args: { doctype: 'Item Price', filters: filters, fieldname: ['price_list_rate', 'currency'] },
+        callback: function(r) {
+            if (r.message && r.message.price_list_rate) {
+                frappe.model.set_value(cdt, cdn, 'rate', r.message.price_list_rate);
+                if (r.message.currency && !frm.doc.currency) frm.set_value('currency', r.message.currency);
+                calculate_amount(frm, cdt, cdn);
+            }
+        },
+    });
+}
+
+function auto_fill_warehouse(frm, cdt, cdn) {
+    var row = locals[cdt][cdn];
+    if (!row.item_code || row.warehouse) return;
+    var wh = frm._default_warehouse || frappe.defaults.get_default('stock_warehouse');
+    if (wh) {
+        frappe.model.set_value(cdt, cdn, 'warehouse', wh);
+    }
+}
+
+function fetch_stock_qty(frm, cdt, cdn) {
+    var row = locals[cdt][cdn];
+    if (!row.item_code || !row.warehouse) {
+        frappe.model.set_value(cdt, cdn, 'actual_qty', 0);
+        return;
+    }
+    frappe.call({
+        method: 'frappe.client.get_value',
+        args: {
+            doctype: 'Bin',
+            filters: { item_code: row.item_code, warehouse: row.warehouse },
+            fieldname: 'actual_qty',
+        },
+        callback: function(r) {
+            var qty = (r.message && r.message.actual_qty) ? r.message.actual_qty : 0;
+            frappe.model.set_value(cdt, cdn, 'actual_qty', qty);
+        },
+    });
 }
 
 function calculate_amount(frm, cdt, cdn) {
-	let row = locals[cdt][cdn];
-	let qty = row.quantity || 0; let rate = row.rate || 0;
-	let dp = row.discount_percentage || 0; let cr = row.cost_rate || 0;
-	let gross = qty * rate; let disc = gross * dp / 100; let amt = gross - disc;
-	let cost = qty * cr; let margin = amt - cost; let mp = amt ? (margin / amt * 100) : 0;
-	frappe.model.set_value(cdt, cdn, "amount", amt);
-	frappe.model.set_value(cdt, cdn, "discount_amount", disc);
-	frappe.model.set_value(cdt, cdn, "cost_amount", cost);
-	frappe.model.set_value(cdt, cdn, "margin_amount", margin);
-	frappe.model.set_value(cdt, cdn, "margin_percentage", mp);
+    var row = locals[cdt][cdn];
+    var qty = row.quantity || 0;
+    var rate = row.rate || 0;
+    var dp = row.discount_percentage || 0;
+    var cr = row.cost_rate || 0;
+    var gross = qty * rate;
+    var disc = gross * dp / 100;
+    var amt = gross - disc;
+    var cost = qty * cr;
+    var margin = amt - cost;
+    var mp = amt ? (margin / amt * 100) : 0;
+    frappe.model.set_value(cdt, cdn, 'amount', amt);
+    frappe.model.set_value(cdt, cdn, 'discount_amount', disc);
+    frappe.model.set_value(cdt, cdn, 'cost_amount', cost);
+    frappe.model.set_value(cdt, cdn, 'margin_amount', margin);
+    frappe.model.set_value(cdt, cdn, 'margin_percentage', mp);
+}
+
+frappe.ui.form.on('Repair Job Service Labour', {
+    billable: function(frm, cdt, cdn) {
+        var row = locals[cdt][cdn];
+        if (row.billable) {
+            if (!row.billing_hours) {
+                frappe.model.set_value(cdt, cdn, 'billing_hours', row.hours || 0);
+            }
+        } else {
+            frappe.model.set_value(cdt, cdn, 'billing_hours', 0);
+        }
+        apply_default_labour_rate(frm, cdt, cdn);
+        calculate_labour_amount(frm, cdt, cdn);
+    },
+    hours: function(frm, cdt, cdn) {
+        var row = locals[cdt][cdn];
+        if (row.billable) {
+            frappe.model.set_value(cdt, cdn, 'billing_hours', row.hours || 0);
+        }
+        apply_default_labour_rate(frm, cdt, cdn);
+        calculate_labour_amount(frm, cdt, cdn);
+    },
+    billing_hours: function(frm, cdt, cdn) {
+        calculate_labour_amount(frm, cdt, cdn);
+    },
+    billing_rate: function(frm, cdt, cdn) {
+        calculate_labour_amount(frm, cdt, cdn);
+    },
+    costing_rate: function(frm, cdt, cdn) {
+        calculate_labour_amount(frm, cdt, cdn);
+    },
+});
+
+function apply_default_labour_rate(frm, cdt, cdn) {
+    var row = locals[cdt][cdn];
+    if (!row.billable || row.billing_rate) return;
+    if (frm._settings_loaded && frm._default_labour_rate) {
+        frappe.model.set_value(cdt, cdn, 'billing_rate', frm._default_labour_rate);
+        return;
+    }
+    frappe.call({
+        method: 'frappe.client.get_value',
+        args: {
+            doctype: 'Auto Service Settings',
+            filters: { name: 'Auto Service Settings' },
+            fieldname: ['default_labour_rate', 'default_warehouse'],
+        },
+        callback: function(r) {
+            if (r.message) {
+                if (r.message.default_labour_rate) {
+                    frappe.model.set_value(cdt, cdn, 'billing_rate', r.message.default_labour_rate);
+                    frm._default_labour_rate = r.message.default_labour_rate;
+                }
+                if (r.message.default_warehouse) {
+                    frm._default_warehouse = r.message.default_warehouse;
+                }
+            }
+            frm._settings_loaded = true;
+        },
+    });
+}
+
+function calculate_labour_amount(frm, cdt, cdn) {
+    var row = locals[cdt][cdn];
+    var billing_hours = row.billing_hours || 0;
+    var billing_rate = row.billing_rate || 0;
+    var hours = row.hours || 0;
+    var costing_rate = row.costing_rate || 0;
+    frappe.model.set_value(cdt, cdn, 'billing_amount', billing_hours * billing_rate);
+    frappe.model.set_value(cdt, cdn, 'costing_amount', hours * costing_rate);
 }

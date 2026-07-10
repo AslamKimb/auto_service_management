@@ -46,27 +46,9 @@
    "in_list_view": 1
   },
   {
-   "fieldname": "billable",
-   "fieldtype": "Check",
-   "label": "Billable",
-   "default": 1
-  },
-  {
    "fieldname": "labour_section",
    "fieldtype": "Section Break",
    "label": "Labour"
-  },
-  {
-   "fieldname": "item_code",
-   "fieldtype": "Link",
-   "label": "Billable Labour Item",
-   "options": "Item"
-  },
-  {
-   "fieldname": "assigned_to",
-   "fieldtype": "Link",
-   "label": "Assigned To",
-   "options": "User"
   },
   {
    "fieldname": "activity_type",
@@ -85,17 +67,85 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "estimated_hours",
+   "fieldname": "hours",
    "fieldtype": "Float",
-   "label": "Estimated Hours",
+   "label": "Hrs",
    "default": 1,
    "in_list_view": 1
   },
   {
-   "fieldname": "actual_hours",
+   "fieldname": "billing_hours",
    "fieldtype": "Float",
-   "label": "Actual Hours",
+   "label": "Billing Hours",
+   "default": 1
+  },
+  {
+   "fieldname": "estimated_hours",
+   "fieldtype": "Float",
+   "label": "Estimated Hours",
+   "default": 1
+  },
+  {
+   "fieldname": "billing_section",
+   "fieldtype": "Section Break",
+   "label": "Billing",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "billable",
+   "fieldtype": "Check",
+   "label": "Billable",
+   "default": 1
+  },
+  {
+   "fieldname": "billing_rate",
+   "fieldtype": "Currency",
+   "label": "Billing Rate",
+   "options": "currency"
+  },
+  {
+   "fieldname": "billing_amount",
+   "fieldtype": "Currency",
+   "label": "Billing Amount",
+   "options": "currency",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "pricing_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
    "read_only": 1
+  },
+  {
+   "fieldname": "costing_rate",
+   "fieldtype": "Currency",
+   "label": "Costing Rate",
+   "options": "currency"
+  },
+  {
+   "fieldname": "costing_amount",
+   "fieldtype": "Currency",
+   "label": "Costing Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Billable Labour Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "assigned_to",
+   "fieldtype": "Link",
+   "label": "Assigned To",
+   "options": "User"
   },
   {
    "fieldname": "timesheet",
@@ -111,82 +161,7 @@
    "read_only": 1
   },
   {
-   "fieldname": "pricing_section",
-   "fieldtype": "Section Break",
-   "label": "Pricing",
-   "collapsible": 1
-  },
-  {
-   "fieldname": "currency",
-   "fieldtype": "Link",
-   "label": "Currency",
-   "options": "Currency",
-   "read_only": 1
-  },
-  {
-   "fieldname": "rate",
-   "fieldtype": "Currency",
-   "label": "Labour Rate",
-   "options": "currency"
-  },
-  {
-   "fieldname": "amount",
-   "fieldtype": "Currency",
-   "label": "Amount",
-   "options": "currency",
-   "read_only": 1,
-   "in_list_view": 1
-  },
-  {
-   "fieldname": "pricing_column_break",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "discount_percentage",
-   "fieldtype": "Percent",
-   "label": "Discount %"
-  },
-  {
-   "fieldname": "discount_amount",
-   "fieldtype": "Currency",
-   "label": "Discount Amount",
-   "options": "currency",
-   "read_only": 1
-  },
-  {
-   "fieldname": "tax_amount",
-   "fieldtype": "Currency",
-   "label": "Tax Amount",
-   "options": "currency"
-  },
-  {
-   "fieldname": "cost_rate",
-   "fieldtype": "Currency",
-   "label": "Labour Cost Rate",
-   "options": "currency"
-  },
-  {
-   "fieldname": "cost_amount",
-   "fieldtype": "Currency",
-   "label": "Cost Amount",
-   "options": "currency",
-   "read_only": 1
-  },
-  {
-   "fieldname": "margin_amount",
-   "fieldtype": "Currency",
-   "label": "Margin Amount",
-   "options": "currency",
-   "read_only": 1
-  },
-  {
-   "fieldname": "margin_percentage",
-   "fieldtype": "Percent",
-   "label": "Margin %",
-   "read_only": 1
-  },
-  {
-   "fieldname": "billing_section",
+   "fieldname": "billing_trace_section",
    "fieldtype": "Section Break",
    "label": "Billing Trace",
    "collapsible": 1
@@ -216,6 +191,10 @@
    "fieldtype": "Data",
    "label": "Sales Order Row",
    "read_only": 1
+  },
+  {
+   "fieldname": "trace_column_break",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "sales_invoice",

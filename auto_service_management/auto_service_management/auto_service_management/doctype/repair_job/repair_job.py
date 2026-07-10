@@ -166,7 +166,7 @@ class RepairJob(Document):
 				"technician": line.assigned_to,
 				"service": service.service_name,
 				"description": line.service_description,
-				"hours": line.actual_hours or line.quantity or 0,
+				"hours": line.hours or line.quantity or 0,
 				"amount": line.amount or 0,
 			}
 			lines.append(entry)

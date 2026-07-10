@@ -88,6 +88,14 @@
    "options": "Warehouse"
   },
   {
+   "fieldname": "actual_qty",
+   "fieldtype": "Float",
+   "label": "Available Stock",
+   "read_only": 1,
+   "in_list_view": 1,
+   "description": "Current stock in warehouse"
+  },
+  {
    "fieldname": "consumption_basis",
    "fieldtype": "Select",
    "label": "Consumption Basis",

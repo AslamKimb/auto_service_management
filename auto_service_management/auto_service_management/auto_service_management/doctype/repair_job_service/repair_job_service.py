@@ -70,7 +70,7 @@ class ServiceComponent:
 	@property
 	def quantity(self):
 		if self.component_type == "Labour":
-			return getattr(self.row, "actual_hours", None) or getattr(self.row, "estimated_hours", None) or 1
+			return getattr(self.row, "hours", None) or getattr(self.row, "estimated_hours", None) or 1
 		if self.component_type == "Subcontracted Service":
 			return 1
 		return getattr(self.row, "quantity", None) or 0
@@ -165,6 +165,20 @@ class RepairJobService(Document):
 			row.currency = self.currency
 			if row.billable is None:
 				row.billable = 1
+			if component.component_type == "Labour":
+				# Default billing_hours to hours when billable
+				if row.billable:
+					if not getattr(row, "billing_hours", None):
+						row.billing_hours = getattr(row, "hours", None) or 0
+				else:
+					row.billing_hours = 0
+			# Auto-fill billing_rate from settings when empty
+			if row.billable and not getattr(row, "billing_rate", None):
+				settings = frappe.get_single("Auto Service Settings")
+				if settings.default_labour_rate:
+					row.billing_rate = settings.default_labour_rate
+					if not row.currency and settings.default_currency:
+						row.currency = settings.default_currency
 			calculate_component_amount(row, component.component_type)
 
 	def calculate_totals(self):
@@ -174,8 +188,12 @@ class RepairJobService(Document):
 			calculate_component_amount(component.row, component.component_type)
 			if not component.billable:
 				continue
-			total += component.amount or 0
-			cost_total += component.cost_amount or 0
+			if component.component_type == "Labour":
+				total += component.billing_amount or 0
+				cost_total += component.costing_amount or 0
+			else:
+				total += component.amount or 0
+				cost_total += component.cost_amount or 0
 
 		self.total_amount = total
 		self.cost_total = cost_total
@@ -217,10 +235,15 @@ def _template_row_to_service_row(template_row, component_type):
 	if component_type == "Consumable":
 		values["consumption_basis"] = getattr(template_row, "consumption_basis", None)
 	if component_type == "Labour":
+		values.pop("rate", None)
+		values.pop("cost_rate", None)
 		values.update(
 			{
 				"activity_type": getattr(template_row, "activity_type", None),
 				"estimated_hours": getattr(template_row, "estimated_hours", None) or 1,
+				"billing_rate": getattr(template_row, "billing_rate", None) or getattr(template_row, "rate", None),
+				"billing_hours": getattr(template_row, "billing_hours", None) or getattr(template_row, "estimated_hours", None) or 1,
+				"costing_rate": getattr(template_row, "costing_rate", None) or getattr(template_row, "cost_rate", None),
 			}
 		)
 	if component_type == "Subcontracted Service":
@@ -235,13 +258,23 @@ def _template_row_to_service_row(template_row, component_type):
 
 def _component_quantity(row, component_type):
 	if component_type == "Labour":
-		return getattr(row, "actual_hours", None) or getattr(row, "estimated_hours", None) or 1
+		return getattr(row, "hours", None) or getattr(row, "estimated_hours", None) or 1
 	if component_type == "Subcontracted Service":
 		return 1
 	return getattr(row, "quantity", None) or 0
 
 
 def calculate_component_amount(row, component_type):
+	if component_type == "Labour":
+		hours = getattr(row, "hours", None) or 0
+		billing_hours = getattr(row, "billing_hours", None) or 0
+		billing_rate = getattr(row, "billing_rate", None) or 0
+		costing_rate = getattr(row, "costing_rate", None) or 0
+		row.billing_amount = billing_hours * billing_rate
+		row.costing_amount = hours * costing_rate
+		return
+
+	# Parts / Consumables / Subcontracted - stock-style calculation
 	quantity = _component_quantity(row, component_type)
 	gross_amount = quantity * (row.rate or 0)
 	row.discount_amount = gross_amount * (row.discount_percentage or 0) / 100

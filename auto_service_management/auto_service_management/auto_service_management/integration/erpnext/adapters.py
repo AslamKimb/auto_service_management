@@ -455,7 +455,7 @@ def sync_timesheet_actuals_for_component(component_doctype, component_row):
 		component_doctype,
 		component_row,
 		{
-			"actual_hours": total_hours,
+			"hours": total_hours,
 			"timesheet": last_timesheet,
 			"timesheet_detail": last_detail,
 		},
@@ -484,7 +484,7 @@ def sync_timesheet_actuals_for_line(line_name):
 		"Repair Service Line",
 		line_name,
 		{
-			"actual_hours": total_hours,
+			"hours": total_hours,
 			"timesheet": last_timesheet,
 			"timesheet_detail": last_detail,
 		},

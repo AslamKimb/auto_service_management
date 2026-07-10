@@ -64,6 +64,27 @@
    "options": "Mode of Payment"
   },
   {
+   "fieldname": "labour_defaults_section",
+   "fieldtype": "Section Break",
+   "label": "Labour & Warehouse Defaults"
+  },
+  {
+   "fieldname": "default_labour_rate",
+   "fieldtype": "Currency",
+   "label": "Default Labour Rate",
+   "options": "currency"
+  },
+  {
+   "fieldname": "column_break_labour_defaults",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_warehouse",
+   "fieldtype": "Link",
+   "label": "Default Warehouse",
+   "options": "Warehouse"
+  },
+  {
    "fieldname": "workflow_section",
    "fieldtype": "Section Break",
    "label": "Workflow Defaults"
