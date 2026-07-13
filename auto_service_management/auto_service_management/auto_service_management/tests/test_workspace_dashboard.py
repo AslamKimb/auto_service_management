@@ -5,6 +5,7 @@ from unittest.mock import patch
 from frappe.tests import UnitTestCase
 
 from auto_service_management.auto_service_management.workspace_dashboard import (
+	CHILD_COMPONENT_CARD_CONFIG,
 	WORKSPACE_COVERAGE_NUMBER_CARDS,
 	WORKSPACE_DASHBOARD_CHARTS,
 	WORKSPACE_DOC_TYPE_COVERAGE,
@@ -14,10 +15,13 @@ from auto_service_management.auto_service_management.workspace_dashboard import 
 	WORKSPACE_SIDEBAR_HOME,
 	WORKSPACE_SIDEBAR_SECTIONS,
 	get_auto_service_settings_configured_card_data,
+	get_component_child_card_data,
 )
 
 LEGACY_COMPONENT_DOCTYPES = {
+	"Repair Job Service Subcontracted Service",
 	"Repair Service Line",
+	"Repair Service Template Subcontracted Service",
 	"Repair Service Template Component",
 }
 
@@ -116,3 +120,22 @@ class TestWorkspaceDashboardContracts(UnitTestCase):
 		self.assertEqual(result["value"], 0)
 		self.assertEqual(result["fieldtype"], "Int")
 		self.assertEqual(result["route"], ["Form", "Auto Service Settings", "Auto Service Settings"])
+
+	def test_component_child_number_cards_count_rows_via_parent_permission(self):
+		with (
+			patch(
+				"auto_service_management.auto_service_management.workspace_dashboard.frappe.has_permission"
+			) as has_permission,
+			patch(
+				"auto_service_management.auto_service_management.workspace_dashboard.frappe.db.count",
+				return_value=7,
+			) as count,
+		):
+			result = get_component_child_card_data("Repair Service Template Consumables")
+
+		config = CHILD_COMPONENT_CARD_CONFIG["Repair Service Template Consumables"]
+		has_permission.assert_called_once_with(config["parent_doctype"], "read", throw=True)
+		count.assert_called_once_with(config["child_doctype"])
+		self.assertEqual(result["value"], 7)
+		self.assertEqual(result["fieldtype"], "Int")
+		self.assertEqual(result["route"], config["route"])

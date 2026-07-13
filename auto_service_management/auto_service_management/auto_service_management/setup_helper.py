@@ -1,22 +1,25 @@
-import frappe, json, os
+import json
+import os
+
+import frappe
 
 
 def setup_workspace():
     """Create workspace from JSON, with forced module map rebuild."""
     # Flush ALL Redis caches to force fresh rebuild
     frappe.cache.flushall()
-    
+
     # Force rebuild the module_app map
     frappe.client_cache.delete_value("installed_app_modules")
     frappe.cache.delete_value("app_modules")
     frappe.cache.delete_value("all_apps")
-    
+
     # Rebuild module_app directly by reading files
     module_app = {}
     apps_file = os.path.join(frappe.local.sites_path, "apps.txt")
     all_apps = [line.strip() for line in open(apps_file) if line.strip()]
     print("All apps from apps.txt:", all_apps)
-    
+
     for app in all_apps:
         modules_file = os.path.join(frappe.local.sites_path, "..", "apps", app, app, "modules.txt")
         if not os.path.exists(modules_file):
@@ -30,10 +33,10 @@ def setup_workspace():
                 print(f"  Module: {mod} -> {scrubbed} -> {app}")
         else:
             print(f"  modules.txt not found for {app}: {modules_file}")
-    
+
     frappe.local.module_app = module_app
     print("Module map:", list(module_app.keys()))
-    
+
     if frappe.db.exists("Workspace", "Workshop Management"):
         print("Workspace already exists")
         return

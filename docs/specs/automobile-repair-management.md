@@ -24,7 +24,7 @@ The repository research file `Automotive DMS.md` explains legacy dealership work
 
 ### Configuration and Masters
 
-- **Auto Service Settings**: company, default price list, project template, source warehouse, default terms, payment tolerance, and other site-specific defaults. No accounting or tax value is hardcoded.
+- **Auto Service Settings**: company, default price list, project template, default Parts/Consumables warehouse, default terms, payment tolerance, and other site-specific defaults. No accounting or tax value is hardcoded.
 - **Customer Vehicle**: registration number, customer, make, model, year, VIN/chassis, engine number, color, fuel type, transmission, current odometer, last service date, warranty, insurer, and notes. Registration and VIN are unique when supplied; search includes registration, VIN/chassis, engine, and customer.
 - **Workshop Bay**: bay code, bay name, enabled state, and notes.
 - **Fleet Service Campaign**: corporate customer, dates, description, status, and a child table linking independent Repair Jobs.
@@ -33,7 +33,7 @@ The repository research file `Automotive DMS.md` explains legacy dealership work
 
 The garage-facing document uses naming series `JC-.YYYY.-.#####` and links Customer, Customer Vehicle, and Project. It records repair type, complaint, visit reason, odometer, fuel level, advisor, mechanic, bay, planned/promised dates, contact details, workflow state, approval, invoice, gate-pass state, terms, and service lines.
 
-`Repair Service Line` records Item, line type, description, quantity, UOM, cost and selling rates, discount, tax template, amounts, margin, warehouse, technician, linked Task, requested/issued quantities, and line state. Line types are Part, Labour, Consumable, Subcontracted Service, and Other.
+Each `Repair Job Service` owns active Parts, Labour, and Consumables child tables. The parent service status controls approval and invoice eligibility; component rows do not have independent workflow statuses. Stock rows record optional Item, quantity, UOM, warehouse, selling and cost rates, discounts, amounts, and requested/issued quantities. Labour rows use hours and costing rate for cost, and billing hours, optional Billable Labour Item, and billing rate for selling. The service stores a live pre-tax total, cost total, gross margin, and margin percentage. Historical subcontract rows remain auditable only through hidden, read-only legacy tables.
 
 ### Workshop Transactions
 
@@ -59,7 +59,7 @@ Required gates:
 - Quality Check requires at least one Task or an approved exception.
 - Ready for Invoice requires passed QC; a QC invoice override is separately audited.
 - Road Test must pass when QC marks it required.
-- Gate Pass requires a submitted invoice and either payment within tolerance, approved customer credit release, or a credit override.
+- Gate Pass requires every billable component in an Approved or Completed Repair Job Service to be covered by submitted invoices and either payment within tolerance, approved customer credit release, or a credit override.
 - Credit release additionally requires configured payment terms and no credit-limit breach.
 - Closing requires an issued/used Gate Pass and creates Service History once.
 
@@ -67,9 +67,10 @@ Required gates:
 
 - **Project**: created idempotently on check-in; receives customer, dates, Repair Job, Customer Vehicle, registration, workshop status, advisor, and mechanic.
 - **Task**: generated from Project Template and linked to Project, Repair Job, Customer Vehicle, stage, technician, and bay.
-- **Timesheet Detail**: linked to Repair Job and Customer Vehicle in addition to Project and Task. Timesheets supply actual hours and labour cost; invoice rows come only from approved service lines to prevent double billing.
-- **Quotation / Sales Order / Sales Invoice**: created by typed POST-only Repair Job methods and linked bidirectionally. ERPNext pricing and tax controllers calculate authoritative totals.
-- **Material Request / Stock Entry**: requests stock parts and records Material Issue consumption. Invoices do not update stock for quantities already issued.
+- **Timesheet Detail**: linked to Repair Job and Customer Vehicle in addition to Project and Task. Timesheets supply actual hours and labour cost; invoice rows come only from Approved or Completed Repair Job Services to prevent double billing.
+- **Quotation / Sales Order**: created by typed POST-only Repair Job methods and linked bidirectionally.
+- **Sales Invoice**: mapped from an Approved or Ready-for-Invoice Repair Job, or one Approved or Completed Repair Job Service, either from the source form or through the target form's native Get Items From menu. Every billable Part, Consumable, and Labour row in eligible services maps; Item links are optional for invoice rows, with description-based stock rows using `Nos` and Labour using `Hour`. Drafts reserve component rows; several service-level invoices may cover one job. The Repair Job reaches Invoiced only after it is Ready for Invoice and every eligible component is covered by a submitted invoice. ERPNext pricing and tax controllers remain authoritative, and mapped invoices never update stock.
+- **Material Request / Stock Entry**: Material Issue requests can be mapped from a Repair Job or one Repair Job Service, either from the source form or through Get Items From. Parts and Consumables map only from Approved or Completed parent services, require Items, and use full component quantities and configured warehouses. Drafts reserve component rows and cancellation, deletion, or item removal releases them. Stock Entry records Material Issue consumption.
 - **Customer**: receives an explicit allow-credit-release control while existing payment terms and credit limits remain authoritative.
 
 All ERPNext internal calls live behind focused integration adapters with contract tests.

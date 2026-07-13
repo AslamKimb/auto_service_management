@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 TRACE_CUSTOM_FIELD_NAMES = (
+	"Sales Invoice-repair_job",
+	"Material Request-repair_job",
 	"Timesheet Detail-repair_job",
 	"Timesheet Detail-customer_vehicle",
 	"Timesheet Detail-repair_job_service",
@@ -26,6 +28,27 @@ TRACE_CUSTOM_FIELD_NAMES = (
 	"Sales Invoice Item-repair_component_row",
 	"Sales Invoice Item-repair_service_line",
 )
+
+PARENT_TRACE_FIELDS = {
+	"Sales Invoice": {
+		"fieldname": "repair_job",
+		"label": "Repair Job",
+		"fieldtype": "Link",
+		"options": "Repair Job",
+		"insert_after": "customer",
+		"read_only": 1,
+		"no_copy": 1,
+	},
+	"Material Request": {
+		"fieldname": "repair_job",
+		"label": "Repair Job",
+		"fieldtype": "Link",
+		"options": "Repair Job",
+		"insert_after": "material_request_type",
+		"read_only": 1,
+		"no_copy": 1,
+	},
+}
 
 TRACE_CHILD_DOCTYPES = (
 	"Timesheet Detail",
@@ -78,17 +101,21 @@ TRACE_FIELDS = (
 
 
 def get_trace_custom_fields():
-	return {
+	custom_fields = {
 		doctype: [
 			{
 				**field,
 				"module": "Auto Service Management",
 				"insert_after": _get_insert_after(doctype),
+				"no_copy": 1,
 			}
 			for field in TRACE_FIELDS
 		]
 		for doctype in TRACE_CHILD_DOCTYPES
 	}
+	for doctype, field in PARENT_TRACE_FIELDS.items():
+		custom_fields[doctype] = [{**field, "module": "Auto Service Management"}]
+	return custom_fields
 
 
 def ensure_trace_custom_fields():

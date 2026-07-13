@@ -13,7 +13,7 @@ import frappe
 from frappe import _
 
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
-	EXCLUDED_COMPONENT_STATUSES,
+	INVOICEABLE_SERVICE_STATUSES,
 	STOCK_COMPONENT_TYPES,
 	iter_repair_job_components,
 	set_component_values,
@@ -50,14 +50,14 @@ def _component_description(service, line):
 def _eligible_components(
 	repair_job,
 	*,
-	statuses=None,
+	service_statuses=None,
 	component_types=None,
 	billable_only=False,
 ):
 	return list(
 		iter_repair_job_components(
 			repair_job.name,
-			statuses=statuses,
+			service_statuses=service_statuses,
 			component_types=component_types,
 			billable_only=billable_only,
 			include_excluded=False,
@@ -166,7 +166,7 @@ def create_quotation(repair_job):
 	eligible_lines = []
 	for service, line in _eligible_components(
 		repair_job,
-		statuses={"Approved", "Completed"},
+		service_statuses=INVOICEABLE_SERVICE_STATUSES,
 		billable_only=True,
 	):
 		items.append(
@@ -174,10 +174,10 @@ def create_quotation(repair_job):
 				"item_code": line.item_code,
 				"item_name": line.service_description,
 				"description": _component_description(service, line),
-				"qty": line.quantity,
-				"uom": line.uom,
-				"rate": line.rate,
-				"amount": line.amount,
+				"qty": line.invoice_quantity,
+				"uom": getattr(line, "uom", None) or frappe.db.get_value("Item", line.item_code, "stock_uom"),
+				"rate": line.invoice_rate,
+				"amount": line.invoice_amount,
 				"project": repair_job.project,
 				**_component_trace_fields(repair_job, service, line),
 			}
@@ -230,9 +230,9 @@ def create_sales_order(repair_job):
 	)
 	so.insert(ignore_permissions=True)
 	frappe.db.set_value("Repair Job", repair_job.name, {"sales_order": so.name})
-	for service, line in _eligible_components(
+	for _service, line in _eligible_components(
 		repair_job,
-		statuses={"Approved", "Completed"},
+		service_statuses=INVOICEABLE_SERVICE_STATUSES,
 		billable_only=True,
 	):
 		set_component_values(line, {"sales_order": so.name})
@@ -245,58 +245,14 @@ def create_sales_order(repair_job):
 
 
 def create_material_request(repair_job):
-	"""Create a Material Request for approved Part and Consumable components."""
-	settings = get_settings()
-	items = []
-	eligible_lines = []
-	for service, line in _eligible_components(
-		repair_job,
-		statuses={"Approved", "Completed"},
-		component_types=STOCK_COMPONENT_TYPES,
-	):
-		if not line.item_code:
-			continue
-		if line.stock_request_status == "Requested":
-			frappe.throw(_("Material Request already exists for component {0}.").format(line.service_description))
-		if line.status in EXCLUDED_COMPONENT_STATUSES:
-			continue
-		items.append(
-			{
-				"item_code": line.item_code,
-				"qty": line.quantity,
-				"uom": line.uom,
-				"warehouse": line.warehouse or getattr(settings, "source_warehouse", None),
-				"schedule_date": frappe.utils.today(),
-				"description": _component_description(service, line),
-				**_component_trace_fields(repair_job, service, line),
-			}
-		)
-		eligible_lines.append(line)
-
-	if not items:
-		frappe.throw(_("No approved Part or Consumable components to request."))
-
-	mr = _make_doc(
-		{
-			"doctype": "Material Request",
-			"material_request_type": "Material Issue",
-			"company": settings.company,
-			"items": items,
-		}
+	"""Save a mapped draft Material Request for compatibility callers."""
+	from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
+		map_material_request,
 	)
-	mr.insert(ignore_permissions=True)
 
-	for line in eligible_lines:
-		set_component_values(
-			line,
-			{
-				"requested_qty": line.quantity,
-				"material_request": mr.name,
-				"stock_request_status": "Requested",
-			},
-		)
-
-	return mr.name
+	material_request = map_material_request(repair_job.name)
+	material_request.insert()
+	return material_request.name
 
 
 # ---------------------------------------------------------------------------
@@ -305,55 +261,14 @@ def create_material_request(repair_job):
 
 
 def create_sales_invoice(repair_job):
-	"""Create a Sales Invoice from completed, billable service components.
-
-	The invoice does NOT use update_stock since parts are already issued.
-	"""
-	settings = get_settings()
-	items = []
-	eligible_lines = []
-	for service, line in _eligible_components(
-		repair_job,
-		statuses={"Completed"},
-		billable_only=True,
-	):
-		if line.sales_invoice:
-			frappe.throw(_("Service component {0} has already been invoiced.").format(line.service_description))
-		items.append(
-			{
-				"item_code": line.item_code,
-				"item_name": line.service_description,
-				"description": _component_description(service, line),
-				"qty": line.quantity,
-				"uom": line.uom,
-				"rate": line.rate,
-				"amount": line.amount,
-				"project": repair_job.project,
-				**_component_trace_fields(repair_job, service, line),
-			}
-		)
-		eligible_lines.append(line)
-
-	if not items:
-		frappe.throw(_("No completed billable service components to invoice."))
-
-	si = _make_doc(
-		{
-			"doctype": "Sales Invoice",
-			"customer": repair_job.customer,
-			"company": settings.company,
-			"selling_price_list": settings.selling_price_list or settings.price_list,
-			"items": items,
-			"update_stock": 0,
-			"is_pos": 0,
-			"project": repair_job.project,
-		}
+	"""Save a mapped draft Sales Invoice for compatibility callers."""
+	from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
+		map_sales_invoice,
 	)
-	si.insert(ignore_permissions=True)
-	frappe.db.set_value("Repair Job", repair_job.name, {"sales_invoice": si.name})
-	for line in eligible_lines:
-		set_component_values(line, {"sales_invoice": si.name})
-	return si.name
+
+	sales_invoice = map_sales_invoice(repair_job.name)
+	sales_invoice.insert()
+	return sales_invoice.name
 
 
 # ---------------------------------------------------------------------------
@@ -368,7 +283,7 @@ def create_stock_entry_for_material_issue(repair_job):
 	eligible_lines = []
 	for service, line in _eligible_components(
 		repair_job,
-		statuses={"Approved", "Completed"},
+		service_statuses=INVOICEABLE_SERVICE_STATUSES,
 		component_types=STOCK_COMPONENT_TYPES,
 	):
 		if line.item_code and line.stock_request_status == "Requested":
@@ -377,7 +292,7 @@ def create_stock_entry_for_material_issue(repair_job):
 					"item_code": line.item_code,
 					"qty": line.quantity,
 					"uom": line.uom,
-					"s_warehouse": line.warehouse or getattr(settings, "source_warehouse", None),
+					"s_warehouse": line.warehouse or getattr(settings, "default_warehouse", None),
 					"description": _component_description(service, line),
 					**_component_trace_fields(repair_job, service, line),
 				}
@@ -490,19 +405,3 @@ def sync_timesheet_actuals_for_line(line_name):
 		},
 		update_modified=False,
 	)
-
-
-# ---------------------------------------------------------------------------
-# Invoice Hook (called from doc_events)
-# ---------------------------------------------------------------------------
-
-
-def on_invoice_submit(doc, method):
-	"""Update linked Repair Job when Sales Invoice is submitted."""
-	repair_job_name = frappe.db.get_value("Repair Job", {"sales_invoice": doc.name}, "name")
-	if repair_job_name:
-		repair_job = frappe.get_doc("Repair Job", repair_job_name)
-		repair_job.payment_status = "Unpaid"
-		if repair_job.job_status == "Ready for Invoice":
-			repair_job.job_status = "Invoiced"
-		repair_job.save(ignore_permissions=True)

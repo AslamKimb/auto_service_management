@@ -1,15 +1,14 @@
 {
- "document_type": "Repair Service Template Labour",
+ "document_type": "Repair Service Template",
  "doctype": "Number Card",
- "filters_json": "[]",
- "function": "Count",
  "is_public": 1,
  "is_standard": 1,
  "label": "Repair Service Template Labour",
+ "method": "auto_service_management.auto_service_management.workspace_dashboard.get_repair_service_template_labour_card_data",
  "module": "Auto Service Management",
  "name": "Repair Service Template Labour",
- "show_full_number": 0,
+ "show_full_number": 1,
  "show_percentage_stats": 1,
  "stats_time_interval": "Monthly",
- "type": "Document Type"
+ "type": "Custom"
 }

@@ -8,11 +8,13 @@ from dataclasses import dataclass
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import flt
 
+EXCLUDED_SERVICE_STATUSES = frozenset({"Cancelled", "Deferred", "Rejected"})
+INVOICEABLE_SERVICE_STATUSES = frozenset({"Approved", "Completed"})
 STOCK_COMPONENT_TYPES = {"Part", "Consumable"}
 STATUS_ALIASES = {
 	"Parts": "Part",
-	"Subcontract": "Subcontracted Service",
 }
 
 COMPONENT_TABLES = (
@@ -34,14 +36,30 @@ COMPONENT_TABLES = (
 		"component_type": "Consumable",
 		"template_fieldname": "consumables",
 	},
-	{
-		"fieldname": "subcontracted_services",
-		"doctype": "Repair Job Service Subcontracted Service",
-		"component_type": "Subcontracted Service",
-		"template_fieldname": "subcontracted_services",
-	},
 )
 COMPONENT_TABLE_BY_TYPE = {row["component_type"]: row for row in COMPONENT_TABLES}
+
+
+@frappe.whitelist(methods=["POST"])
+def make_sales_invoice(source_name: str, target_doc: str | None = None):
+	service = frappe.get_doc("Repair Job Service", source_name)
+	service.check_permission("read")
+	from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
+		map_sales_invoice,
+	)
+
+	return map_sales_invoice(service.repair_job, target_doc=target_doc, service_names={service.name})
+
+
+@frappe.whitelist(methods=["POST"])
+def make_material_request(source_name: str, target_doc: str | None = None):
+	service = frappe.get_doc("Repair Job Service", source_name)
+	service.check_permission("read")
+	from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
+		map_material_request,
+	)
+
+	return map_material_request(service.repair_job, target_doc=target_doc, service_names={service.name})
 
 
 @dataclass(frozen=True)
@@ -71,9 +89,25 @@ class ServiceComponent:
 	def quantity(self):
 		if self.component_type == "Labour":
 			return getattr(self.row, "hours", None) or getattr(self.row, "estimated_hours", None) or 1
-		if self.component_type == "Subcontracted Service":
-			return 1
 		return getattr(self.row, "quantity", None) or 0
+
+	@property
+	def invoice_quantity(self):
+		if self.component_type == "Labour":
+			return getattr(self.row, "billing_hours", None) or 0
+		return getattr(self.row, "quantity", None) or 0
+
+	@property
+	def invoice_rate(self):
+		if self.component_type == "Labour":
+			return getattr(self.row, "billing_rate", None) or 0
+		return getattr(self.row, "rate", None) or 0
+
+	@property
+	def invoice_amount(self):
+		if self.component_type == "Labour":
+			return getattr(self.row, "billing_amount", None) or 0
+		return getattr(self.row, "amount", None) or 0
 
 	def __getattr__(self, fieldname):
 		return getattr(self.row, fieldname)
@@ -92,6 +126,9 @@ class RepairJobService(Document):
 		self.derive_status_from_components()
 
 	def on_update(self):
+		sync_repair_job_total(self.repair_job)
+
+	def after_delete(self):
 		sync_repair_job_total(self.repair_job)
 
 	def on_trash(self):
@@ -166,19 +203,17 @@ class RepairJobService(Document):
 			if row.billable is None:
 				row.billable = 1
 			if component.component_type == "Labour":
-				# Default billing_hours to hours when billable
 				if row.billable:
 					if not getattr(row, "billing_hours", None):
 						row.billing_hours = getattr(row, "hours", None) or 0
 				else:
 					row.billing_hours = 0
-			# Auto-fill billing_rate from settings when empty
-			if row.billable and not getattr(row, "billing_rate", None):
-				settings = frappe.get_single("Auto Service Settings")
-				if settings.default_labour_rate:
-					row.billing_rate = settings.default_labour_rate
-					if not row.currency and settings.default_currency:
-						row.currency = settings.default_currency
+				if row.billable and not getattr(row, "billing_rate", None):
+					settings = frappe.get_single("Auto Service Settings")
+					if settings.default_labour_rate:
+						row.billing_rate = settings.default_labour_rate
+						if not row.currency and settings.default_currency:
+							row.currency = settings.default_currency
 			calculate_component_amount(row, component.component_type)
 
 	def calculate_totals(self):
@@ -186,19 +221,22 @@ class RepairJobService(Document):
 		cost_total = 0
 		for component in get_service_components(self):
 			calculate_component_amount(component.row, component.component_type)
-			if not component.billable:
-				continue
 			if component.component_type == "Labour":
-				total += component.billing_amount or 0
 				cost_total += component.costing_amount or 0
+				if component.billable:
+					total += component.billing_amount or 0
 			else:
-				total += component.amount or 0
 				cost_total += component.cost_amount or 0
+				if component.billable:
+					total += component.amount or 0
 
-		self.total_amount = total
-		self.cost_total = cost_total
-		self.gross_margin = total - cost_total
-		self.margin_percentage = (self.gross_margin / total * 100) if total else 0
+		self.total_amount = flt(total, self.precision("total_amount"))
+		self.cost_total = flt(cost_total, self.precision("cost_total"))
+		self.gross_margin = flt(self.total_amount - self.cost_total, self.precision("gross_margin"))
+		self.margin_percentage = flt(
+			(self.gross_margin / self.total_amount * 100) if self.total_amount else 0,
+			self.precision("margin_percentage"),
+		)
 
 	def derive_status_from_components(self):
 		if self.status in {"Rejected", "Deferred", "Cancelled"}:
@@ -241,16 +279,13 @@ def _template_row_to_service_row(template_row, component_type):
 			{
 				"activity_type": getattr(template_row, "activity_type", None),
 				"estimated_hours": getattr(template_row, "estimated_hours", None) or 1,
-				"billing_rate": getattr(template_row, "billing_rate", None) or getattr(template_row, "rate", None),
-				"billing_hours": getattr(template_row, "billing_hours", None) or getattr(template_row, "estimated_hours", None) or 1,
-				"costing_rate": getattr(template_row, "costing_rate", None) or getattr(template_row, "cost_rate", None),
-			}
-		)
-	if component_type == "Subcontracted Service":
-		values.update(
-			{
-				"supplier": getattr(template_row, "supplier", None),
-				"expected_return_date": getattr(template_row, "expected_return_date", None),
+				"billing_rate": getattr(template_row, "billing_rate", None)
+				or getattr(template_row, "rate", None),
+				"billing_hours": getattr(template_row, "billing_hours", None)
+				or getattr(template_row, "estimated_hours", None)
+				or 1,
+				"costing_rate": getattr(template_row, "costing_rate", None)
+				or getattr(template_row, "cost_rate", None),
 			}
 		)
 	return values
@@ -259,8 +294,6 @@ def _template_row_to_service_row(template_row, component_type):
 def _component_quantity(row, component_type):
 	if component_type == "Labour":
 		return getattr(row, "hours", None) or getattr(row, "estimated_hours", None) or 1
-	if component_type == "Subcontracted Service":
-		return 1
 	return getattr(row, "quantity", None) or 0
 
 
@@ -274,7 +307,7 @@ def calculate_component_amount(row, component_type):
 		row.costing_amount = hours * costing_rate
 		return
 
-	# Parts / Consumables / Subcontracted - stock-style calculation
+	# Parts and consumables use stock-style pricing.
 	quantity = _component_quantity(row, component_type)
 	gross_amount = quantity * (row.rate or 0)
 	row.discount_amount = gross_amount * (row.discount_percentage or 0) / 100
@@ -337,13 +370,23 @@ def get_repair_job_services(repair_job_name):
 def iter_repair_job_components(
 	repair_job_name,
 	*,
+	service_statuses=None,
 	component_types=None,
 	billable_only=False,
 	include_excluded=False,
+	service_names=None,
 ):
-	component_types = {_normalize_service_type(component_type) for component_type in set(component_types or [])}
+	service_statuses = set(service_statuses or [])
+	component_types = {
+		_normalize_service_type(component_type) for component_type in set(component_types or [])
+	}
+	service_names = set(service_names or [])
 	for service in get_repair_job_services(repair_job_name):
-		if not include_excluded and service.status in {"Rejected", "Deferred", "Cancelled"}:
+		if service_names and service.name not in service_names:
+			continue
+		if not include_excluded and service.status in EXCLUDED_SERVICE_STATUSES:
+			continue
+		if service_statuses and service.status not in service_statuses:
 			continue
 		for component in get_service_components(service, component_types=component_types):
 			if billable_only and not component.billable:
@@ -361,6 +404,6 @@ def sync_repair_job_total(repair_job_name):
 		return
 	total = 0
 	for service in get_repair_job_services(repair_job_name):
-		if service.status not in {"Rejected", "Deferred", "Cancelled"}:
+		if service.status not in EXCLUDED_SERVICE_STATUSES:
 			total += service.total_amount or 0
 	frappe.db.set_value("Repair Job", repair_job_name, "total_amount", total, update_modified=False)

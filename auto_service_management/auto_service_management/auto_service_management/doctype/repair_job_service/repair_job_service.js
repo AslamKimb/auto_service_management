@@ -29,8 +29,19 @@ frappe.ui.form.on('Repair Job Service', {
             frm.add_custom_button('Open Repair Job', function() {
                 frappe.set_route('Form', 'Repair Job', frm.doc.repair_job);
             });
+
+            if (!frm.is_new()) {
+                add_sales_invoice_button(frm);
+                frm.add_custom_button(__('Material Request'), function() {
+                    frappe.model.open_mapped_doc({
+                        method: 'auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service.make_material_request',
+                        frm: frm,
+                    });
+                }, __('Create'));
+            }
         }
         sweep_labour_defaults(frm);
+        calculate_service_totals(frm);
     },
     labour_add: function(frm, cdt, cdn) {
         var row = locals[cdt][cdn];
@@ -39,7 +50,13 @@ frappe.ui.form.on('Repair Job Service', {
             frappe.model.set_value(cdt, cdn, 'billing_hours', row.hours);
         }
         apply_default_labour_rate(frm, cdt, cdn);
+        calculate_labour_amount(frm, cdt, cdn);
     },
+    parts_add: function(frm) { calculate_service_totals(frm); },
+    consumables_add: function(frm) { calculate_service_totals(frm); },
+    parts_remove: function(frm) { calculate_service_totals(frm); },
+    consumables_remove: function(frm) { calculate_service_totals(frm); },
+    labour_remove: function(frm) { calculate_service_totals(frm); },
 });
 
 function sweep_labour_defaults(frm) {
@@ -70,6 +87,11 @@ BILLABLE_CHILDREN.forEach(function(cdt) {
         quantity: function(frm, cdt, cdn) { calculate_amount(frm, cdt, cdn); },
         rate: function(frm, cdt, cdn) { calculate_amount(frm, cdt, cdn); },
         discount_percentage: function(frm, cdt, cdn) { calculate_amount(frm, cdt, cdn); },
+        cost_rate: function(frm, cdt, cdn) { calculate_amount(frm, cdt, cdn); },
+        billable: function(frm, cdt, cdn) {
+            calculate_amount(frm, cdt, cdn);
+            calculate_service_totals(frm);
+        },
     });
 });
 
@@ -138,6 +160,7 @@ function calculate_amount(frm, cdt, cdn) {
     frappe.model.set_value(cdt, cdn, 'cost_amount', cost);
     frappe.model.set_value(cdt, cdn, 'margin_amount', margin);
     frappe.model.set_value(cdt, cdn, 'margin_percentage', mp);
+    calculate_service_totals(frm);
 }
 
 frappe.ui.form.on('Repair Job Service Labour', {
@@ -201,6 +224,20 @@ function apply_default_labour_rate(frm, cdt, cdn) {
     });
 }
 
+function add_sales_invoice_button(frm) {
+    if (!['Approved', 'Completed'].includes(frm.doc.status)) return;
+    frappe.db.get_value('Repair Job', frm.doc.repair_job, 'job_status').then(function(r) {
+        var job_status = r && r.message ? r.message.job_status : null;
+        if (!['Approved', 'Ready for Invoice'].includes(job_status)) return;
+        frm.add_custom_button(__('Sales Invoice'), function() {
+            frappe.model.open_mapped_doc({
+                method: 'auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service.make_sales_invoice',
+                frm: frm,
+            });
+        }, __('Create'));
+    });
+}
+
 function calculate_labour_amount(frm, cdt, cdn) {
     var row = locals[cdt][cdn];
     var billing_hours = row.billing_hours || 0;
@@ -209,4 +246,25 @@ function calculate_labour_amount(frm, cdt, cdn) {
     var costing_rate = row.costing_rate || 0;
     frappe.model.set_value(cdt, cdn, 'billing_amount', billing_hours * billing_rate);
     frappe.model.set_value(cdt, cdn, 'costing_amount', hours * costing_rate);
+    calculate_service_totals(frm);
+}
+
+function calculate_service_totals(frm) {
+    var total = 0;
+    var costTotal = 0;
+
+    (frm.doc.parts || []).concat(frm.doc.consumables || []).forEach(function(row) {
+        costTotal += flt(row.cost_amount);
+        if (row.billable) total += flt(row.amount);
+    });
+    (frm.doc.labour || []).forEach(function(row) {
+        costTotal += flt(row.costing_amount);
+        if (row.billable) total += flt(row.billing_amount);
+    });
+
+    var grossMargin = total - costTotal;
+    frm.set_value('total_amount', total);
+    frm.set_value('cost_total', costTotal);
+    frm.set_value('gross_margin', grossMargin);
+    frm.set_value('margin_percentage', total ? grossMargin / total * 100 : 0);
 }

@@ -14,7 +14,10 @@ from frappe.tests import IntegrationTestCase
 
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
 	COMPONENT_TABLE_BY_TYPE,
+	get_repair_job_services,
 )
+
+TEST_COMPONENT_ITEM_CODE = "TEST-WORKSHOP-PART-001"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -30,6 +33,36 @@ def _ensure_erpnext_basics():
 				"customer_group_name": "All Customer Groups",
 				"is_group": 1,
 				"parent_customer_group": "",
+			}
+		).insert(ignore_permissions=True)
+	if not frappe.db.exists("UOM", "Nos"):
+		frappe.get_doc({"doctype": "UOM", "uom_name": "Nos", "enabled": 1}).insert(ignore_permissions=True)
+	if not frappe.db.exists("Item Group", "All Item Groups"):
+		frappe.get_doc(
+			{
+				"doctype": "Item Group",
+				"item_group_name": "All Item Groups",
+				"is_group": 1,
+				"parent_item_group": "",
+			}
+		).insert(ignore_permissions=True)
+	if not frappe.db.exists("Item Group", "Auto Service Parts"):
+		frappe.get_doc(
+			{
+				"doctype": "Item Group",
+				"item_group_name": "Auto Service Parts",
+				"is_group": 0,
+				"parent_item_group": "All Item Groups",
+			}
+		).insert(ignore_permissions=True)
+	if not frappe.db.exists("Item", TEST_COMPONENT_ITEM_CODE):
+		frappe.get_doc(
+			{
+				"doctype": "Item",
+				"item_code": TEST_COMPONENT_ITEM_CODE,
+				"item_name": "Test Workshop Part",
+				"item_group": "Auto Service Parts",
+				"stock_uom": "Nos",
 			}
 		).insert(ignore_permissions=True)
 	if not frappe.db.exists("Customer Group", {"is_group": 0, "name": "Commercial"}):
@@ -132,7 +165,6 @@ def _append_pending_labour_line(job, description="Workshop labour", rate=120000)
 		description=description,
 		quantity=1,
 		rate=rate,
-		status="Pending Approval",
 	)
 	job.reload()
 	return line.name
@@ -165,23 +197,23 @@ def _append_service_component(
 	item_code=None,
 	quantity=1,
 	rate=120000,
-	status="Pending Approval",
 	assigned_to=None,
 ):
 	table = COMPONENT_TABLE_BY_TYPE[service_type]["fieldname"]
 	row = {
 		"description": description,
 		"item_code": item_code,
-		"rate": rate,
-		"status": status,
 	}
 	if service_type in {"Part", "Consumable"}:
+		row["item_code"] = item_code or TEST_COMPONENT_ITEM_CODE
 		row["quantity"] = quantity
+		row["rate"] = rate
 	if service_type == "Labour":
 		row["estimated_hours"] = quantity
+		row["hours"] = quantity
+		row["billing_hours"] = quantity
+		row["billing_rate"] = rate
 		row["assigned_to"] = assigned_to
-	if service_type == "Subcontracted Service":
-		row["supplier"] = None
 	service.append(table, row)
 	service.save(ignore_permissions=True)
 	service.reload()
@@ -296,6 +328,7 @@ class TestRepairJobWorkflowIntegration(IntegrationTestCase):
 	def setUp(self):
 		self.customer = _get_or_create_customer()
 		self.vehicle = _create_test_vehicle(self.customer)
+		_ensure_erpnext_basics()
 
 	def tearDown(self):
 		frappe.db.rollback()
@@ -362,7 +395,6 @@ class TestRepairJobWorkflowIntegration(IntegrationTestCase):
 			description="Battery replacement",
 			quantity=2,
 			rate=150000,
-			status="Pending Approval",
 		)
 		job.reload()
 
@@ -437,7 +469,8 @@ class TestRepairJobWorkflowIntegration(IntegrationTestCase):
 		):
 			job.create_sales_invoice()
 		job.reload()
-		self.assertEqual(job.job_status, "Invoiced")
+		self.assertEqual(job.job_status, "Ready for Invoice")
+		frappe.db.set_value("Repair Job", job.name, "job_status", "Invoiced", update_modified=False)
 
 		# Gate Pass Issued
 		job = frappe.get_doc("Repair Job", job_name)
@@ -510,7 +543,7 @@ class TestRepairJobWorkflowIntegration(IntegrationTestCase):
 			job.create_sales_invoice()
 
 		job.reload()
-		self.assertEqual(job.job_status, "Invoiced")
+		self.assertEqual(job.job_status, "Ready for Invoice")
 
 	def test_pass_qc_requires_passed_road_test_when_diagnosis_marks_it_required(self):
 		job_name = _create_repair_job(self.customer, self.vehicle)
@@ -570,7 +603,6 @@ class TestRepairJobWorkflowIntegration(IntegrationTestCase):
 			description="Diagnosis fee",
 			quantity=1,
 			rate=50000,
-			status="Completed",
 		)
 		job.reload()
 		job.mark_ready_for_invoice()
@@ -589,7 +621,8 @@ class TestRepairJobWorkflowIntegration(IntegrationTestCase):
 		):
 			job.create_sales_invoice()
 		job.reload()
-		self.assertEqual(job.job_status, "Invoiced")
+		self.assertEqual(job.job_status, "Ready for Invoice")
+		frappe.db.set_value("Repair Job", job.name, "job_status", "Invoiced", update_modified=False)
 
 		gate_pass = frappe.get_doc(
 			{
@@ -625,16 +658,15 @@ class TestRepairJobWorkflowIntegration(IntegrationTestCase):
 		job = frappe.get_doc("Repair Job", job_name)
 		job.start_diagnosis()
 		_insert_diagnosis(job_name, self.vehicle)
-		service = _create_job_service(job, "Selective repair")
 		line_names = []
 		for description in ("Replace battery", "Replace brake pads", "Replace shock absorbers", "Engine oil"):
+			service = _create_job_service(job, description)
 			line = _append_service_component(
 				service,
 				service_type="Labour" if description == "Engine oil" else "Part",
 				description=description,
 				quantity=1,
 				rate=100000,
-				status="Pending Approval",
 			)
 			line_names.append(line.name)
 		job.reload()
@@ -648,7 +680,7 @@ class TestRepairJobWorkflowIntegration(IntegrationTestCase):
 		job.reject_service_lines([shocks])
 		job = frappe.get_doc("Repair Job", job_name)
 		status_by_description = {
-			line.service_description: line.status for line in _get_job_components(job_name)
+			service.service_name: service.status for service in get_repair_job_services(job_name)
 		}
 		self.assertEqual(status_by_description["Replace battery"], "Approved")
 		self.assertEqual(status_by_description["Replace brake pads"], "Approved")

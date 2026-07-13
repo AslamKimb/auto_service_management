@@ -21,14 +21,15 @@ class GatePass(Document):
 		self.check_permission("write")
 
 	def validate_invoice_submitted(self):
-		"""Gate pass requires a submitted invoice."""
+		"""Gate pass requires complete submitted component-level billing."""
 		if self.repair_job:
-			invoice = frappe.db.get_value("Repair Job", self.repair_job, "sales_invoice")
-			if not invoice:
-				frappe.throw(_("A Sales Invoice must be created before issuing a Gate Pass."))
-			invoice_status = frappe.db.get_value("Sales Invoice", invoice, "docstatus")
-			if invoice_status != 1:
-				frappe.throw(_("The linked Sales Invoice must be submitted before issuing a Gate Pass."))
+			from auto_service_management.auto_service_management.integration.erpnext.document_sync import (
+				validate_job_invoices_for_gate_pass,
+			)
+
+			invoices = validate_job_invoices_for_gate_pass(self.repair_job)
+			if not self.sales_invoice:
+				self.sales_invoice = invoices[0]
 
 	def sync_with_repair_job(self):
 		if not self.repair_job:
@@ -41,7 +42,12 @@ class GatePass(Document):
 			frappe.throw(_("Gate Pass vehicle must match the linked Repair Job vehicle."))
 
 		if not self.sales_invoice:
-			self.sales_invoice = job.sales_invoice
+			from auto_service_management.auto_service_management.integration.erpnext.document_sync import (
+				get_repair_job_sales_invoices,
+			)
+
+			invoices = get_repair_job_sales_invoices(self.repair_job, submitted_only=True)
+			self.sales_invoice = job.sales_invoice or (invoices[0] if invoices else None)
 
 	def validate_unique_for_repair_job(self):
 		if not self.repair_job:

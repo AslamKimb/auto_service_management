@@ -165,10 +165,12 @@ class TestPhase6Contracts(UnitTestCase):
 		self.assertEqual(job_service_fields["parts"]["options"], "Repair Job Service Part")
 		self.assertEqual(job_service_fields["labour"]["options"], "Repair Job Service Labour")
 		self.assertEqual(job_service_fields["consumables"]["options"], "Repair Job Service Consumable")
+		self.assertNotIn("subcontracted_services", job_service_fields)
 		self.assertEqual(
-			job_service_fields["subcontracted_services"]["options"],
+			job_service_fields["legacy_subcontracted_services"]["options"],
 			"Repair Job Service Subcontracted Service",
 		)
+		self.assertEqual(job_service_fields["legacy_subcontracted_services"]["hidden"], 1)
 
 		for doctype_folder, expected_fields in {
 			"repair_job_service_part": {
@@ -214,19 +216,6 @@ class TestPhase6Contracts(UnitTestCase):
 				"timesheet_detail",
 				"legacy_repair_service_line",
 			},
-			"repair_job_service_subcontracted_service": {
-				"repair_job",
-				"repair_job_service",
-				"customer_vehicle",
-				"item_code",
-				"supplier",
-				"supplier_quotation",
-				"supplier_purchase_order",
-				"supplier_purchase_invoice",
-				"external_job_reference",
-				"expected_return_date",
-				"legacy_repair_service_line",
-			},
 		}.items():
 			with self.subTest(component_doctype=doctype_folder):
 				component_path = module_root / "doctype" / doctype_folder / f"{doctype_folder}.json"
@@ -236,18 +225,8 @@ class TestPhase6Contracts(UnitTestCase):
 				self.assertTrue(expected_fields.issubset(component_fields))
 				for shared_field in (
 					"description",
-					"status",
 					"billable",
 					"currency",
-					"rate",
-					"amount",
-					"discount_percentage",
-					"discount_amount",
-					"tax_amount",
-					"costing_rate",
-					"cost_amount",
-					"margin_amount",
-					"margin_percentage",
 					"quotation",
 					"quotation_item",
 					"sales_order",
@@ -256,6 +235,25 @@ class TestPhase6Contracts(UnitTestCase):
 					"sales_invoice_item",
 				):
 					self.assertIn(shared_field, component_fields)
+				if doctype_folder == "repair_job_service_labour":
+					for labour_field in (
+						"billing_hours",
+						"billing_rate",
+						"billing_amount",
+						"costing_rate",
+						"costing_amount",
+					):
+						self.assertIn(labour_field, component_fields)
+				else:
+					for stock_field in (
+						"rate",
+						"amount",
+						"discount_percentage",
+						"discount_amount",
+						"cost_rate",
+						"cost_amount",
+					):
+						self.assertIn(stock_field, component_fields)
 
 		template_path = module_root / "doctype" / "repair_service_template" / "repair_service_template.json"
 		template = json.loads(template_path.read_text(encoding="utf-8"))
@@ -264,10 +262,12 @@ class TestPhase6Contracts(UnitTestCase):
 		self.assertEqual(template_fields["parts"]["options"], "Repair Service Template Part")
 		self.assertEqual(template_fields["labour"]["options"], "Repair Service Template Labour")
 		self.assertEqual(template_fields["consumables"]["options"], "Repair Service Template Consumable")
+		self.assertNotIn("subcontracted_services", template_fields)
 		self.assertEqual(
-			template_fields["subcontracted_services"]["options"],
+			template_fields["legacy_subcontracted_services"]["options"],
 			"Repair Service Template Subcontracted Service",
 		)
+		self.assertEqual(template_fields["legacy_subcontracted_services"]["hidden"], 1)
 
 	def test_erpnext_child_row_trace_custom_fields_are_fixture_owned(self):
 		fixture_root = Path(__file__).parents[2] / "fixtures"

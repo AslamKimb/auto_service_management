@@ -14,6 +14,7 @@ from frappe.tests import IntegrationTestCase
 
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
 	COMPONENT_TABLE_BY_TYPE,
+	iter_repair_job_components,
 )
 from auto_service_management.auto_service_management.tests.test_controllers_integration import (
 	_append_service_component,
@@ -33,6 +34,7 @@ _MOCK_SETTINGS = frappe._dict(
 	selling_price_list="_Test Selling Price List",
 	price_list="_Test Selling Price List",
 	source_warehouse="_Test Warehouse",
+	default_warehouse="_Test Warehouse",
 	default_currency="UGX",
 )
 
@@ -43,10 +45,32 @@ def _ensure_test_item():
 	if not frappe.db.exists("UOM", "Nos"):
 		frappe.get_doc({"doctype": "UOM", "uom_name": "Nos", "enabled": 1}).insert(ignore_permissions=True)
 	if not frappe.db.exists("Item Group", "All Item Groups"):
-		frappe.get_doc({"doctype": "Item Group", "item_group_name": "All Item Groups", "is_group": 1, "parent_item_group": ""}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Item Group",
+				"item_group_name": "All Item Groups",
+				"is_group": 1,
+				"parent_item_group": "",
+			}
+		).insert(ignore_permissions=True)
 	if not frappe.db.exists("Item Group", "Auto Service Parts"):
-		frappe.get_doc({"doctype": "Item Group", "item_group_name": "Auto Service Parts", "is_group": 0, "parent_item_group": "All Item Groups"}).insert(ignore_permissions=True)
-	frappe.get_doc({"doctype": "Item", "item_code": TEST_ITEM_CODE, "item_name": "Test Battery", "item_group": "Auto Service Parts", "stock_uom": "Nos"}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Item Group",
+				"item_group_name": "Auto Service Parts",
+				"is_group": 0,
+				"parent_item_group": "All Item Groups",
+			}
+		).insert(ignore_permissions=True)
+	frappe.get_doc(
+		{
+			"doctype": "Item",
+			"item_code": TEST_ITEM_CODE,
+			"item_name": "Test Battery",
+			"item_group": "Auto Service Parts",
+			"stock_uom": "Nos",
+		}
+	).insert(ignore_permissions=True)
 
 
 def _set_child_field(child_docname, fieldname, value):
@@ -66,28 +90,44 @@ def _create_repair_job(customer=None, vehicle=None):
 		customer = _get_or_create_customer()
 	if not vehicle:
 		vehicle = _create_test_vehicle(customer)
-	doc = frappe.get_doc({"doctype": "Repair Job", "customer": customer, "customer_vehicle": vehicle, "odometer_in": 84521, "customer_concern": "Battery warning and brake noise", "priority": "Normal"})
+	doc = frappe.get_doc(
+		{
+			"doctype": "Repair Job",
+			"customer": customer,
+			"customer_vehicle": vehicle,
+			"odometer_in": 84521,
+			"customer_concern": "Battery warning and brake noise",
+			"priority": "Normal",
+		}
+	)
 	doc.insert(ignore_permissions=True)
 	return doc.name
 
 
 def _add_labour_line(job, description="Engine oil change", rate=120000, qty=1, technician=None):
 	service = _create_job_service(job, description, status="Approved")
-	line = _append_service_component(service, service_type="Labour", description=description, quantity=qty, rate=rate, assigned_to=technician, status="Approved")
+	line = _append_service_component(
+		service,
+		service_type="Labour",
+		description=description,
+		quantity=qty,
+		rate=rate,
+		assigned_to=technician,
+	)
 	job.reload()
 	return line.name
 
 
 def _add_parts_line(job, description="Battery", item_code=TEST_ITEM_CODE, qty=1, rate=350000):
 	service = _create_job_service(job, description, status="Approved")
-	line = _append_service_component(service, service_type="Part", description=description, item_code=item_code, quantity=qty, rate=rate, status="Approved")
-	job.reload()
-	return line.name
-
-
-def _add_subcontract_line(job, description="Engine rebuild", rate=500000):
-	service = _create_job_service(job, description, status="Approved")
-	line = _append_service_component(service, service_type="Subcontracted Service", description=description, quantity=1, rate=rate, status="Approved")
+	line = _append_service_component(
+		service,
+		service_type="Part",
+		description=description,
+		item_code=item_code,
+		quantity=qty,
+		rate=rate,
+	)
 	job.reload()
 	return line.name
 
@@ -138,13 +178,12 @@ class TestLabourSummary(IntegrationTestCase):
 		job = frappe.get_doc("Repair Job", job_name)
 		_add_parts_line(job, description="Battery", qty=1, rate=350000)
 		_add_labour_line(job, description="Labour only", rate=120000, qty=1)
-		_add_subcontract_line(job, description="Engine rebuild", rate=500000)
 		job.reload()
 		summary = job.get_labour_summary()
 		self.assertEqual(summary["total_hours"], 1)
 		self.assertEqual(summary["total_amount"], 120000)
 		self.assertEqual(len(summary["lines"]), 1)
-		self.assertEqual(job.total_amount, 970000)
+		self.assertEqual(job.total_amount, 470000)
 
 
 class TestRepairJobServiceTemplate(IntegrationTestCase):
@@ -219,46 +258,122 @@ class TestDoubleBillingPrevention(IntegrationTestCase):
 	def tearDown(self):
 		frappe.db.rollback()
 
-	def test_create_sales_invoice_blocks_duplicate(self):
+	def test_create_sales_invoice_does_not_use_legacy_primary_link_as_a_duplicate_guard(self):
 		job_name = _create_repair_job(self.customer, self.vehicle)
 		job = frappe.get_doc("Repair Job", job_name)
-		line_name = _add_labour_line(job, description="Labour X", rate=100000, qty=1)
-		_set_child_field(line_name, "status", "Completed")
-		job.reload()
+		frappe.db.set_value("Repair Job", job_name, "job_status", "Ready for Invoice")
 		_set_parent_field(job_name, "sales_invoice", "SI-MOCK-001")
 		job.reload()
-		with self.assertRaises(frappe.ValidationError):
+		with patch(f"{ADAPTER_PATCH_BASE}.create_sales_invoice", return_value="SI-MOCK-002") as mapper:
 			job.create_sales_invoice()
+		mapper.assert_called_once_with(job)
 
-	def test_invoice_only_includes_completed_lines(self):
+	def test_invoice_iterator_uses_only_parent_service_status(self):
 		job_name = _create_repair_job(self.customer, self.vehicle)
 		job = frappe.get_doc("Repair Job", job_name)
-		completed_line = _add_labour_line(job, description="Completed labour", rate=100000, qty=1)
-		_set_child_field(completed_line, "status", "Completed")
-		_add_labour_line(job, description="Pending labour", rate=200000, qty=1)
+		approved_service = _create_job_service(job, "Approved labour", status="Approved")
+		completed_service = _create_job_service(job, "Completed labour", status="Completed")
+		in_progress_service = _create_job_service(job, "In progress labour", status="In Progress")
+		pending_line = _append_service_component(
+			approved_service,
+			service_type="Labour",
+			description="Pending labour",
+			quantity=1,
+			rate=100000,
+		)
+		approved_line = _append_service_component(
+			completed_service,
+			service_type="Labour",
+			description="Approved labour",
+			quantity=1,
+			rate=200000,
+		)
+		_append_service_component(
+			in_progress_service,
+			service_type="Labour",
+			description="In progress labour",
+			quantity=1,
+			rate=300000,
+		)
 		job.reload()
+		eligible = list(
+			iter_repair_job_components(
+				job.name,
+				service_statuses={"Approved", "Completed"},
+				billable_only=True,
+			)
+		)
+		self.assertEqual([line.name for _service, line in eligible], [pending_line.name, approved_line.name])
+
 		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
 			create_sales_invoice,
 		)
 
-		with patch(f"{ADAPTER_PATCH_BASE}.get_settings", return_value=_MOCK_SETTINGS):
-			with patch(f"{ADAPTER_PATCH_BASE}._make_doc") as mock_make_doc:
-				mock_si = frappe._dict(name="SI-TEST-001", insert=lambda **kw: None)
-				mock_make_doc.return_value = mock_si
-				with patch(f"{ADAPTER_PATCH_BASE}.frappe.db.set_value"):
-					create_sales_invoice(job)
-		self.assertTrue(mock_make_doc.called)
-		doc_kwargs = mock_make_doc.call_args[0][0]
-		items = doc_kwargs.get("items", [])
-		item_names = [i.get("item_name") or i.get("description", "") for i in items]
-		self.assertIn("Completed labour", item_names)
-		self.assertNotIn("Pending labour", item_names)
-		self.assertEqual(items[0]["repair_job"], job.name)
-		self.assertEqual(items[0]["customer_vehicle"], job.customer_vehicle)
-		self.assertTrue(items[0]["repair_job_service"])
-		self.assertEqual(items[0]["repair_component_doctype"], "Repair Job Service Labour")
-		self.assertEqual(items[0]["repair_component_row"], completed_line)
-		self.assertEqual(items[0]["repair_service_line"], completed_line)
+		mapped_invoice = frappe._dict(name="SI-TEST-001", insert=lambda **kw: None)
+		with patch(
+			"auto_service_management.auto_service_management.integration.erpnext.component_mapping.map_sales_invoice",
+			return_value=mapped_invoice,
+		) as mapper:
+			self.assertEqual(create_sales_invoice(job), "SI-TEST-001")
+		mapper.assert_called_once_with(job.name)
+
+	def test_job_and_service_invoice_mapping_include_every_component(self):
+		job_name = _create_repair_job(self.customer, self.vehicle)
+		job = frappe.get_doc("Repair Job", job_name)
+		services = [
+			_create_job_service(job, "Approved full service", status="Approved"),
+			_create_job_service(job, "Completed full service", status="Completed"),
+		]
+		for service in services:
+			_append_service_component(
+				service,
+				service_type="Part",
+				description=f"{service.service_name} part",
+				item_code=TEST_ITEM_CODE,
+				quantity=2,
+				rate=50000,
+			)
+			_append_service_component(
+				service,
+				service_type="Consumable",
+				description=f"{service.service_name} consumable",
+				item_code=TEST_ITEM_CODE,
+				quantity=1,
+				rate=10000,
+			)
+			_append_service_component(
+				service,
+				service_type="Labour",
+				description=f"{service.service_name} labour",
+				item_code=None,
+				quantity=1.5,
+				rate=60000,
+			)
+
+		frappe.db.set_value("Repair Job", job_name, "job_status", "Approved")
+		from auto_service_management.auto_service_management.integration.erpnext import (
+			component_mapping,
+		)
+
+		with (
+			patch.object(component_mapping.frappe, "get_single", return_value=_MOCK_SETTINGS),
+			patch("frappe.model.document.Document.run_method"),
+		):
+			job_invoice = component_mapping.map_sales_invoice(job_name)
+			service_invoice = component_mapping.map_sales_invoice(job_name, service_names={services[0].name})
+
+		self.assertEqual(len(job_invoice.items), 6)
+		self.assertEqual(len(service_invoice.items), 3)
+		self.assertEqual(
+			{row.repair_job_service for row in job_invoice.items},
+			{service.name for service in services},
+		)
+		labour_rows = [
+			row for row in job_invoice.items if row.repair_component_doctype == "Repair Job Service Labour"
+		]
+		self.assertEqual(len(labour_rows), 2)
+		self.assertTrue(all(row.item_code is None for row in labour_rows))
+		self.assertTrue(all(row.uom == "Hour" for row in labour_rows))
 
 	def test_material_request_blocks_duplicate_for_active_line(self):
 		job_name = _create_repair_job(self.customer, self.vehicle)
@@ -288,22 +403,17 @@ class TestRequestedIssuedQtyTracking(IntegrationTestCase):
 		job = frappe.get_doc("Repair Job", job_name)
 		_add_parts_line(job, description="Air filter", qty=3, rate=25000)
 		job.reload()
-		with patch(f"{ADAPTER_PATCH_BASE}.get_settings", return_value=_MOCK_SETTINGS):
-			with patch(f"{ADAPTER_PATCH_BASE}._make_doc") as mock_make_doc:
-				mock_mr = frappe._dict(name="MR-TEST-001", insert=lambda **kw: None)
-				mock_make_doc.return_value = mock_mr
-				with patch(f"{ADAPTER_PATCH_BASE}.frappe.db.set_value") as mock_set_value:
-					from auto_service_management.auto_service_management.integration.erpnext.adapters import (
-						create_material_request,
-					)
+		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
+			create_material_request,
+		)
 
-					create_material_request(job)
-					self.assertTrue(mock_set_value.called)
-					call_args = mock_set_value.call_args
-					self.assertEqual(call_args[0][0], "Repair Job Service Part")
-					self.assertEqual(call_args[0][2]["requested_qty"], 3)
-					self.assertEqual(call_args[0][2]["material_request"], "MR-TEST-001")
-					self.assertEqual(call_args[0][2]["stock_request_status"], "Requested")
+		mapped_request = frappe._dict(name="MR-TEST-001", insert=lambda **kw: None)
+		with patch(
+			"auto_service_management.auto_service_management.integration.erpnext.component_mapping.map_material_request",
+			return_value=mapped_request,
+		) as mapper:
+			self.assertEqual(create_material_request(job), "MR-TEST-001")
+		mapper.assert_called_once_with(job.name)
 
 	def test_issued_qty_set_on_stock_entry_creation(self):
 		job_name = _create_repair_job(self.customer, self.vehicle)
@@ -342,17 +452,17 @@ class TestRequestedIssuedQtyTracking(IntegrationTestCase):
 		_set_child_field(line.name, "requested_qty", 1)
 		_set_child_field(line.name, "material_request", "MR-CANCELLED-001")
 		job.reload()
-		with patch(f"{ADAPTER_PATCH_BASE}.get_settings", return_value=_MOCK_SETTINGS):
-			with patch(f"{ADAPTER_PATCH_BASE}._make_doc") as mock_make_doc:
-				mock_mr = frappe._dict(name="MR-NEW-001", insert=lambda **kw: None)
-				mock_make_doc.return_value = mock_mr
-				with patch(f"{ADAPTER_PATCH_BASE}.frappe.db.set_value"):
-					from auto_service_management.auto_service_management.integration.erpnext.adapters import (
-						create_material_request,
-					)
+		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
+			create_material_request,
+		)
 
-					mr_name = create_material_request(job)
-					self.assertEqual(mr_name, "MR-NEW-001")
+		mapped_request = frappe._dict(name="MR-NEW-001", insert=lambda **kw: None)
+		with patch(
+			"auto_service_management.auto_service_management.integration.erpnext.component_mapping.map_material_request",
+			return_value=mapped_request,
+		) as mapper:
+			self.assertEqual(create_material_request(job), "MR-NEW-001")
+		mapper.assert_called_once_with(job.name)
 
 
 class TestShortageAndStockGuard(IntegrationTestCase):
@@ -405,4 +515,3 @@ class TestShortageAndStockGuard(IntegrationTestCase):
 					self.assertEqual(mock_set_value.call_count, 1)
 					call_args = mock_set_value.call_args
 					self.assertEqual(call_args[0][2]["stock_request_status"], "Fully Issued")
-

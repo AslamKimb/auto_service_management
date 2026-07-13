@@ -90,7 +90,6 @@ def _append_typed_component_from_legacy_line(service, line_doc, job):
 		"repair_job_service": service.name,
 		"customer_vehicle": job.customer_vehicle,
 		"description": line_doc.service_description or line_doc.name,
-		"status": line_doc.status or "Pending Approval",
 		"billable": line_doc.billable if line_doc.billable is not None else 1,
 		"currency": job.currency,
 		"item_code": line_doc.item_code,

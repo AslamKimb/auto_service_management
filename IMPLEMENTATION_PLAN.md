@@ -111,3 +111,17 @@
 - [ ] Deploy, verify health and business transactions, and record rollback evidence.
 
 **Evidence:** Business deployment prep updated in `C:\Users\user\Documents\Coded\frappe` on 2026-06-30. `apps.business.json` now includes `https://github.com/AslamKimb/auto_service_management` on `version-16`. `docker-compose.business.yml` and `docker-compose.business.dokploy.yml` now target `mariadb:11.8` and install `auto_service_management` idempotently immediately after ERPNext. `SOP.business.md` now includes MariaDB 10.6 backup and MariaDB 11.8 restore rehearsal steps, cloned-staging verification, and business rollout checks. Validation observed green with `docker compose --env-file .env.business.example -f docker-compose.business.yml config` and `docker compose --env-file .env.business.example -f docker-compose.business.dokploy.yml config`. Remaining gate: restore the cloned business site and verify accounting, stock, workers, PDFs, and rollback before approval.
+
+## Phase 9 — Service Totals and Component-Level ERPNext Mapping
+
+- [x] Archive active Subcontracted Services into hidden, read-only legacy tables with an idempotent post-model-sync patch.
+- [x] Calculate Repair Job Service billable totals and cost/margin values live in Desk and authoritatively on save.
+- [x] Map Sales Invoices from a Repair Job or one Repair Job Service through source actions and Sales Invoice Get Items From.
+- [x] Map Material Issue requests from a Repair Job or one Repair Job Service through source actions and Material Request Get Items From.
+- [x] Make Repair Job Service status the sole component eligibility gate; active Parts, Consumables, and Labour rows have no independent status workflow.
+- [x] Allow Sales Invoice mapping from Approved or Ready-for-Invoice Repair Jobs and map item-less components as description-based invoice rows.
+- [x] Reserve components in saved drafts and release traces on item removal, cancellation, or deletion.
+- [x] Derive Ready for Invoice/Invoiced from submitted component coverage and validate every linked invoice before Gate Pass issuance.
+- [-] Complete the live Desk walkthrough after enabling the local Chrome remote-debugging attachment.
+
+**Evidence:** Implemented on 2026-07-10/11. Focused contracts passed (8 service-total/schema contracts and 4 mapper/lifecycle units), followed by the full app suite on `auto-service-test.localhost`: 40 unit tests and 75 integration tests, all passing. `ruff check --config auto_service_management/pyproject.toml auto_service_management/auto_service_management`, targeted `ruff format --check`, and `git diff --check` passed. `bench build --app auto_service_management` completed successfully. Development-site migration ran the Phase 10 archive patch successfully; fixture export and a repeat development migration both completed with exit 0, with the repeat correctly not re-running the patch. `graphify update .` refreshed the code graph to 1,168 nodes and 1,822 edges. The isolated test-site uninstall/reinstall and post-install migration both completed with exit 0; `bench --site auto-service-test.localhost list-apps` confirms `auto_service_management 0.1.0` is installed alongside Frappe and ERPNext. Live Desk verification is blocked only by the local Chrome Browser Use attachment (remote debugging is not enabled), not by application code.

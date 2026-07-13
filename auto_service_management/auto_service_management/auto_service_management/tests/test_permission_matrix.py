@@ -51,6 +51,15 @@ ROLE_MATRIX = {
 	},
 }
 
+ACTIVE_COMPONENT_CHILD_DOCTYPES = (
+	"Repair Job Service Part",
+	"Repair Job Service Labour",
+	"Repair Job Service Consumable",
+	"Repair Service Template Part",
+	"Repair Service Template Labour",
+	"Repair Service Template Consumable",
+)
+
 
 def _create_role_user(role: str, *, blank_default_workspace: bool = True) -> str:
 	email = f"test.{frappe.scrub(role)}.{frappe.generate_hash(length=8)}@example.com"
@@ -126,3 +135,28 @@ class TestPermissionMatrix(IntegrationTestCase):
 				with self.subTest(role=role, report=report_name):
 					result = run_query_report(report_name, filters={})
 					self.assertIn("result", result)
+
+	def test_workshop_roles_can_read_active_component_child_doctypes_with_parent_context(self):
+		parent_map = {
+			"Repair Job Service Part": "Repair Job Service",
+			"Repair Job Service Labour": "Repair Job Service",
+			"Repair Job Service Consumable": "Repair Job Service",
+			"Repair Service Template Part": "Repair Service Template",
+			"Repair Service Template Labour": "Repair Service Template",
+			"Repair Service Template Consumable": "Repair Service Template",
+		}
+
+		for role in ("Workshop Manager", "Service Advisor", "Parts Interpreter"):
+			user = _create_role_user(role)
+			self.users_to_delete.append(user)
+
+			for doctype in ACTIVE_COMPONENT_CHILD_DOCTYPES:
+				with self.subTest(role=role, doctype=doctype):
+					self.assertTrue(
+						frappe.has_permission(
+							doctype,
+							"read",
+							user=user,
+							parent_doctype=parent_map[doctype],
+						)
+					)

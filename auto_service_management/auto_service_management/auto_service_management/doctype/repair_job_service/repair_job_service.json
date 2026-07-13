@@ -118,10 +118,13 @@
    "options": "Repair Job Service Consumable"
   },
   {
-   "fieldname": "subcontracted_services",
+   "fieldname": "legacy_subcontracted_services",
    "fieldtype": "Table",
-   "label": "Subcontracted Services",
-   "options": "Repair Job Service Subcontracted Service"
+   "label": "Legacy Subcontracted Services",
+   "options": "Repair Job Service Subcontracted Service",
+   "hidden": 1,
+   "read_only": 1,
+   "no_copy": 1
   },
   {
    "fieldname": "totals_section",

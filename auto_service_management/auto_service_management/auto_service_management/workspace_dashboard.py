@@ -26,12 +26,10 @@ WORKSPACE_DOC_TYPE_COVERAGE = {
 	"Repair Job Service Part": "Repair Job Service Parts",
 	"Repair Job Service Labour": "Repair Job Service Labour",
 	"Repair Job Service Consumable": "Repair Job Service Consumables",
-	"Repair Job Service Subcontracted Service": "Repair Job Service Subcontracted Services",
 	"Repair Service Template": "Repair Service Templates",
 	"Repair Service Template Part": "Repair Service Template Parts",
 	"Repair Service Template Labour": "Repair Service Template Labour",
 	"Repair Service Template Consumable": "Repair Service Template Consumables",
-	"Repair Service Template Subcontracted Service": "Repair Service Template Subcontracted Services",
 	"Repair Job Override": "Repair Job Overrides",
 	"Repair Job Log": "Repair Job Logs",
 	"Walkaround Inspection": "Walkaround Inspections",
@@ -47,6 +45,39 @@ WORKSPACE_DOC_TYPE_COVERAGE = {
 }
 
 WORKSPACE_COVERAGE_NUMBER_CARDS = tuple(WORKSPACE_DOC_TYPE_COVERAGE.values())
+
+CHILD_COMPONENT_CARD_CONFIG = {
+	"Repair Job Service Parts": {
+		"child_doctype": "Repair Job Service Part",
+		"parent_doctype": "Repair Job Service",
+		"route": ["List", "Repair Job Service", "List"],
+	},
+	"Repair Job Service Labour": {
+		"child_doctype": "Repair Job Service Labour",
+		"parent_doctype": "Repair Job Service",
+		"route": ["List", "Repair Job Service", "List"],
+	},
+	"Repair Job Service Consumables": {
+		"child_doctype": "Repair Job Service Consumable",
+		"parent_doctype": "Repair Job Service",
+		"route": ["List", "Repair Job Service", "List"],
+	},
+	"Repair Service Template Parts": {
+		"child_doctype": "Repair Service Template Part",
+		"parent_doctype": "Repair Service Template",
+		"route": ["List", "Repair Service Template", "List"],
+	},
+	"Repair Service Template Labour": {
+		"child_doctype": "Repair Service Template Labour",
+		"parent_doctype": "Repair Service Template",
+		"route": ["List", "Repair Service Template", "List"],
+	},
+	"Repair Service Template Consumables": {
+		"child_doctype": "Repair Service Template Consumable",
+		"parent_doctype": "Repair Service Template",
+		"route": ["List", "Repair Service Template", "List"],
+	},
+}
 
 WORKSPACE_LINK_CARDS = (
 	"Intake & Setup",
@@ -195,3 +226,43 @@ def get_auto_service_settings_configured_card_data():
 		"fieldtype": "Int",
 		"route": ["Form", "Auto Service Settings", "Auto Service Settings"],
 	}
+
+
+def get_component_child_card_data(card_label: str):
+	config = CHILD_COMPONENT_CARD_CONFIG[card_label]
+	frappe.has_permission(config["parent_doctype"], "read", throw=True)
+	return {
+		"value": frappe.db.count(config["child_doctype"]),
+		"fieldtype": "Int",
+		"route": config["route"],
+	}
+
+
+@frappe.whitelist()
+def get_repair_job_service_parts_card_data():
+	return get_component_child_card_data("Repair Job Service Parts")
+
+
+@frappe.whitelist()
+def get_repair_job_service_labour_card_data():
+	return get_component_child_card_data("Repair Job Service Labour")
+
+
+@frappe.whitelist()
+def get_repair_job_service_consumables_card_data():
+	return get_component_child_card_data("Repair Job Service Consumables")
+
+
+@frappe.whitelist()
+def get_repair_service_template_parts_card_data():
+	return get_component_child_card_data("Repair Service Template Parts")
+
+
+@frappe.whitelist()
+def get_repair_service_template_labour_card_data():
+	return get_component_child_card_data("Repair Service Template Labour")
+
+
+@frappe.whitelist()
+def get_repair_service_template_consumables_card_data():
+	return get_component_child_card_data("Repair Service Template Consumables")

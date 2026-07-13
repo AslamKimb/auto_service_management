@@ -72,10 +72,13 @@
       "options": "Repair Service Template Consumable"
     },
     {
-      "fieldname": "subcontracted_services",
+      "fieldname": "legacy_subcontracted_services",
       "fieldtype": "Table",
-      "label": "Default Subcontracted Services",
-      "options": "Repair Service Template Subcontracted Service"
+      "label": "Legacy Subcontracted Services",
+      "options": "Repair Service Template Subcontracted Service",
+      "hidden": 1,
+      "read_only": 1,
+      "no_copy": 1
     }
   ],
   "permissions": [

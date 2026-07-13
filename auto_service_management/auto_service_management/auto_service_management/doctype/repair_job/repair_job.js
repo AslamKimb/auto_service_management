@@ -46,6 +46,31 @@ frappe.ui.form.on("Repair Job", {
 			});
 		}, "Services");
 
+		if (["Approved", "Ready for Invoice"].includes(frm.doc.job_status)) {
+			frm.add_custom_button(__("Sales Invoice"), () => {
+				frappe.model.open_mapped_doc({
+					method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_sales_invoice",
+					frm,
+				});
+			}, __("Create"));
+		}
+
+		if (["Approved", "In Repair", "Quality Check", "Ready for Invoice"].includes(frm.doc.job_status)) {
+			frm.add_custom_button(__("Material Request"), () => {
+				frappe.model.open_mapped_doc({
+					method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_material_request",
+					frm,
+				});
+			}, __("Create"));
+		}
+
+		frm.add_custom_button(__("Sales Invoices"), () => {
+			frappe.set_route("List", "Sales Invoice", { repair_job: frm.doc.name });
+		}, __("Related Documents"));
+		frm.add_custom_button(__("Material Requests"), () => {
+			frappe.set_route("List", "Material Request", { repair_job: frm.doc.name });
+		}, __("Related Documents"));
+
 		add_related_document_button(frm, {
 			fieldname: "walkaround_inspection",
 			doctype: "Walkaround Inspection",

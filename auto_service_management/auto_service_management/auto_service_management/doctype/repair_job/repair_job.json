@@ -194,7 +194,7 @@
    "fieldname": "services_help",
    "fieldtype": "HTML",
    "label": "Services Help",
-   "options": "<p class=\"text-muted\">Create customer-facing services from this job. Each service owns its parts, labour, consumables, subcontracted work, and billing components.</p>"
+   "options": "<p class=\"text-muted\">Create customer-facing services from this job. Each service owns its parts, labour, consumables, and billing components.</p>"
   },
   {
    "fieldname": "total_amount",
