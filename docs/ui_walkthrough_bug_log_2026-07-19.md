@@ -10,6 +10,15 @@
 
 ## Bugs Found
 
+### Cashier Invoice Detail Recovery - 2026-07-19 19:20 EAT
+
+| Status | Area | Evidence |
+| --- | --- | --- |
+| Passed | Cashier invoice detail retry | Fresh headed Chrome login as `walkthrough.cashier@example.com` with password `admin` reached `/desk/workshop-management` and showed avatar `C`. Opening `/desk/sales-invoice/ACC-SINV-2026-00007` loaded `Abdul - ACC-SINV-2026-00007` as Cashier. |
+| Passed | Paid invoice values visible | The invoice showed `Customer = Abdul`, `Repair Job = RJ-2026-00034`, `Total Quantity = 10`, `Grand Total (UGX) = Sh 440,000.00`, `Outstanding Amount (UGX) = Sh 0.00`, and visible item rows including `Front brake pad set` and test consumables. |
+| Superseded | Cashier invoice detail login blocked | The earlier 19:05 EAT Cashier login blocker was not reproducible in this retry. It appears to have been transient session state rather than a stable persona password or permission setup issue. |
+| Bug | Desk/workspace console errors persist | The Cashier retry still captured two `"" is not a valid color.` warnings and `NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.` from `desk.bundle.OBHPYFFY.js`. |
+
 ### Authorization and Invoice Detail Update - 2026-07-19 19:05 EAT
 
 | Status | Area | Evidence |
