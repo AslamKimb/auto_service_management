@@ -10,6 +10,14 @@
 
 ## Bugs Found
 
+### Workshop Manager Queue Drilldown Update - 2026-07-19
+
+| Status | Area | Evidence |
+| --- | --- | --- |
+| Passed | Workshop Manager Jobs by Status report | Fresh headed Chrome login as `walkthrough.workshop.manager@example.com` with password `admin` reached `/desk/workshop-management` with avatar `WM`. Opening `/desk/query-report/Jobs%20by%20Status` showed status counts: `Approved = 5`, `Ready for Invoice = 4`, `Draft = 2`, and `Closed = 1`. |
+| Bug | Repair Queue shortcut/list filter shows no active jobs | In the same Workshop Manager session, opening `/desk/repair-job/view/list?job_status=not%20in%2CClosed%2CCancelled` showed `No Repair Job found with matching filters. Clear filters to see all Repair Job.` This contradicts the adjacent Jobs by Status report, which showed 11 non-closed/non-cancelled jobs across `Approved`, `Ready for Invoice`, and `Draft`. |
+| Bug | Desk/report console errors persist | The Workshop Manager report/list pass captured repeated `NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.` errors and `"" is not a valid color.` warnings from `desk.bundle.OBHPYFFY.js`. |
+
 ### Security Service History Update - 2026-07-19
 
 | Status | Area | Evidence |
