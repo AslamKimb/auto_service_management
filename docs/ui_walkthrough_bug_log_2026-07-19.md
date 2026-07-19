@@ -10,6 +10,16 @@
 
 ## Bugs Found
 
+### Remaining Workflow Record Update - 2026-07-19 18:45 EAT
+
+| Status | Area | Evidence |
+| --- | --- | --- |
+| Passed | Workshop Manager Quality Check record access | Fresh Workshop Manager session opened `/desk/quality-check/QC-2026-00040` linked to `RJ-2026-00034`. The page showed avatar `WM`, title `RJ-2026-00034 - QC-2026-00040`, editable `Save`, completed checklist fields, and no captured console warnings or errors. |
+| Bug | Quality Check Link-field display mismatch | On `QC-2026-00040`, the visible field wrappers for `Repair Job` and `Checked By` still displayed `Begin typing for results.` even though the underlying Link inputs contained `RJ-2026-00034` and `asl.kimb@gmail.com`. This makes a populated saved record look partially blank to a normal user. |
+| Setup issue | Security Gate Officer password reset needed | After session clearing, `walkthrough.security.gate@example.com` stayed on `/login` with no visible error when using password `admin`. The user was enabled, `System User`, and had `default_workspace = "Workshop Management"`. Resetting the persona with `bench --site auto-service.localhost set-password walkthrough.security.gate@example.com admin` restored login. |
+| Passed | Security Gate Officer Gate Pass record access | After password reset, a fresh Security Gate Officer session opened `/desk/gate-pass/GP-2026-00042` linked to `RJ-2026-00034`. The page showed avatar `SG`, title `RJ-2026-00034 - GP-2026-00042`, editable `Save`, release/status fields, and no captured console warnings or errors. |
+| Bug | Gate Pass Link-field display mismatch | On `GP-2026-00042`, the visible field wrappers for `Repair Job`, `Sales Invoice`, and `Issued By` displayed `Begin typing for results.` while the underlying Link inputs contained `RJ-2026-00034`, `ACC-SINV-2026-00007`, and `asl.kimb@gmail.com`. A normal user sees the record as partly unlinked even though the saved values exist. |
+
 ### Chrome Recovery Update - 2026-07-19 18:25 EAT
 
 | Status | Area | Evidence |
