@@ -10,6 +10,15 @@
 
 ## Bugs Found
 
+### Security Service History Update - 2026-07-19
+
+| Status | Area | Evidence |
+| --- | --- | --- |
+| Passed | Security Gate Officer service-history surfaces open | Fresh headed Chrome login as `walkthrough.security.gate@example.com` with password `admin` reached `/desk/workshop-management` with avatar `SG`. The workspace showed `Gate Passes`, `Service History`, `Vehicle Service History`, and `Gate Pass Register`; `/desk/service-history` and `/desk/query-report/Vehicle%20Service%20History` both opened without a permission error. |
+| Bug | Closed released workflow has no visible Service History | Security's workspace card showed `Service History Records ... 0`; `/desk/service-history` showed `You haven't created a Service History yet`; `/desk/query-report/Vehicle%20Service%20History` showed `Nothing to show`. This contradicts the exercised closed release path around `RJ-2026-00034`, where the job is `Closed` with issued gate pass and paid invoice evidence. |
+| Source confirmation | Service History should exist after close | `docs/specs/automobile-repair-management.md` states that closing requires an issued/used Gate Pass and creates Service History once. `RepairJob.close()` is documented in code as `Close the job. Creates Service History and updates vehicle.`, and `_create_service_history()` is idempotent per repair job. |
+| Bug | Desk/workspace console error persists | The Security workspace/list/report pass captured `NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.` from `desk.bundle.OBHPYFFY.js`. |
+
 ### Service Advisor Vehicle Search Update - 2026-07-19
 
 | Status | Area | Evidence |
