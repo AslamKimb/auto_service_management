@@ -10,6 +10,15 @@
 
 ## Bugs Found
 
+### Cashier Finance Report Update - 2026-07-19
+
+| Status | Area | Evidence |
+| --- | --- | --- |
+| Passed | Cashier workspace and invoice/report basics | Fresh headed Chrome login as `walkthrough.cashier@example.com` with password `admin` reached `/desk/workshop-management` with avatar `C`. The workspace showed the expected limited Cashier-facing surfaces: `Repair Job`, `Repair Job Service`, `Repair Queue`, `Invoice Queue`, and `Jobs by Status`; cards showed `Open Repair Jobs = 11`, `Invoice Queue = 6`, and status counts `Approved = 5`, `Ready for Invoice = 4`, `Draft = 2`, `Closed = 1`. |
+| Permission gap | Finance/control reports blocked for Cashier | Direct headed Chrome openings of `/desk/query-report/Repair%20Revenue%20by%20Period`, `/desk/query-report/Corporate%20Credit%20Releases`, and `/desk/query-report/Discount%20and%20Price%20Change%20Audit` as `walkthrough.cashier@example.com` each returned `Message You don't have access to Report: ...`. The console captured matching Frappe `PermissionError` tracebacks and `Uncaught (in promise)` errors. |
+| Bug | Report navigation exposes inaccessible report names | On the blocked report pages, the report sidebar still listed app reports including `Corporate Credit Releases`, `Discount and Price Change Audit`, and `Repair Revenue by Period`, but opening them as Cashier produced permission errors rather than usable report data. If Cashier is not intended to use these finance/control reports, they should not be exposed in that workflow surface. |
+| Bug | Desk/report console errors persist | The Cashier finance report pass captured two `"" is not a valid color.` warnings and `NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.` from `desk.bundle.OBHPYFFY.js`. |
+
 ### Workshop Manager Queue Drilldown Update - 2026-07-19
 
 | Status | Area | Evidence |
