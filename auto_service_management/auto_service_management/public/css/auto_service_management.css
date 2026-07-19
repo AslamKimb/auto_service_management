@@ -1,0 +1,8 @@
+.standard-actions .actions-btn-group .btn-primary,
+.standard-actions .actions-btn-group .btn-secondary {
+	min-width: 84px;
+}
+
+.standard-actions .actions-btn-group .actions-btn-group-label {
+	display: inline !important;
+}

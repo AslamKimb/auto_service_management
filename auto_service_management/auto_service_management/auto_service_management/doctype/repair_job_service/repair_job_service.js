@@ -225,10 +225,7 @@ function apply_default_labour_rate(frm, cdt, cdn) {
 }
 
 function add_sales_invoice_button(frm) {
-    if (!['Approved', 'Completed'].includes(frm.doc.status)) return;
     frappe.db.get_value('Repair Job', frm.doc.repair_job, 'job_status').then(function(r) {
-        var job_status = r && r.message ? r.message.job_status : null;
-        if (!['Approved', 'Ready for Invoice'].includes(job_status)) return;
         frm.add_custom_button(__('Sales Invoice'), function() {
             frappe.model.open_mapped_doc({
                 method: 'auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service.make_sales_invoice',

@@ -31,10 +31,10 @@ class WalkaroundInspection(Document):
 		"""Ensure linked Repair Job is in an appropriate state."""
 		if self.repair_job:
 			job = frappe.get_doc("Repair Job", self.repair_job)
-			if job.job_status not in ("Checked In", "Walkaround Inspection"):
+			if job.job_status not in ("Assessment",):
 				frappe.throw(
 					f"Walkaround Inspection can only be created for Repair Jobs "
-					f"in 'Checked In' or 'Walkaround Inspection' state. Current: {job.job_status}"
+					f"in 'Assessment' state. Current: {job.job_status}"
 				)
 
 	def validate_unique_for_repair_job(self):
@@ -51,8 +51,8 @@ class WalkaroundInspection(Document):
 		if not self.repair_job:
 			return
 		job = frappe.get_doc("Repair Job", self.repair_job)
-		if job.job_status == "Checked In":
-			job.job_status = "Walkaround Inspection"
+		if job.job_status == "Draft":
+			job.job_status = "Assessment"
 			job.save(ignore_permissions=True)
 
 	def sync_primary_link(self):

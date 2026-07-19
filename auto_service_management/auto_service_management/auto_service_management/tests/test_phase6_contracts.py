@@ -128,9 +128,7 @@ class TestPhase6Contracts(UnitTestCase):
 		self.assertIn("quality_check", fields)
 		self.assertEqual(fields["quality_check"]["fieldtype"], "Link")
 		self.assertEqual(fields["quality_check"]["options"], "Quality Check")
-		self.assertIn("road_test_report", fields)
-		self.assertEqual(fields["road_test_report"]["fieldtype"], "Link")
-		self.assertEqual(fields["road_test_report"]["options"], "Road Test Report")
+		self.assertNotIn("road_test_report", fields)
 		self.assertIn("gate_pass", fields)
 		self.assertEqual(fields["gate_pass"]["fieldtype"], "Link")
 		self.assertEqual(fields["gate_pass"]["options"], "Gate Pass")
@@ -255,20 +253,6 @@ class TestPhase6Contracts(UnitTestCase):
 					):
 						self.assertIn(stock_field, component_fields)
 
-		template_path = module_root / "doctype" / "repair_service_template" / "repair_service_template.json"
-		template = json.loads(template_path.read_text(encoding="utf-8"))
-		template_fields = {field["fieldname"]: field for field in template["fields"]}
-		self.assertNotIn("components", template_fields)
-		self.assertEqual(template_fields["parts"]["options"], "Repair Service Template Part")
-		self.assertEqual(template_fields["labour"]["options"], "Repair Service Template Labour")
-		self.assertEqual(template_fields["consumables"]["options"], "Repair Service Template Consumable")
-		self.assertNotIn("subcontracted_services", template_fields)
-		self.assertEqual(
-			template_fields["legacy_subcontracted_services"]["options"],
-			"Repair Service Template Subcontracted Service",
-		)
-		self.assertEqual(template_fields["legacy_subcontracted_services"]["hidden"], 1)
-
 	def test_erpnext_child_row_trace_custom_fields_are_fixture_owned(self):
 		fixture_root = Path(__file__).parents[2] / "fixtures"
 		fixture = json.loads((fixture_root / "custom_field.json").read_text(encoding="utf-8"))
@@ -295,9 +279,7 @@ class TestPhase6Contracts(UnitTestCase):
 		path = module_root / "print_format" / "repair_summary" / "repair_summary.json"
 		html = json.loads(path.read_text(encoding="utf-8"))["html"]
 
-		self.assertIn("doc.quality_check", html)
-		self.assertIn("Quality Check", html)
-		self.assertIn("doc.get_service_groups", html)
+		self.assertIn("render_repair_summary", html)
 
 	def test_workspace_content_references_declared_shortcuts(self):
 		module_root = Path(__file__).parents[1]
@@ -355,13 +337,12 @@ class TestPhase6Contracts(UnitTestCase):
 
 	# ── Desk desktop visibility ──
 
-	def test_hooks_declares_add_to_apps_screen(self):
-		"""hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop Icon."""
+	def test_hooks_uses_workspace_sidebar_as_the_only_desk_entry(self):
+		"""Desktop setup owns the DMS menu; a second app-screen entry would duplicate it."""
 		hooks_root = Path(__file__).parents[2]  # hooks.py is at single-nested package level
 		hooks_source = (hooks_root / "hooks.py").read_text(encoding="utf-8")
-		self.assertIn("add_to_apps_screen", hooks_source)
-		self.assertIn("auto_service_management", hooks_source)
-		self.assertIn("/app/workshop-management", hooks_source)
+		self.assertNotIn("add_to_apps_screen", hooks_source)
+		self.assertIn("boot_session", hooks_source)
 
 	def test_hooks_declares_lifecycle_hooks_for_desktop_icon(self):
 		"""hooks.py must declare lifecycle hooks that run the full desktop setup."""
@@ -372,11 +353,12 @@ class TestPhase6Contracts(UnitTestCase):
 		self.assertIn("desktop.setup_desktop", hooks_source)
 
 	def test_desktop_module_exists_with_required_functions(self):
-		"""desktop.py must exist and export create_app_desktop_icon and ensure_permission."""
+		"""desktop.py must create the app icon and the grouped workspace sidebar."""
 		module_root = Path(__file__).parents[1]
 		desktop_path = module_root / "desktop.py"
 		self.assertTrue(desktop_path.is_file(), "desktop.py must exist")
 		source = desktop_path.read_text(encoding="utf-8")
 		self.assertIn("def create_app_desktop_icon", source)
-		self.assertIn("def ensure_permission", source)
+		self.assertIn("def _ensure_workspace_sidebar", source)
+		self.assertIn("def remove_auto_generated_sidebar", source)
 		self.assertIn("Desktop Icon", source)

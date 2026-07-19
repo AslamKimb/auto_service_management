@@ -1,11 +1,15 @@
 # Copyright (c) 2026, Aslam Kimbugwe and contributors
 # For license information, please see license.txt
 
-from datetime import datetime
-
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import getdate
+
+from auto_service_management.auto_service_management.workflow_compatibility import (
+	recompute_repair_job_state,
+	sync_customer_authorization_snapshot,
+)
 
 
 class CustomerAuthorization(Document):
@@ -15,9 +19,12 @@ class CustomerAuthorization(Document):
 		self.validate_unique_for_repair_job()
 		self.validate_amount()
 		self.check_expiry()
+		sync_customer_authorization_snapshot(self)
 
 	def on_update(self):
 		self.sync_primary_link()
+		sync_customer_authorization_snapshot(self)
+		recompute_repair_job_state(self.repair_job)
 
 	def sync_with_repair_job(self):
 		if not self.repair_job:
@@ -37,11 +44,11 @@ class CustomerAuthorization(Document):
 		"""Authorization is needed before work can begin."""
 		if self.repair_job:
 			status = frappe.db.get_value("Repair Job", self.repair_job, "job_status")
-			if status not in ("Estimate Prepared", "Waiting for Customer Approval", "Approved"):
+			if status not in ("Assessment", "Awaiting Approval"):
 				frappe.throw(
 					_(
 						"Customer Authorization can only be created when the Repair Job "
-						"is in 'Estimate Prepared', 'Waiting for Customer Approval', or 'Approved' state. Current: {0}"
+						"is in 'Assessment' or 'Awaiting Approval' state. Current: {0}"
 					).format(status)
 				)
 
@@ -56,46 +63,47 @@ class CustomerAuthorization(Document):
 			frappe.throw(_("Only one Customer Authorization may be linked to a Repair Job."))
 
 	def validate_amount(self):
-		"""Approved amount must be positive."""
+		"""Approved amount must cover the full job scope."""
 		if self.approved_amount and self.approved_amount <= 0:
 			frappe.throw(_("Approved amount must be greater than zero."))
+		if self.repair_job:
+			job_total = frappe.db.get_value("Repair Job", self.repair_job, "total_amount") or 0
+			if self.approved_amount and float(self.approved_amount) < float(job_total):
+				frappe.throw(_("Approved amount must cover the full Repair Job amount."))
 
 	def check_expiry(self):
-		"""Warn if authorization is expired."""
-		if self.expiry_date and self.status == "Approved":
-			from frappe.utils import getdate
-
+		"""Block submitting an expired authorization."""
+		if self.expiry_date and getattr(self, "docstatus", 0) == 1:
 			if getdate(self.expiry_date) < getdate(frappe.utils.today()):
-				frappe.msgprint(
-					_("Warning: This authorization has expired on {0}.").format(self.expiry_date),
-					alert=True,
-				)
+				frappe.throw(_("Approved authorization has expired."))
 
 	@frappe.whitelist()
 	def approve(self):
 		"""Approve the authorization and update linked Repair Job."""
 		self._require_write_permission()
-		if self.status != "Pending":
-			frappe.throw(_("Only pending authorizations can be approved."))
-		self.status = "Approved"
-		self.save()
+		if getattr(self, "docstatus", 0) != 1:
+			self.save()
+			self.submit()
 		if self.repair_job:
 			job = frappe.get_doc("Repair Job", self.repair_job)
 			if job.customer_authorization != self.name:
 				frappe.db.set_value(
 					"Repair Job", self.repair_job, "customer_authorization", self.name, update_modified=False
 				)
-				job.reload()
+			job.reload()
 			job.authorize()
+		recompute_repair_job_state(self.repair_job)
 
 	@frappe.whitelist()
 	def reject(self):
 		"""Reject the authorization."""
 		self._require_write_permission()
-		if self.status != "Pending":
-			frappe.throw(_("Only pending authorizations can be rejected."))
-		self.status = "Rejected"
-		self.save()
+		if not self.authorization_notes:
+			frappe.throw(_("A rejection reason must be provided in Notes."))
+		if getattr(self, "docstatus", 0) != 1:
+			frappe.throw(_("Submit the authorization before rejecting it."))
+		self.cancel()
+		recompute_repair_job_state(self.repair_job)
 
 	def sync_primary_link(self):
 		if not self.repair_job:

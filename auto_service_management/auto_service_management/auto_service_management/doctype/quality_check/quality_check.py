@@ -4,23 +4,31 @@
 import frappe
 from frappe.model.document import Document
 
+from auto_service_management.auto_service_management.workflow_compatibility import (
+	recompute_repair_job_state,
+	sync_quality_check_road_tests,
+)
+
 
 class QualityCheck(Document):
 	def validate(self):
 		self.sync_with_repair_job()
 		self.validate_repair_job_state()
 		self.validate_unique_for_repair_job()
+		sync_quality_check_road_tests(self)
 
 	def on_update(self):
 		self.sync_primary_link()
+		sync_quality_check_road_tests(self)
+		recompute_repair_job_state(self.repair_job)
 
 	def validate_repair_job_state(self):
 		if self.repair_job:
 			status = frappe.db.get_value("Repair Job", self.repair_job, "job_status")
-			if status not in ("In Repair", "Quality Check"):
+			if status not in ("In Repair", "Quality Check", "Billing"):
 				frappe.throw(
 					f"Quality Check can only be created when the Repair Job "
-					f"is in 'In Repair' or 'Quality Check' state. Current: {status}"
+					f"is in 'In Repair', 'Quality Check', or 'Billing' state. Current: {status}"
 				)
 
 	def sync_with_repair_job(self):

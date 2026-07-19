@@ -1,0 +1,61 @@
+{
+ "name": "Repair Job Service Row",
+ "module": "Auto Service Management",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "istable": true,
+ "editable_grid": 1,
+ "fields": [
+  {
+   "fieldname": "repair_job",
+   "fieldtype": "Link",
+   "label": "Repair Job",
+   "options": "Repair Job",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "repair_job_service",
+   "fieldtype": "Link",
+   "label": "Repair Job Service",
+   "options": "Repair Job Service",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "service_name",
+   "fieldtype": "Data",
+   "label": "Service Name",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "workshop_bay",
+   "fieldtype": "Link",
+   "label": "Workshop Bay",
+   "options": "Workshop Bay",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Total Amount",
+   "options": "currency",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "payment_status",
+   "fieldtype": "Select",
+   "label": "Payment Status",
+   "options": "\nNot Invoiced\nUnpaid\nPartially Paid\nPaid",
+   "read_only": 1,
+   "in_list_view": 1
+  }
+ ],
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

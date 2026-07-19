@@ -6,20 +6,20 @@ import frappe
 from frappe.tests import UnitTestCase
 
 MODULE_ROOT = Path(__file__).parents[1]
-APP_ROOT = Path(__file__).parents[2]
+APP_ROOT = next(
+	base
+	for base in Path(__file__).resolve().parents
+	if (base / "hooks.py").is_file() and (base / "public" / "js" / "sales_invoice.js").is_file()
+)
 
 
 class TestPhase10ServiceBillingContracts(UnitTestCase):
 	def test_active_service_components_exclude_subcontracted_services(self):
 		service = _doctype_fields("repair_job_service")
-		template = _doctype_fields("repair_service_template")
 
 		self.assertNotIn("subcontracted_services", service)
-		self.assertNotIn("subcontracted_services", template)
 		self.assertEqual(service["legacy_subcontracted_services"]["hidden"], 1)
 		self.assertEqual(service["legacy_subcontracted_services"]["read_only"], 1)
-		self.assertEqual(template["legacy_subcontracted_services"]["hidden"], 1)
-		self.assertEqual(template["legacy_subcontracted_services"]["read_only"], 1)
 
 	def test_component_iterator_supports_only_service_status_filter(self):
 		from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (

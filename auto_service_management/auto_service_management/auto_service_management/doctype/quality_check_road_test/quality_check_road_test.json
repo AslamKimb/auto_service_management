@@ -1,0 +1,122 @@
+{
+ "name": "Quality Check Road Test",
+ "module": "Auto Service Management",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "istable": true,
+ "editable_grid": 1,
+ "fields": [
+  {
+   "fieldname": "context_section",
+   "fieldtype": "Section Break",
+   "label": "Context"
+  },
+  {
+   "fieldname": "quality_check",
+   "fieldtype": "Link",
+   "label": "Quality Check",
+   "options": "Quality Check",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "repair_job",
+   "fieldtype": "Link",
+   "label": "Repair Job",
+   "options": "Repair Job",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_vehicle",
+   "fieldtype": "Link",
+   "label": "Customer Vehicle",
+   "options": "Customer Vehicle",
+   "read_only": 1
+  },
+  {
+   "fieldname": "context_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "test_date",
+   "fieldtype": "Datetime",
+   "label": "Test Date"
+  },
+  {
+   "fieldname": "tested_by",
+   "fieldtype": "Link",
+   "label": "Tested By",
+   "options": "User"
+  },
+  {
+   "fieldname": "measurements_section",
+   "fieldtype": "Section Break",
+   "label": "Measurements"
+  },
+  {
+   "fieldname": "odometer_start",
+   "fieldtype": "Float",
+   "label": "Odometer Start"
+  },
+  {
+   "fieldname": "odometer_end",
+   "fieldtype": "Float",
+   "label": "Odometer End"
+  },
+  {
+   "fieldname": "duration_minutes",
+   "fieldtype": "Int",
+   "label": "Duration (Minutes)"
+  },
+  {
+   "fieldname": "route",
+   "fieldtype": "Small Text",
+   "label": "Route"
+  },
+  {
+   "fieldname": "results_section",
+   "fieldtype": "Section Break",
+   "label": "Results"
+  },
+  {
+   "fieldname": "braking_ok",
+   "fieldtype": "Check",
+   "label": "Braking OK"
+  },
+  {
+   "fieldname": "steering_ok",
+   "fieldtype": "Check",
+   "label": "Steering OK"
+  },
+  {
+   "fieldname": "engine_performance_ok",
+   "fieldtype": "Check",
+   "label": "Engine Performance OK"
+  },
+  {
+   "fieldname": "transmission_ok",
+   "fieldtype": "Check",
+   "label": "Transmission OK"
+  },
+  {
+   "fieldname": "no_warning_lights",
+   "fieldtype": "Check",
+   "label": "No Warning Lights"
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "test_notes",
+   "fieldtype": "Text Editor",
+   "label": "Test Notes"
+  }
+ ],
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

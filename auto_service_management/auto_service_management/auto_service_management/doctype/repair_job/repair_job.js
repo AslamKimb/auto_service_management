@@ -12,9 +12,7 @@ frappe.ui.form.on("Repair Job", {
 			["diagnosis_report"],
 			["customer_authorization"],
 			["quality_check"],
-			["road_test_report"],
 			["gate_pass"],
-			["repair_job_service"],
 		]) {
 			frm.set_query(fieldname, () => {
 				if (!frm.doc.name) {
@@ -26,12 +24,15 @@ frappe.ui.form.on("Repair Job", {
 	},
 
 	refresh(frm) {
+		sync_dom_field_value(frm, "odometer_in");
+		set_business_status_indicator(frm);
 		if (frm.is_new()) {
 			return;
 		}
+		frm.set_df_property("job_status", "read_only", 1);
 
 		frm.add_custom_button("Create Service", () => {
-			frappe.new_doc("Repair Job Service", {
+			new_doc_with_values("Repair Job Service", {
 				repair_job: frm.doc.name,
 				customer: frm.doc.customer,
 				customer_vehicle: frm.doc.customer_vehicle,
@@ -46,7 +47,7 @@ frappe.ui.form.on("Repair Job", {
 			});
 		}, "Services");
 
-		if (["Approved", "Ready for Invoice"].includes(frm.doc.job_status)) {
+		if (["Billing", "Ready for Invoice", "Ready for Release"].includes(frm.doc.job_status)) {
 			frm.add_custom_button(__("Sales Invoice"), () => {
 				frappe.model.open_mapped_doc({
 					method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_sales_invoice",
@@ -55,7 +56,7 @@ frappe.ui.form.on("Repair Job", {
 			}, __("Create"));
 		}
 
-		if (["Approved", "In Repair", "Quality Check", "Ready for Invoice"].includes(frm.doc.job_status)) {
+		if (["In Repair", "Quality Check", "Billing", "Ready for Release"].includes(frm.doc.job_status)) {
 			frm.add_custom_button(__("Material Request"), () => {
 				frappe.model.open_mapped_doc({
 					method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_material_request",
@@ -112,58 +113,39 @@ frappe.ui.form.on("Repair Job", {
 			},
 		});
 
-		add_related_document_button(frm, {
-			fieldname: "quality_check",
-			doctype: "Quality Check",
-			create_label: "Create Quality Check",
-			open_label: "Open Quality Check",
-			route_options: {
-				repair_job: frm.doc.name,
-				customer_vehicle: frm.doc.customer_vehicle,
-				qc_date: frappe.datetime.now_datetime(),
-				checked_by: frappe.session.user,
-			},
-		});
+		if (["In Repair", "Quality Check", "Billing"].includes(frm.doc.job_status) || frm.doc.quality_check) {
+			add_related_document_button(frm, {
+				fieldname: "quality_check",
+				doctype: "Quality Check",
+				create_label: "Create Quality Check",
+				open_label: "Open Quality Check",
+				route_options: {
+					repair_job: frm.doc.name,
+					customer_vehicle: frm.doc.customer_vehicle,
+					qc_date: frappe.datetime.now_datetime(),
+					checked_by: frappe.session.user,
+				},
+			});
+		}
 
-		add_related_document_button(frm, {
-			fieldname: "road_test_report",
-			doctype: "Road Test Report",
-			create_label: "Create Road Test Report",
-			open_label: "Open Road Test Report",
-			route_options: {
-				repair_job: frm.doc.name,
-				customer_vehicle: frm.doc.customer_vehicle,
-				test_date: frappe.datetime.now_datetime(),
-				tested_by: frappe.session.user,
-				odometer_start: frm.doc.odometer_in,
-			},
-		});
+		if (frm.doc.gate_pass || can_create_gate_pass(frm)) {
+			add_related_document_button(frm, {
+				fieldname: "gate_pass",
+				doctype: "Gate Pass",
+				create_label: "Create Gate Pass",
+				open_label: "Open Gate Pass",
+				route_options: {
+					repair_job: frm.doc.name,
+					customer_vehicle: frm.doc.customer_vehicle,
+					sales_invoice: frm.doc.sales_invoices?.[0]?.sales_invoice || "",
+					recipient_name: frm.doc.customer,
+				},
+			});
+		}
+	},
 
-		add_related_document_button(frm, {
-			fieldname: "gate_pass",
-			doctype: "Gate Pass",
-			create_label: "Create Gate Pass",
-			open_label: "Open Gate Pass",
-			route_options: {
-				repair_job: frm.doc.name,
-				customer_vehicle: frm.doc.customer_vehicle,
-				sales_invoice: frm.doc.sales_invoice,
-				recipient_name: frm.doc.customer,
-			},
-		});
-
-		add_related_document_button(frm, {
-			fieldname: "repair_job_service",
-			doctype: "Repair Job Service",
-			create_label: "Create Repair Job Service",
-			open_label: "Open Repair Job Service",
-			route_options: {
-				repair_job: frm.doc.name,
-				customer: frm.doc.customer,
-				customer_vehicle: frm.doc.customer_vehicle,
-				currency: frm.doc.currency,
-			},
-		});
+	before_save(frm) {
+		sync_dom_field_value(frm, "odometer_in");
 	},
 
 	customer(frm) {
@@ -198,6 +180,56 @@ function add_related_document_button(frm, options) {
 	}
 
 	frm.add_custom_button(options.create_label, () => {
-		frappe.new_doc(options.doctype, options.route_options);
+		new_doc_with_values(options.doctype, options.route_options);
 	}, "Related Documents");
+}
+
+function new_doc_with_values(doctype, values) {
+	frappe.model.with_doctype(doctype, () => {
+		const doc = frappe.model.get_new_doc(doctype);
+		for (const [fieldname, value] of Object.entries(values || {})) {
+			if (value !== undefined && value !== null && value !== "") {
+				doc[fieldname] = value;
+			}
+		}
+		frappe.set_route("Form", doctype, doc.name);
+	});
+}
+
+function can_create_gate_pass(frm) {
+	if (frm.doc.job_status !== "Ready for Release") {
+		return false;
+	}
+	return (frm.doc.sales_invoices || []).some((row) => row.sales_invoice);
+}
+
+function set_business_status_indicator(frm) {
+	if (!frm.doc.job_status || !frm.page?.set_indicator) {
+		return;
+	}
+	const colors = {
+		Draft: "gray",
+		Assessment: "orange",
+		"Awaiting Approval": "orange",
+		Approved: "blue",
+		"In Repair": "blue",
+		"Quality Check": "purple",
+		Billing: "orange",
+		"Ready for Invoice": "orange",
+		"Ready for Release": "green",
+		Closed: "green",
+		Cancelled: "red",
+	};
+	frm.page.set_indicator(__(frm.doc.job_status), colors[frm.doc.job_status] || "gray");
+}
+
+function sync_dom_field_value(frm, fieldname) {
+	const field = frm.fields_dict[fieldname];
+	if (!field || frm.doc[fieldname]) {
+		return;
+	}
+	const value = field.$input?.val?.();
+	if (value !== undefined && value !== null && value !== "") {
+		frm.doc[fieldname] = value;
+	}
 }

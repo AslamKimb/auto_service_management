@@ -16,6 +16,9 @@ from auto_service_management.auto_service_management.doctype.repair_job_service.
 	COMPONENT_TABLE_BY_TYPE,
 	get_repair_job_services,
 )
+from auto_service_management.auto_service_management.workflow_compatibility import (
+	sync_repair_job_related_tables,
+)
 
 TEST_COMPONENT_ITEM_CODE = "TEST-WORKSHOP-PART-001"
 
@@ -170,7 +173,7 @@ def _append_pending_labour_line(job, description="Workshop labour", rate=120000)
 	return line.name
 
 
-def _create_job_service(job, service_name="Workshop service", status="Pending Approval", template=None):
+def _create_job_service(job, service_name="Workshop service", status="Pending Approval"):
 	service = frappe.get_doc(
 		{
 			"doctype": "Repair Job Service",
@@ -178,7 +181,6 @@ def _create_job_service(job, service_name="Workshop service", status="Pending Ap
 			"customer": job.customer,
 			"customer_vehicle": job.customer_vehicle,
 			"diagnosis_report": job.diagnosis_report,
-			"repair_service_template": template,
 			"service_name": service_name,
 			"status": status,
 			"billable": 1,
@@ -186,6 +188,10 @@ def _create_job_service(job, service_name="Workshop service", status="Pending Ap
 		}
 	)
 	service.insert(ignore_permissions=True)
+	service._desired_status = status
+	if status and getattr(service, "status", None) != status:
+		frappe.db.set_value("Repair Job Service", service.name, "status", status, update_modified=False)
+		service.reload()
 	return service
 
 
@@ -217,21 +223,28 @@ def _append_service_component(
 	service.append(table, row)
 	service.save(ignore_permissions=True)
 	service.reload()
+	desired_status = getattr(service, "_desired_status", None)
+	if desired_status and getattr(service, "status", None) != desired_status:
+		frappe.db.set_value("Repair Job Service", service.name, "status", desired_status, update_modified=False)
+		service.reload()
 	return service.get(table)[-1]
 
 
 def _get_job_components(job_name):
 	rows = []
 	for component_type, definition in COMPONENT_TABLE_BY_TYPE.items():
+		price_field = "billing_amount" if component_type == "Labour" else "amount"
 		component_rows = frappe.get_all(
 			definition["doctype"],
 			filters={"repair_job": job_name},
-			fields=["name", "description", "status", "amount"],
+			fields=["name", "description", "status", price_field],
 			order_by="creation asc, idx asc",
 		)
 		for row in component_rows:
 			row.service_type = component_type
 			row.service_description = row.description
+			if not hasattr(row, "amount"):
+				row.amount = getattr(row, price_field, None)
 			rows.append(row)
 	return rows
 
@@ -297,713 +310,6 @@ def _insert_quality_check(job_name, vehicle, status="Passed"):
 	).insert(ignore_permissions=True)
 
 
-def _insert_road_test(job_name, vehicle, status="Passed", odometer_start=84521, odometer_end=84531):
-	return frappe.get_doc(
-		{
-			"doctype": "Road Test Report",
-			"repair_job": job_name,
-			"customer_vehicle": vehicle,
-			"test_date": frappe.utils.now_datetime(),
-			"tested_by": "Administrator",
-			"odometer_start": odometer_start,
-			"odometer_end": odometer_end,
-			"braking_ok": 1,
-			"steering_ok": 1,
-			"engine_performance_ok": 1,
-			"transmission_ok": 1,
-			"no_warning_lights": 1,
-			"status": status,
-		}
-	).insert(ignore_permissions=True)
-
-
-# ---------------------------------------------------------------------------
-# Repair Job Workflow Integration Tests
-# ---------------------------------------------------------------------------
-
-
-class TestRepairJobWorkflowIntegration(IntegrationTestCase):
-	"""Test actual Repair Job document transitions."""
-
-	def setUp(self):
-		self.customer = _get_or_create_customer()
-		self.vehicle = _create_test_vehicle(self.customer)
-		_ensure_erpnext_basics()
-
-	def tearDown(self):
-		frappe.db.rollback()
-
-	def test_check_in_creates_log(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		with patch.object(type(job), "_ensure_project"):
-			job.check_in()
-		self.assertEqual(job.job_status, "Checked In")
-		logs = frappe.get_all(
-			"Repair Job Log",
-			filters={"repair_job": job_name, "event_type": "check_in"},
-			pluck="name",
-		)
-		self.assertTrue(logs)
-
-	def test_invalid_transition_blocked(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		job.job_status = "In Repair"  # Skip intermediate states
-		self.assertRaises(frappe.ValidationError, job.save)
-
-	def test_repair_job_requires_odometer_and_reason_for_visit(self):
-		doc = frappe.get_doc(
-			{
-				"doctype": "Repair Job",
-				"customer": self.customer,
-				"customer_vehicle": self.vehicle,
-				"priority": "Normal",
-			}
-		)
-
-		self.assertRaises(frappe.ValidationError, doc.insert)
-
-	def test_repair_job_persists_fuel_level(self):
-		job_name = _create_repair_job(self.customer, self.vehicle, fuel_level="3/4")
-		job = frappe.get_doc("Repair Job", job_name)
-
-		self.assertEqual(job.fuel_level, "3/4")
-
-	def test_repair_job_autofills_customer_from_vehicle_selection(self):
-		doc = frappe.get_doc(
-			{
-				"doctype": "Repair Job",
-				"customer_vehicle": self.vehicle,
-				"odometer_in": 84521,
-				"fuel_level": "1/2",
-				"customer_concern": "Battery warning and brake noise",
-				"priority": "Normal",
-			}
-		)
-		doc.insert(ignore_permissions=True)
-
-		self.assertEqual(doc.customer, self.customer)
-
-	def test_parts_line_amount_contributes_to_total(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		service = _create_job_service(job, "Battery replacement")
-		line = _append_service_component(
-			service,
-			service_type="Part",
-			description="Battery replacement",
-			quantity=2,
-			rate=150000,
-		)
-		job.reload()
-
-		self.assertEqual(line.amount, 300000)
-		self.assertEqual(job.total_amount, 300000)
-
-	def test_full_lifecycle_to_closed(self):
-		"""Walk a Repair Job through the entire happy path."""
-		job_name = _create_repair_job(self.customer, self.vehicle)
-
-		# Check In
-		job = frappe.get_doc("Repair Job", job_name)
-		with patch.object(type(job), "_ensure_project"):
-			job.check_in()
-		self.assertEqual(job.job_status, "Checked In")
-
-		# Walkaround Inspection
-		walkaround = _insert_walkaround(job_name, self.vehicle)
-		self.assertTrue(walkaround.name)
-		job.reload()
-		self.assertEqual(job.job_status, "Walkaround Inspection")
-		self.assertEqual(job.walkaround_inspection, walkaround.name)
-
-		# Start Diagnosis
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_diagnosis()
-		self.assertEqual(job.job_status, "Diagnosis")
-		diagnosis = _insert_diagnosis(job_name, self.vehicle)
-		job.reload()
-		self.assertEqual(job.diagnosis_report, diagnosis.name)
-
-		_append_pending_labour_line(job, "Approved repair labour")
-
-		# Prepare Estimate -> Waiting for approval
-		job = frappe.get_doc("Repair Job", job_name)
-		job.request_authorization()
-		self.assertEqual(job.job_status, "Waiting for Customer Approval")
-
-		# Authorize
-		authorization = _insert_authorization(job_name)
-		authorization.approve()
-		job.reload()
-		self.assertEqual(job.customer_authorization, authorization.name)
-		self.assertEqual(job.job_status, "Approved")
-
-		# Start Work
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_work()
-		self.assertEqual(job.job_status, "In Repair")
-
-		job.complete_service_lines()
-
-		# Quality Check
-		job = frappe.get_doc("Repair Job", job_name)
-		job.hold_for_qc()
-		self.assertEqual(job.job_status, "Quality Check")
-		quality_check = _insert_quality_check(job_name, self.vehicle)
-		job.reload()
-		self.assertEqual(job.quality_check, quality_check.name)
-		self.assertFalse(job.road_test_report)
-
-		# Ready for Invoice
-		job = frappe.get_doc("Repair Job", job_name)
-		job.pass_qc()
-		self.assertEqual(job.job_status, "Ready for Invoice")
-
-		# Invoiced
-		job = frappe.get_doc("Repair Job", job_name)
-		with patch(
-			"auto_service_management.auto_service_management.integration.erpnext.adapters.create_sales_invoice",
-			return_value="ACC-SINV-TEST-0001",
-		):
-			job.create_sales_invoice()
-		job.reload()
-		self.assertEqual(job.job_status, "Ready for Invoice")
-		frappe.db.set_value("Repair Job", job.name, "job_status", "Invoiced", update_modified=False)
-
-		# Gate Pass Issued
-		job = frappe.get_doc("Repair Job", job_name)
-		frappe.db.set_value(
-			"Repair Job",
-			job.name,
-			{"sales_invoice": "ACC-SINV-TEST-0001"},
-			update_modified=False,
-		)
-		gate_pass = frappe.get_doc(
-			{
-				"doctype": "Gate Pass",
-				"repair_job": job.name,
-				"customer_vehicle": self.vehicle,
-				"sales_invoice": "ACC-SINV-TEST-0001",
-				"recipient_name": "Test Recipient",
-				"status": "Pending",
-			}
-		)
-		gate_pass.flags.ignore_links = True
-		with patch.object(type(gate_pass), "validate_invoice_submitted"):
-			gate_pass.insert(ignore_permissions=True)
-		with (
-			patch.object(type(gate_pass), "validate_invoice_submitted"),
-			patch("frappe.model.document.Document._validate_links", return_value=None),
-		):
-			gate_pass.issue()
-		job = frappe.get_doc("Repair Job", job_name)
-		self.assertEqual(job.job_status, "Gate Pass Issued")
-
-		# Close
-		frappe.db.set_value("Repair Job", job_name, "sales_invoice", None, update_modified=False)
-		job = frappe.get_doc("Repair Job", job_name)
-		job.close()
-
-		final = frappe.get_doc("Repair Job", job_name)
-		self.assertEqual(final.job_status, "Closed")
-
-	def test_create_sales_invoice_handles_adapter_side_effect_updates(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		with patch.object(type(job), "_ensure_project"):
-			job.check_in()
-		_insert_walkaround(job_name, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_diagnosis()
-		_insert_diagnosis(job_name, self.vehicle)
-		_append_pending_labour_line(job, "Invoiceable labour")
-		job = frappe.get_doc("Repair Job", job_name)
-		job.request_authorization()
-		_insert_authorization(job_name).approve()
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_work()
-		job.complete_service_lines()
-		job = frappe.get_doc("Repair Job", job_name)
-		job.hold_for_qc()
-		_insert_quality_check(job_name, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		job.pass_qc()
-
-		def adapter_side_effect(repair_job):
-			frappe.db.set_value("Repair Job", repair_job.name, "priority", "High", update_modified=True)
-			return "ACC-SINV-RACE-0001"
-
-		job = frappe.get_doc("Repair Job", job_name)
-		with patch(
-			"auto_service_management.auto_service_management.integration.erpnext.adapters.create_sales_invoice",
-			side_effect=adapter_side_effect,
-		):
-			job.create_sales_invoice()
-
-		job.reload()
-		self.assertEqual(job.job_status, "Ready for Invoice")
-
-	def test_pass_qc_requires_passed_road_test_when_diagnosis_marks_it_required(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		with patch.object(type(job), "_ensure_project"):
-			job.check_in()
-		_insert_walkaround(job_name, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_diagnosis()
-		_insert_diagnosis(job_name, self.vehicle, road_test_required=1)
-		_append_pending_labour_line(job, "Road test labour")
-		job = frappe.get_doc("Repair Job", job_name)
-		job.request_authorization()
-		_insert_authorization(job_name).approve()
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_work()
-		job.complete_service_lines()
-		job.hold_for_qc()
-		_insert_quality_check(job_name, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-
-		with self.assertRaises(frappe.ValidationError):
-			job.pass_qc()
-
-		road_test = _insert_road_test(job_name, self.vehicle)
-		job.reload()
-		self.assertEqual(job.road_test_report, road_test.name)
-		job.pass_qc()
-		self.assertEqual(job.job_status, "Ready for Invoice")
-
-	def test_cancellation_from_checked_in(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		with patch.object(type(job), "_ensure_project"):
-			job.check_in()
-
-		job = frappe.get_doc("Repair Job", job_name)
-		job.cancel()
-
-		final = frappe.get_doc("Repair Job", job_name)
-		self.assertEqual(final.job_status, "Cancelled")
-
-	def test_diagnosis_only_workflow_can_close_after_gate_pass(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		with patch.object(type(job), "_ensure_project"):
-			job.check_in()
-		_insert_walkaround(job_name, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_diagnosis()
-		_insert_diagnosis(job_name, self.vehicle, complaint="Diagnosis only")
-		job = frappe.get_doc("Repair Job", job_name)
-		service = _create_job_service(job, "Diagnosis fee", status="Completed")
-		_append_service_component(
-			service,
-			service_type="Labour",
-			description="Diagnosis fee",
-			quantity=1,
-			rate=50000,
-		)
-		job.reload()
-		job.mark_ready_for_invoice()
-
-		def invoice_side_effect(repair_job):
-			frappe.db.set_value("Repair Job", repair_job.name, {"sales_invoice": "ACC-SINV-DIAG-0001"})
-			return "ACC-SINV-DIAG-0001"
-
-		job = frappe.get_doc("Repair Job", job_name)
-		with (
-			patch(
-				"auto_service_management.auto_service_management.integration.erpnext.adapters.create_sales_invoice",
-				side_effect=invoice_side_effect,
-			),
-			patch("frappe.model.document.Document._validate_links", return_value=None),
-		):
-			job.create_sales_invoice()
-		job.reload()
-		self.assertEqual(job.job_status, "Ready for Invoice")
-		frappe.db.set_value("Repair Job", job.name, "job_status", "Invoiced", update_modified=False)
-
-		gate_pass = frappe.get_doc(
-			{
-				"doctype": "Gate Pass",
-				"repair_job": job.name,
-				"customer_vehicle": self.vehicle,
-				"sales_invoice": "ACC-SINV-DIAG-0001",
-				"recipient_name": "Diagnosis Only Customer",
-				"status": "Pending",
-			}
-		)
-		gate_pass.flags.ignore_links = True
-		with patch.object(type(gate_pass), "validate_invoice_submitted"):
-			gate_pass.insert(ignore_permissions=True)
-		with (
-			patch.object(type(gate_pass), "validate_invoice_submitted"),
-			patch("frappe.model.document.Document._validate_links", return_value=None),
-		):
-			gate_pass.issue()
-
-		job.reload()
-		with patch("frappe.model.document.Document._validate_links", return_value=None):
-			job.close_as_diagnosis_only()
-		job.reload()
-		self.assertEqual(job.job_status, "Closed - Diagnosis Only")
-
-	def test_partial_line_approval_supports_selective_repair(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		with patch.object(type(job), "_ensure_project"):
-			job.check_in()
-		_insert_walkaround(job_name, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_diagnosis()
-		_insert_diagnosis(job_name, self.vehicle)
-		line_names = []
-		for description in ("Replace battery", "Replace brake pads", "Replace shock absorbers", "Engine oil"):
-			service = _create_job_service(job, description)
-			line = _append_service_component(
-				service,
-				service_type="Labour" if description == "Engine oil" else "Part",
-				description=description,
-				quantity=1,
-				rate=100000,
-			)
-			line_names.append(line.name)
-		job.reload()
-		job.request_authorization()
-		job.reload()
-		self.assertEqual(job.job_status, "Waiting for Customer Approval")
-
-		battery, brakes, shocks, oil = line_names
-		job.approve_service_lines([battery, brakes, oil])
-		job = frappe.get_doc("Repair Job", job_name)
-		job.reject_service_lines([shocks])
-		job = frappe.get_doc("Repair Job", job_name)
-		status_by_description = {
-			service.service_name: service.status for service in get_repair_job_services(job_name)
-		}
-		self.assertEqual(status_by_description["Replace battery"], "Approved")
-		self.assertEqual(status_by_description["Replace brake pads"], "Approved")
-		self.assertEqual(status_by_description["Replace shock absorbers"], "Rejected")
-		self.assertEqual(status_by_description["Engine oil"], "Approved")
-
-		_insert_authorization(job_name).approve()
-		job.reload()
-		self.assertEqual(job.job_status, "Approved")
-		job.start_work()
-		job.reload()
-		self.assertEqual(job.job_status, "In Repair")
-
-
-# ---------------------------------------------------------------------------
-# Fleet Service Campaign Tests
-# ---------------------------------------------------------------------------
-
-
-class TestFleetServiceCampaign(IntegrationTestCase):
-	def setUp(self):
-		self.customer = _get_or_create_customer()
-		self.vehicle = _create_test_vehicle(self.customer)
-
-	def tearDown(self):
-		frappe.db.rollback()
-
-	def test_duplicate_repair_job_blocked(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		campaign = frappe.get_doc(
-			{
-				"doctype": "Fleet Service Campaign",
-				"customer": self.customer,
-				"campaign_name": "Test Campaign",
-				"fleet_jobs": [
-					{"repair_job": job_name},
-					{"repair_job": job_name},
-				],
-			}
-		)
-		self.assertRaises(frappe.ValidationError, campaign.insert)
-
-	def test_wrong_customer_repair_job_blocked(self):
-		other_customer = frappe.get_doc(
-			{
-				"doctype": "Customer",
-				"customer_name": "Other Customer Fleet",
-				"customer_group": "Commercial",
-				"territory": "Uganda",
-			}
-		)
-		other_customer.insert(ignore_permissions=True)
-		other_vehicle = frappe.get_doc(
-			{
-				"doctype": "Customer Vehicle",
-				"customer": other_customer.name,
-				"registration_number": "OTHER-REG",
-				"vin_chassis_number": "OTHERVIN",
-			}
-		)
-		other_vehicle.insert(ignore_permissions=True)
-		other_job = _create_repair_job(other_customer.name, other_vehicle.name)
-
-		campaign = frappe.get_doc(
-			{
-				"doctype": "Fleet Service Campaign",
-				"customer": self.customer,
-				"campaign_name": "Mismatch Campaign",
-				"fleet_jobs": [{"repair_job": other_job}],
-			}
-		)
-		self.assertRaises(frappe.ValidationError, campaign.insert)
-
-
-# ---------------------------------------------------------------------------
-# Gate Pass Tests
-# ---------------------------------------------------------------------------
-
-
-class TestGatePass(IntegrationTestCase):
-	def setUp(self):
-		self.customer = _get_or_create_customer()
-		self.vehicle = _create_test_vehicle(self.customer)
-
-	def tearDown(self):
-		frappe.db.rollback()
-
-	def test_gate_pass_requires_invoice(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		gp = frappe.get_doc(
-			{
-				"doctype": "Gate Pass",
-				"repair_job": job_name,
-				"customer_vehicle": self.vehicle,
-				"recipient_name": "Test Recipient",
-			}
-		)
-		self.assertRaises(frappe.ValidationError, gp.insert)
-
-	def test_issue_and_use_workflow(self):
-		"""Gate Pass issue → use lifecycle."""
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		frappe.db.set_value(
-			"Repair Job",
-			job_name,
-			{"job_status": "Invoiced", "sales_invoice": "SI-TEST-001"},
-			update_modified=False,
-		)
-		gp = frappe.get_doc(
-			{
-				"doctype": "Gate Pass",
-				"repair_job": job_name,
-				"customer_vehicle": self.vehicle,
-				"sales_invoice": "SI-TEST-001",
-				"recipient_name": "Test Recipient",
-				"status": "Pending",
-			}
-		)
-		gp.flags.ignore_links = True
-		# Mock the invoice validation since we don't have a real invoice
-		with patch.object(gp, "validate_invoice_submitted"):
-			gp.insert(ignore_permissions=True)
-
-		with (
-			patch.object(type(gp), "validate_invoice_submitted"),
-			patch("frappe.model.document.Document._validate_links", return_value=None),
-		):
-			gp.issue()
-		self.assertEqual(gp.status, "Issued")
-		job = frappe.get_doc("Repair Job", job_name)
-		self.assertEqual(job.gate_pass, gp.name)
-
-		with patch.object(type(gp), "validate_invoice_submitted"):
-			gp.use_gate_pass()
-		self.assertEqual(gp.status, "Used")
-
-	def test_gate_pass_duplicate_for_same_job_is_blocked(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		frappe.db.set_value(
-			"Repair Job",
-			job_name,
-			{"job_status": "Invoiced", "sales_invoice": "SI-TEST-DUP-001"},
-			update_modified=False,
-		)
-		first = frappe.get_doc(
-			{
-				"doctype": "Gate Pass",
-				"repair_job": job_name,
-				"customer_vehicle": self.vehicle,
-				"sales_invoice": "SI-TEST-DUP-001",
-				"recipient_name": "First Recipient",
-				"status": "Pending",
-			}
-		)
-		first.flags.ignore_links = True
-		with patch.object(type(first), "validate_invoice_submitted"):
-			first.insert(ignore_permissions=True)
-
-		duplicate = frappe.get_doc(
-			{
-				"doctype": "Gate Pass",
-				"repair_job": job_name,
-				"customer_vehicle": self.vehicle,
-				"sales_invoice": "SI-TEST-DUP-001",
-				"recipient_name": "Second Recipient",
-				"status": "Pending",
-			}
-		)
-		with patch.object(type(duplicate), "validate_invoice_submitted"):
-			self.assertRaises(frappe.ValidationError, duplicate.insert)
-
-
-# ---------------------------------------------------------------------------
-# Quality Check Tests
-# ---------------------------------------------------------------------------
-
-
-class TestQualityCheck(IntegrationTestCase):
-	def setUp(self):
-		self.customer = _get_or_create_customer()
-		self.vehicle = _create_test_vehicle(self.customer)
-
-	def tearDown(self):
-		frappe.db.rollback()
-
-	def test_qc_requires_active_job(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		# Job is in Draft — QC should be blocked
-		qc = frappe.get_doc(
-			{
-				"doctype": "Quality Check",
-				"repair_job": job_name,
-				"customer_vehicle": self.vehicle,
-				"qc_date": frappe.utils.now_datetime(),
-				"checked_by": "Administrator",
-			}
-		)
-		self.assertRaises(frappe.ValidationError, qc.insert)
-
-	def test_quality_check_links_back_to_job(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		with patch.object(type(job), "_ensure_project"):
-			job.check_in()
-		_insert_walkaround(job_name, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_diagnosis()
-		_insert_diagnosis(job_name, self.vehicle)
-		_append_pending_labour_line(job, "QC labour")
-		job = frappe.get_doc("Repair Job", job_name)
-		job.request_authorization()
-		_insert_authorization(job_name).approve()
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_work()
-		job.complete_service_lines()
-		job.hold_for_qc()
-
-		qc = _insert_quality_check(job_name, self.vehicle)
-
-		job.reload()
-		self.assertEqual(job.quality_check, qc.name)
-
-	def test_quality_check_duplicate_for_same_job_is_blocked(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		with patch.object(type(job), "_ensure_project"):
-			job.check_in()
-		_insert_walkaround(job_name, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_diagnosis()
-		_insert_diagnosis(job_name, self.vehicle)
-		_append_pending_labour_line(job, "QC labour")
-		job = frappe.get_doc("Repair Job", job_name)
-		job.request_authorization()
-		_insert_authorization(job_name).approve()
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_work()
-		job.complete_service_lines()
-		job.hold_for_qc()
-		_insert_quality_check(job_name, self.vehicle)
-
-		duplicate = frappe.get_doc(
-			{
-				"doctype": "Quality Check",
-				"repair_job": job_name,
-				"customer_vehicle": self.vehicle,
-				"qc_date": frappe.utils.now_datetime(),
-				"checked_by": "Administrator",
-			}
-		)
-		self.assertRaises(frappe.ValidationError, duplicate.insert)
-
-
-# ---------------------------------------------------------------------------
-# Road Test Report Tests
-# ---------------------------------------------------------------------------
-
-
-class TestRoadTestReport(IntegrationTestCase):
-	def setUp(self):
-		self.customer = _get_or_create_customer()
-		self.vehicle = _create_test_vehicle(self.customer)
-
-	def tearDown(self):
-		frappe.db.rollback()
-
-	def test_road_test_links_back_to_job(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		with patch.object(type(job), "_ensure_project"):
-			job.check_in()
-		_insert_walkaround(job_name, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_diagnosis()
-		_insert_diagnosis(job_name, self.vehicle, road_test_required=1)
-		_append_pending_labour_line(job, "Road test labour")
-		job = frappe.get_doc("Repair Job", job_name)
-		job.request_authorization()
-		_insert_authorization(job_name).approve()
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_work()
-		job.complete_service_lines()
-		job.hold_for_qc()
-		_insert_quality_check(job_name, self.vehicle)
-
-		report = _insert_road_test(job_name, self.vehicle)
-
-		job.reload()
-		self.assertEqual(job.road_test_report, report.name)
-		self.assertEqual(job.odometer_out, report.odometer_end)
-
-	def test_road_test_duplicate_for_same_job_is_blocked(self):
-		job_name = _create_repair_job(self.customer, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		with patch.object(type(job), "_ensure_project"):
-			job.check_in()
-		_insert_walkaround(job_name, self.vehicle)
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_diagnosis()
-		_insert_diagnosis(job_name, self.vehicle, road_test_required=1)
-		_append_pending_labour_line(job, "Road test labour")
-		job = frappe.get_doc("Repair Job", job_name)
-		job.request_authorization()
-		_insert_authorization(job_name).approve()
-		job = frappe.get_doc("Repair Job", job_name)
-		job.start_work()
-		job.complete_service_lines()
-		job.hold_for_qc()
-		_insert_quality_check(job_name, self.vehicle)
-		_insert_road_test(job_name, self.vehicle)
-
-		duplicate = frappe.get_doc(
-			{
-				"doctype": "Road Test Report",
-				"repair_job": job_name,
-				"customer_vehicle": self.vehicle,
-				"test_date": frappe.utils.now_datetime(),
-				"tested_by": "Administrator",
-			}
-		)
-		self.assertRaises(frappe.ValidationError, duplicate.insert)
-
-
 # ---------------------------------------------------------------------------
 # Walkaround Inspection Tests
 # ---------------------------------------------------------------------------
@@ -1049,7 +355,7 @@ class TestWalkaroundInspection(IntegrationTestCase):
 		wi.insert(ignore_permissions=True)
 		self.assertTrue(wi.name)
 		job.reload()
-		self.assertEqual(job.job_status, "Walkaround Inspection")
+		self.assertEqual(job.job_status, "Assessment")
 		self.assertEqual(job.walkaround_inspection, wi.name)
 
 	def test_walkaround_duplicate_for_same_job_is_blocked(self):
@@ -1099,7 +405,7 @@ class TestCustomerAuthorization(IntegrationTestCase):
 
 	def test_authorization_approve_updates_job(self):
 		job_name = _create_repair_job(self.customer, self.vehicle)
-		# Walk to Waiting for Customer Approval state
+		# Walk to Awaiting Approval state
 		job = frappe.get_doc("Repair Job", job_name)
 		with patch.object(type(job), "_ensure_project"):
 			job.check_in()
@@ -1116,7 +422,7 @@ class TestCustomerAuthorization(IntegrationTestCase):
 
 		job = frappe.get_doc("Repair Job", job_name)
 		self.assertEqual(job.customer_authorization, auth.name)
-		self.assertEqual(job.job_status, "Approved")
+		self.assertEqual(job.job_status, "In Repair")
 
 	def test_authorization_duplicate_for_same_job_is_blocked(self):
 		job_name = _create_repair_job(self.customer, self.vehicle)
@@ -1281,6 +587,90 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 
 	def _build_renderable_job_bundle(self):
 		job = frappe.get_doc("Repair Job", _create_repair_job(self.customer, self.vehicle))
+		existing_company = frappe.db.get_all("Company", pluck="name", limit=1)
+		currency_name = None
+		if existing_company:
+			currency_name = frappe.db.get_value("Company", existing_company[0], "default_currency")
+		currency_name = currency_name or frappe.db.get_value("Currency", {}, "name") or "USD"
+		if not existing_company:
+			country_name = frappe.db.get_value("Country", {}, "name") or "Uganda"
+			if not frappe.db.exists("Country", country_name):
+				frappe.get_doc({"doctype": "Country", "country_name": country_name}).insert(ignore_permissions=True)
+			currency_name = frappe.db.get_value("Currency", {}, "name") or "USD"
+			if not frappe.db.exists("Currency", currency_name):
+				frappe.get_doc({"doctype": "Currency", "currency_name": currency_name}).insert(ignore_permissions=True)
+			if not frappe.db.exists("UOM", "Hour"):
+				frappe.get_doc({"doctype": "UOM", "name": "Hour", "uom_name": "Hour", "enabled": 1}).insert(ignore_permissions=True)
+			if not frappe.db.exists("Warehouse Type", "Transit"):
+				frappe.get_doc(
+					{
+						"doctype": "Warehouse Type",
+						"name": "Transit",
+						"warehouse_type_name": "Transit",
+					}
+				).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "Company",
+					"company_name": "Auto Service Test Company",
+					"abbr": "AST",
+					"default_currency": currency_name,
+					"country": country_name,
+					"valuation_method": "FIFO",
+				}
+			).insert(ignore_permissions=True)
+		fiscal_year_name = f"FY {frappe.utils.today()[:4]}"
+		if not frappe.db.exists("Fiscal Year", fiscal_year_name):
+			frappe.get_doc(
+				{
+					"doctype": "Fiscal Year",
+					"name": fiscal_year_name,
+					"year": fiscal_year_name,
+					"year_start_date": f"{frappe.utils.today()[:4]}-01-01",
+					"year_end_date": f"{frappe.utils.today()[:4]}-12-31",
+				}
+			).insert(ignore_permissions=True)
+		price_list = "Auto Service Test Selling"
+		if not frappe.db.exists("Price List", price_list):
+			frappe.get_doc(
+				{
+					"doctype": "Price List",
+					"name": price_list,
+					"price_list_name": price_list,
+					"selling": 1,
+					"enabled": 1,
+					"currency": currency_name,
+				}
+			).insert(ignore_permissions=True)
+		else:
+			frappe.db.set_value("Price List", price_list, "currency", currency_name, update_modified=False)
+		settings = frappe.get_single("Auto Service Settings")
+		if not settings.company:
+			companies = frappe.get_all("Company", pluck="name")
+			settings.company = companies[0] if companies else None
+		company_currency = frappe.db.get_value("Company", settings.company, "default_currency") if settings.company else None
+		settings.company = settings.company or frappe.db.get_all("Company", pluck="name", limit=1)[0]
+		settings.default_currency = settings.default_currency or company_currency or frappe.db.get_default("currency") or "USD"
+		settings.price_list = price_list
+		settings.selling_price_list = price_list
+		settings.save(ignore_permissions=True)
+		frappe.db.commit()
+		from_currency = "INR"
+		to_currency = settings.default_currency
+		if frappe.db.exists("Currency", from_currency) and frappe.db.exists("Currency", to_currency):
+			if not frappe.db.exists(
+				"Currency Exchange",
+				{"date": frappe.utils.today(), "from_currency": from_currency, "to_currency": to_currency},
+			):
+				frappe.get_doc(
+					{
+						"doctype": "Currency Exchange",
+						"date": frappe.utils.today(),
+						"from_currency": from_currency,
+						"to_currency": to_currency,
+						"exchange_rate": 1,
+					}
+				).insert(ignore_permissions=True)
 
 		with patch.object(type(job), "_ensure_project"):
 			job.check_in()
@@ -1291,10 +681,28 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		job.start_diagnosis()
 		job.reload()
 		_insert_diagnosis(job.name, self.vehicle)
-		_append_pending_labour_line(job, "Renderable labour")
+		parts_service = _create_job_service(job, "Renderable parts", status="Approved")
+		_append_service_component(
+			parts_service,
+			service_type="Part",
+			description="Renderable parts",
+			item_code=TEST_COMPONENT_ITEM_CODE,
+			quantity=2,
+			rate=175000,
+		)
+		labour_service = _create_job_service(job, "Renderable labour", status="Approved")
+		_append_service_component(
+			labour_service,
+			service_type="Labour",
+			description="Renderable labour",
+			quantity=1,
+			rate=120000,
+		)
+		job.reload()
+		sync_repair_job_related_tables(job.name)
 		job.request_authorization()
 
-		authorization = _insert_authorization(job.name, amount=250000)
+		authorization = _insert_authorization(job.name, amount=job.total_amount)
 		authorization.approve()
 
 		job.reload()
@@ -1305,12 +713,12 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		quality_check = _insert_quality_check(job.name, self.vehicle)
 		job.reload()
 		job.pass_qc()
-		frappe.db.set_value(
-			"Repair Job",
-			job.name,
-			{"sales_invoice": "SI-PH7-PRINT-001", "job_status": "Invoiced"},
-			update_modified=False,
-		)
+		sales_invoice_name = job.create_sales_invoice()
+		frappe.db.commit()
+		sales_invoice = frappe.get_doc("Sales Invoice", sales_invoice_name)
+		if sales_invoice.docstatus == 0:
+			sales_invoice.submit()
+		frappe.db.commit()
 		job.reload()
 
 		gate_pass = frappe.get_doc(
@@ -1318,7 +726,7 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 				"doctype": "Gate Pass",
 				"repair_job": job.name,
 				"customer_vehicle": self.vehicle,
-				"sales_invoice": "SI-PH7-PRINT-001",
+				"sales_invoice": sales_invoice.name,
 				"recipient_name": "Print Test Recipient",
 				"status": "Pending",
 			}
@@ -1330,11 +738,30 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		return job.name, walkaround.name, authorization.name, quality_check.name, gate_pass.name
 
 	def _render_pdf(self, doctype, name, print_format_name):
+		import frappe.utils.pdf as frappe_pdf
 		from frappe.utils.pdf import get_pdf
+		import frappe.utils.jinja_globals as frappe_jinja_globals
 		from frappe.www.printview import get_rendered_template
+		from frappe.website.utils import abs_url
 
 		doc = frappe.get_doc(doctype, name)
 		print_format = frappe.get_doc("Print Format", print_format_name)
+		assets_json = frappe.parse_json(frappe.read_file("assets/assets.json")) or {}
+		assets_rtl_json = frappe.read_file("assets/assets-rtl.json")
+		if assets_rtl_json:
+			assets_json.update(frappe.parse_json(assets_rtl_json))
+		previous_bundled_asset = frappe_pdf.bundled_asset
+		previous_bundled_assets = getattr(frappe_jinja_globals, "bundled_assets", None)
+
+		def deterministic_bundled_asset(path, rtl=None):
+			if ".bundle." in path and not path.startswith("/assets"):
+				if path.endswith(".css") and rtl:
+					path = f"rtl_{path}"
+				path = assets_json.get(path) or path
+			return abs_url(path)
+
+		frappe_pdf.bundled_asset = deterministic_bundled_asset
+		frappe_jinja_globals.bundled_assets = assets_json
 		frappe.flags.ignore_print_permissions = True
 		try:
 			html = get_rendered_template(doc, print_format=print_format, meta=frappe.get_meta(doctype))
@@ -1342,6 +769,8 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 				html, options={"load-error-handling": "ignore", "load-media-error-handling": "ignore"}
 			)
 		finally:
+			frappe_pdf.bundled_asset = previous_bundled_asset
+			frappe_jinja_globals.bundled_assets = previous_bundled_assets
 			frappe.flags.ignore_print_permissions = False
 		self.assertTrue(pdf.startswith(b"%PDF"))
 		return pdf
@@ -1426,24 +855,12 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		self.assertEqual(icon.link_to, "Workshop Management")
 		self.assertTrue(icon.standard, "Desktop Icon must be standard")
 
-	def test_desktop_icon_permission_check(self):
-		"""ensure_permission must deny Guest and allow authenticated users."""
-		from auto_service_management.auto_service_management.desktop import ensure_permission
-
-		original_user = frappe.session.user
-		try:
-			frappe.session.user = "Guest"
-			self.assertFalse(ensure_permission())
-			frappe.session.user = "Administrator"
-			self.assertTrue(ensure_permission())
-		finally:
-			frappe.session.user = original_user
-
 	def test_workspace_sidebar_is_grouped_for_auto_service_management(self):
 		from auto_service_management.auto_service_management.desktop import setup_desktop
 
-		if frappe.db.exists("Workspace Sidebar", "Workshop Management"):
-			frappe.delete_doc("Workspace Sidebar", "Workshop Management", ignore_permissions=True)
+		for name in ("Auto Service Management", "Workshop Management"):
+			if frappe.db.exists("Workspace Sidebar", name):
+				frappe.delete_doc("Workspace Sidebar", name, ignore_permissions=True)
 
 		setup_desktop()
 

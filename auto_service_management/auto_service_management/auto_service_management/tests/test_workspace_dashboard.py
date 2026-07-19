@@ -21,8 +21,10 @@ from auto_service_management.auto_service_management.workspace_dashboard import 
 LEGACY_COMPONENT_DOCTYPES = {
 	"Repair Job Service Subcontracted Service",
 	"Repair Service Line",
-	"Repair Service Template Subcontracted Service",
-	"Repair Service Template Component",
+	"Repair Job Invoice Row",
+	"Repair Job Payment Row",
+	"Repair Job Service Row",
+	"Quality Check Road Test",
 }
 
 
@@ -33,7 +35,7 @@ class TestWorkspaceDashboardContracts(UnitTestCase):
 		discovered = set()
 
 		for doctype_dir in doctype_root.iterdir():
-			if not doctype_dir.is_dir():
+			if not doctype_dir.is_dir() or doctype_dir.name.startswith("__"):
 				continue
 			json_path = doctype_dir / f"{doctype_dir.name}.json"
 			if not json_path.is_file():
@@ -55,6 +57,16 @@ class TestWorkspaceDashboardContracts(UnitTestCase):
 		self.assertEqual(
 			declared_cards,
 			set(WORKSPACE_OPERATIONAL_NUMBER_CARDS).union(WORKSPACE_COVERAGE_NUMBER_CARDS),
+		)
+
+	def test_pending_authorizations_card_uses_readable_docstatus_filter(self):
+		module_root = Path(__file__).parents[1]
+		path = module_root / "number_card" / "pending_authorizations" / "pending_authorizations.json"
+		number_card = json.loads(path.read_text(encoding="utf-8"))
+
+		self.assertEqual(
+			json.loads(number_card["filters_json"]),
+			[["Customer Authorization", "docstatus", "=", 0]],
 		)
 
 	def test_workspace_content_references_expected_dashboard_blocks(self):
@@ -131,9 +143,9 @@ class TestWorkspaceDashboardContracts(UnitTestCase):
 				return_value=7,
 			) as count,
 		):
-			result = get_component_child_card_data("Repair Service Template Consumables")
+			result = get_component_child_card_data("Repair Job Service Consumables")
 
-		config = CHILD_COMPONENT_CARD_CONFIG["Repair Service Template Consumables"]
+		config = CHILD_COMPONENT_CARD_CONFIG["Repair Job Service Consumables"]
 		has_permission.assert_called_once_with(config["parent_doctype"], "read", throw=True)
 		count.assert_called_once_with(config["child_doctype"])
 		self.assertEqual(result["value"], 7)

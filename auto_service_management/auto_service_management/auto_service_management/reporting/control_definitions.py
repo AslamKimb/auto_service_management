@@ -2,20 +2,20 @@ from auto_service_management.auto_service_management.reporting.types import Repo
 
 CONTROL_REPORTS = {
 	"Repair Revenue by Period": ReportDefinition(
-		source_doctype="Repair Job",
+		source_doctype="Repair Job Invoice Row",
 		permission_doctype="Repair Job",
 		columns=(
 			column("Closed On", "closed_on", "Datetime", width=170),
-			column("Repair Job", "name", "Link", "Repair Job"),
+			column("Repair Job", "repair_job", "Link", "Repair Job"),
 			column("Customer", "customer", "Link", "Customer"),
 			column("Sales Invoice", "sales_invoice", "Link", "Sales Invoice"),
-			column("Revenue", "total_amount", "Currency"),
+			column("Revenue", "grand_total", "Currency"),
 		),
-		fields=("closed_on", "name", "customer", "sales_invoice", "total_amount"),
+		fields=("closed_on", "repair_job", "customer", "sales_invoice", "grand_total"),
 		filters=("customer", "sales_invoice"),
 		base_filters={"job_status": "Closed"},
 		date_field="closed_on",
-		order_by="closed_on desc, name desc",
+		order_by="closed_on desc, repair_job desc, sales_invoice desc",
 	),
 	"Gate Pass Register": ReportDefinition(
 		source_doctype="Gate Pass",
@@ -34,23 +34,23 @@ CONTROL_REPORTS = {
 		order_by="issue_date desc, modified desc",
 	),
 	"Corporate Credit Releases": ReportDefinition(
-		source_doctype="Repair Job",
+		source_doctype="Repair Job Invoice Row",
 		permission_doctype="Repair Job",
 		columns=(
-			column("Repair Job", "name", "Link", "Repair Job"),
+			column("Repair Job", "repair_job", "Link", "Repair Job"),
 			column("Customer", "customer", "Link", "Customer"),
 			column("Invoice", "sales_invoice", "Link", "Sales Invoice"),
 			column("Payment Status", "payment_status"),
 			column("Closed On", "closed_on", "Datetime", width=170),
 		),
-		fields=("name", "customer", "sales_invoice", "payment_status", "closed_on"),
+		fields=("repair_job", "customer", "sales_invoice", "payment_status", "closed_on"),
 		filters=("customer", "sales_invoice"),
 		base_filters={
-			"job_status": ["in", ["Gate Pass Issued", "Closed"]],
+			"job_status": "Closed",
 			"payment_status": ["!=", "Paid"],
 		},
 		date_field="closed_on",
-		order_by="closed_on desc, modified desc",
+		order_by="closed_on desc, repair_job desc, sales_invoice desc",
 	),
 	"Discount and Price Change Audit": ReportDefinition(
 		source_doctype="Version",

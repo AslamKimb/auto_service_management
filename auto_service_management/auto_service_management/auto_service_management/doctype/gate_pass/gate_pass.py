@@ -7,6 +7,8 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from auto_service_management.auto_service_management.workflow_compatibility import recompute_repair_job_state
+
 
 class GatePass(Document):
 	def validate(self):
@@ -16,6 +18,7 @@ class GatePass(Document):
 
 	def on_update(self):
 		self.sync_primary_link()
+		recompute_repair_job_state(self.repair_job)
 
 	def _require_write_permission(self):
 		self.check_permission("write")
@@ -47,7 +50,7 @@ class GatePass(Document):
 			)
 
 			invoices = get_repair_job_sales_invoices(self.repair_job, submitted_only=True)
-			self.sales_invoice = job.sales_invoice or (invoices[0] if invoices else None)
+			self.sales_invoice = invoices[0] if invoices else None
 
 	def validate_unique_for_repair_job(self):
 		if not self.repair_job:
@@ -74,8 +77,6 @@ class GatePass(Document):
 		if self.repair_job:
 			job = frappe.get_doc("Repair Job", self.repair_job)
 			job.gate_pass = self.name
-			if job.job_status != "Gate Pass Issued":
-				job.job_status = "Gate Pass Issued"
 			job.flags.ignore_links = True
 			job.save(ignore_permissions=True)
 

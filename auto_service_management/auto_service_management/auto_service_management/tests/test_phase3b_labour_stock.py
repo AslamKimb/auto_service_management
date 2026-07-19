@@ -195,58 +195,19 @@ class TestRepairJobServiceTemplate(IntegrationTestCase):
 	def tearDown(self):
 		frappe.db.rollback()
 
-	def test_template_copies_components_into_job_service(self):
-		template_name = "Test Battery Replacement Template"
-		if frappe.db.exists("Repair Service Template", template_name):
-			frappe.delete_doc("Repair Service Template", template_name, ignore_permissions=True)
-		template = frappe.get_doc(
-			{
-				"doctype": "Repair Service Template",
-				"template_name": template_name,
-				"service_name": "Battery Replacement",
-				"default_billable": 1,
-				"parts": [
-					{
-						"description": "Battery",
-						"item_code": TEST_ITEM_CODE,
-						"quantity": 1,
-						"rate": 350000,
-					}
-				],
-				"consumables": [
-					{
-						"description": "Terminal grease",
-						"item_code": TEST_ITEM_CODE,
-						"quantity": 1,
-						"rate": 10000,
-					}
-				],
-				"labour": [
-					{
-						"description": "Battery fitment labour",
-						"estimated_hours": 1,
-						"rate": 120000,
-					}
-				],
-			}
-		)
-		template.insert(ignore_permissions=True)
-
+	def test_service_rows_are_created_directly_without_template_copying(self):
 		job = frappe.get_doc("Repair Job", _create_repair_job(self.customer, self.vehicle))
 		service = frappe.get_doc(
 			{
 				"doctype": "Repair Job Service",
 				"repair_job": job.name,
-				"repair_service_template": template.name,
 				"service_name": "Battery Replacement",
 			}
 		)
 		service.insert(ignore_permissions=True)
 
-		self.assertEqual(len(service.parts), 1)
-		self.assertEqual(len(service.consumables), 1)
-		self.assertEqual(len(service.labour), 1)
-		self.assertEqual(service.total_amount, 480000)
+		self.assertEqual(service.repair_job, job.name)
+		self.assertEqual(service.service_name, "Battery Replacement")
 
 
 class TestDoubleBillingPrevention(IntegrationTestCase):
@@ -261,7 +222,7 @@ class TestDoubleBillingPrevention(IntegrationTestCase):
 	def test_create_sales_invoice_does_not_use_legacy_primary_link_as_a_duplicate_guard(self):
 		job_name = _create_repair_job(self.customer, self.vehicle)
 		job = frappe.get_doc("Repair Job", job_name)
-		frappe.db.set_value("Repair Job", job_name, "job_status", "Ready for Invoice")
+		frappe.db.set_value("Repair Job", job_name, "job_status", "Billing")
 		_set_parent_field(job_name, "sales_invoice", "SI-MOCK-001")
 		job.reload()
 		with patch(f"{ADAPTER_PATCH_BASE}.create_sales_invoice", return_value="SI-MOCK-002") as mapper:

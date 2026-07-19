@@ -55,6 +55,11 @@ def _ensure_workspace_sidebar():
 	sites to the approved grouped navigation.
 	"""
 	sidebar_name = "Workshop Management"
+	module_sidebar_name = "Auto Service Management"
+	if not frappe.db.exists("Workspace Sidebar", sidebar_name) and frappe.db.exists(
+		"Workspace Sidebar", module_sidebar_name
+	):
+		frappe.rename_doc("Workspace Sidebar", module_sidebar_name, sidebar_name, force=True)
 	if frappe.db.exists("Workspace Sidebar", sidebar_name):
 		sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
 	else:
@@ -130,14 +135,23 @@ def create_app_desktop_icon():
 		frappe.delete_doc("Desktop Icon", stale, ignore_permissions=True)
 
 	# Skip if a correct Workspace-Sidebar-type icon already exists
-	if frappe.db.exists(
+	existing = frappe.db.exists(
 		"Desktop Icon",
 		{"icon_type": "App", "app": app_name, "link_type": "Workspace Sidebar"},
-	):
+	)
+	if existing:
+		frappe.db.set_value(
+			"Desktop Icon",
+			existing,
+			{"label": workspace_name, "link_to": workspace_name},
+			update_modified=False,
+		)
+		frappe.cache.delete_key("desktop_icons")
+		frappe.clear_cache()
 		return
 
 	icon = frappe.new_doc("Desktop Icon")
-	icon.label = app_title
+	icon.label = workspace_name
 	icon.icon_type = "App"
 	icon.link_type = "Workspace Sidebar"
 	icon.link_to = workspace_name
@@ -165,10 +179,6 @@ def setup_desktop():
 	create_app_desktop_icon()
 
 
-def ensure_permission():
-	"""Permission check for the ``add_to_apps_screen`` hook.
-
-	Any non-Guest user may see the module card.  Role-specific access is
-	enforced at the Workspace and DocType levels.
-	"""
-	return frappe.session.user != "Guest"
+def remove_auto_generated_sidebar(bootinfo):
+	"""Keep Frappe's generated module sidebar out of the DMS Desk boot payload."""
+	bootinfo.workspace_sidebar_item.pop("auto service management", None)

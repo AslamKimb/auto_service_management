@@ -5,12 +5,14 @@ from datetime import datetime
 
 import frappe
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
-	EXCLUDED_SERVICE_STATUSES,
 	STOCK_COMPONENT_TYPES,
 	component_has_downstream,
 	get_repair_job_services,
 	get_service_components,
 	iter_repair_job_components,
+)
+from auto_service_management.auto_service_management.workflow_compatibility import (
+	sync_repair_job_compatibility_views,
 )
 from frappe import _
 from frappe.model.document import Document
@@ -19,20 +21,14 @@ from frappe.model.document import Document
 # State machine - spec-aligned workflow
 # ---------------------------------------------------------------------------
 VALID_TRANSITIONS = {
-	"Draft": ["Checked In", "Cancelled"],
-	"Checked In": ["Walkaround Inspection", "Cancelled"],
-	"Walkaround Inspection": ["Diagnosis", "Cancelled"],
-	"Diagnosis": ["Estimate Prepared", "Ready for Invoice", "Cancelled"],
-	"Estimate Prepared": ["Waiting for Customer Approval", "Approved", "Ready for Invoice", "Cancelled"],
-	"Waiting for Customer Approval": ["Approved", "Ready for Invoice", "Cancelled"],
-	"Approved": ["In Repair", "Cancelled"],
-	"In Repair": ["Quality Check", "Cancelled"],
-	"Quality Check": ["In Repair", "Ready for Invoice", "Cancelled"],
-	"Ready for Invoice": ["Invoiced", "Cancelled"],
-	"Invoiced": ["Ready for Invoice", "Gate Pass Issued"],
-	"Gate Pass Issued": ["Closed", "Closed - Diagnosis Only"],
+	"Draft": ["Assessment", "Cancelled"],
+	"Assessment": ["Awaiting Approval", "Billing", "Cancelled"],
+	"Awaiting Approval": ["In Repair", "Billing", "Cancelled"],
+	"In Repair": ["Quality Check", "Billing", "Cancelled"],
+	"Quality Check": ["In Repair", "Billing", "Cancelled"],
+	"Billing": ["Ready for Release", "Awaiting Approval", "Cancelled"],
+	"Ready for Release": ["Billing", "Closed", "Cancelled"],
 	"Closed": [],
-	"Closed - Diagnosis Only": [],
 	"Cancelled": [],
 }
 
@@ -59,6 +55,7 @@ class RepairJob(Document):
 	def before_validate(self):
 		self.sync_customer_and_vehicle()
 		self.resolve_primary_related_documents()
+		sync_repair_job_compatibility_views(self)
 
 	def validate(self):
 		self.validate_intake_requirements()
@@ -99,7 +96,6 @@ class RepairJob(Document):
 			("diagnosis_report", "Diagnosis Report"),
 			("customer_authorization", "Customer Authorization"),
 			("quality_check", "Quality Check"),
-			("road_test_report", "Road Test Report"),
 			("gate_pass", "Gate Pass"),
 		):
 			if getattr(self, fieldname, None):
@@ -114,7 +110,6 @@ class RepairJob(Document):
 			("diagnosis_report", "Diagnosis Report", "customer_vehicle"),
 			("customer_authorization", "Customer Authorization", "customer"),
 			("quality_check", "Quality Check", "customer_vehicle"),
-			("road_test_report", "Road Test Report", "customer_vehicle"),
 			("gate_pass", "Gate Pass", "customer_vehicle"),
 		):
 			linked_name = getattr(self, fieldname, None)
@@ -151,6 +146,8 @@ class RepairJob(Document):
 
 	def validate_status_transition(self):
 		"""Enforce server-side state machine."""
+		if getattr(self.flags, "skip_status_validation", False):
+			return
 		if self.is_new():
 			if not self.job_status:
 				self.job_status = "Draft"
@@ -176,7 +173,7 @@ class RepairJob(Document):
 		total = 0
 		if not self.is_new():
 			for service in self._get_services():
-				if service.status not in EXCLUDED_SERVICE_STATUSES:
+				if getattr(service, "docstatus", 0) != 2:
 					total += service.total_amount or 0
 		self.total_amount = total
 
@@ -200,21 +197,241 @@ class RepairJob(Document):
 
 	def get_service_groups(self, service_statuses=None):
 		"""Return service/component rows for print formats and summaries."""
-		statuses = set(service_statuses or [])
 		groups = []
 		for service in self._get_services():
-			if statuses and service.status not in statuses:
-				continue
 			groups.append(
 				{
 					"name": service.name,
 					"service_name": service.service_name,
-					"status": service.status,
+					"status": {0: "Draft", 1: "Submitted", 2: "Cancelled"}.get(
+						getattr(service, "docstatus", 0),
+						"Draft",
+					),
+					"docstatus": getattr(service, "docstatus", 0),
+					"docstatus_label": {0: "Draft", 1: "Submitted", 2: "Cancelled"}.get(
+						getattr(service, "docstatus", 0),
+						"Draft",
+					),
+					"payment_status": getattr(service, "payment_status", None),
 					"total_amount": service.total_amount,
 					"components": list(get_service_components(service)),
 				}
 			)
 		return groups
+
+	def render_repair_summary(self):
+		related_docs = [
+			("Walkaround Inspection", "walkaround_inspection", "Walkaround Inspection"),
+			("Diagnosis Report", "diagnosis_report", "Diagnosis Report"),
+			("Customer Authorization", "customer_authorization", "Customer Authorization"),
+			("Quality Check", "quality_check", "Quality Check"),
+			("Gate Pass", "gate_pass", "Gate Pass"),
+			("Project", "project", "Project"),
+			("Quotation", "quotation", "Quotation"),
+			("Sales Order", "sales_order", "Sales Order"),
+		]
+		operations = {
+			"tasks": frappe.get_all(
+				"Task",
+				filters={"project": self.project} if self.project else {"name": ["=", ""]},
+				fields=["name", "status", "subject"],
+				order_by="creation asc",
+				limit_page_length=0,
+			),
+			"timesheets": frappe.get_all(
+				"Timesheet",
+				filters={"project": self.project} if self.project else {"name": ["=", ""]},
+				fields=["name", "status", "employee", "total_hours"],
+				order_by="creation asc",
+				limit_page_length=0,
+			),
+			"material_requests": frappe.get_all(
+				"Material Request",
+				filters={"repair_job": self.name},
+				fields=["name", "docstatus", "material_request_type", "transaction_date"],
+				order_by="creation asc",
+				limit_page_length=0,
+			),
+			"stock_entries": frappe.get_all(
+				"Stock Entry",
+				filters={"repair_job": self.name},
+				fields=["name", "docstatus", "stock_entry_type", "posting_date"],
+				order_by="creation asc",
+				limit_page_length=0,
+			),
+			"logs": frappe.get_all(
+				"Repair Job Log",
+				filters={"repair_job": self.name},
+				fields=["event_type", "performed_by", "event_timestamp", "old_value", "new_value"],
+				order_by="creation asc",
+				limit_page_length=0,
+			),
+			"service_history": frappe.get_all(
+				"Service History",
+				filters={"repair_job": self.name},
+				fields=["name", "closure_date", "total_amount", "closed_by"],
+				order_by="modified desc",
+				limit_page_length=0,
+			),
+		}
+		quality_check = frappe.get_doc("Quality Check", self.quality_check) if self.quality_check else None
+		road_tests = list(quality_check.get("road_tests") or []) if quality_check else []
+		def linked_display_status(doctype, linked_name):
+			meta = frappe.get_meta(doctype)
+			if meta.has_field("status"):
+				status = frappe.db.get_value(doctype, linked_name, "status") or ""
+				if status:
+					return status
+			docstatus = frappe.db.get_value(doctype, linked_name, "docstatus")
+			return {2: "Cancelled", 1: "Submitted"}.get(docstatus, "Linked")
+
+		template = """
+<style>
+.repair-summary { font-family: sans-serif; color: #111827; }
+.repair-summary h2, .repair-summary h3 { margin: 0 0 8px; }
+.repair-summary .section { margin: 0 0 16px; }
+.repair-summary table { width: 100%; border-collapse: collapse; margin: 0 0 12px; }
+.repair-summary th, .repair-summary td { border: 1px solid #d1d5db; padding: 5px 6px; vertical-align: top; }
+.repair-summary th { background: #f3f4f6; text-align: left; }
+.repair-summary .muted { color: #6b7280; }
+.repair-summary .group { background: #f9fafb; font-weight: 700; }
+</style>
+<div class="repair-summary">
+  <div class="section">
+    <h2>Repair Summary {{ doc.name }}</h2>
+    <table>
+      <tr>
+        <th>Customer</th><td>{{ doc.customer or "" }}</td>
+        <th>Vehicle</th><td>{{ doc.customer_vehicle or "" }}</td>
+      </tr>
+      <tr>
+        <th>Status</th><td>{{ doc.job_status or "" }}</td>
+        <th>Payment</th><td>{{ doc.payment_status or "" }}</td>
+      </tr>
+      <tr>
+        <th>Closed On</th><td>{{ frappe.utils.format_datetime(doc.closed_on) if doc.closed_on else "" }}</td>
+        <th>Odometer</th><td>{{ doc.odometer_in or "" }} → {{ doc.odometer_out or "" }}</td>
+      </tr>
+    </table>
+  </div>
+  <div class="section">
+    <h3>Related documents</h3>
+    <table>
+      <tr><th>Type</th><th>Document</th><th>Status</th></tr>
+      {% for label, fieldname, doctype in related_docs %}
+        {% set linked_name = doc.get(fieldname) %}
+        {% if linked_name %}
+          <tr><td>{{ label }}</td><td>{{ linked_name }}</td><td>{{ linked_display_status(doctype, linked_name) }}</td></tr>
+        {% else %}
+          <tr><td>{{ label }}</td><td class="muted">Not linked</td><td class="muted">—</td></tr>
+        {% endif %}
+      {% endfor %}
+    </table>
+  </div>
+	<div class="section">
+    <h3>Services</h3>
+    {% for service in doc.get_service_groups() %}
+      <table>
+        <tr class="group"><td colspan="5">{{ service.service_name or service.name }} — {{ service.docstatus_label }}</td></tr>
+        <tr><th>Type</th><th>Description</th><th>Qty</th><th>Amount</th><th>Billable</th></tr>
+        {% for row in service.components %}
+          <tr>
+            <td>{{ row.service_type }}</td>
+            <td>{{ row.service_description }}</td>
+            <td>{{ row.quantity if row.service_type != "Labour" else row.billing_hours }}</td>
+            <td>{{ row.amount if row.service_type != "Labour" else row.billing_amount }}</td>
+            <td>{{ "Yes" if row.billable else "No" }}</td>
+          </tr>
+        {% endfor %}
+      </table>
+    {% endfor %}
+  </div>
+  <div class="section">
+    <h3>Invoices and payments</h3>
+    <table>
+      <tr><th>Sales Invoices</th><th>Posted</th><th>Grand Total</th><th>Paid</th><th>Outstanding</th></tr>
+      {% for row in doc.get("sales_invoices") or [] %}
+        <tr>
+          <td>{{ row.sales_invoice }}</td>
+          <td>{{ row.posting_date or "" }}</td>
+          <td>{{ row.grand_total or 0 }}</td>
+          <td>{{ row.paid_amount or 0 }}</td>
+          <td>{{ row.outstanding_amount or 0 }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+    <table>
+      <tr><th>Payment Entry</th><th>Invoice</th><th>Posted</th><th>Allocated</th></tr>
+      {% for row in doc.get("payment_entries") or [] %}
+        <tr>
+          <td>{{ row.payment_entry }}</td>
+          <td>{{ row.reference_invoice }}</td>
+          <td>{{ row.posting_date or "" }}</td>
+          <td>{{ row.allocated_amount or 0 }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+  <div class="section">
+    <h3>Operational trail</h3>
+    <table>
+      <tr><th>Tasks</th><th>Timesheets</th><th>Material Requests</th><th>Stock Entries</th></tr>
+      <tr>
+        <td>{{ operations.tasks|length }}</td>
+        <td>{{ operations.timesheets|length }}</td>
+        <td>{{ operations.material_requests|length }}</td>
+        <td>{{ operations.stock_entries|length }}</td>
+      </tr>
+    </table>
+    <table>
+      <tr><th>Event</th><th>By</th><th>When</th><th>From</th><th>To</th></tr>
+      {% for row in operations.logs %}
+        <tr>
+          <td>{{ row.event_type }}</td>
+          <td>{{ row.performed_by }}</td>
+          <td>{{ row.event_timestamp }}</td>
+          <td>{{ row.old_value or "" }}</td>
+          <td>{{ row.new_value or "" }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+    <table>
+      <tr><th>Service History</th><th>Closed By</th><th>Closed On</th><th>Total</th></tr>
+      {% for row in operations.service_history %}
+        <tr>
+          <td>{{ row.name }}</td>
+          <td>{{ row.closed_by or "" }}</td>
+          <td>{{ row.closure_date or "" }}</td>
+          <td>{{ row.total_amount or 0 }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+  <div class="section">
+    <h3>Road tests</h3>
+    <table>
+      <tr><th>Status</th><th>Tested By</th><th>Date</th><th>Route</th><th>Notes</th></tr>
+      {% for row in road_tests %}
+        <tr>
+          <td>{{ row.status or "" }}</td>
+          <td>{{ row.tested_by or "" }}</td>
+          <td>{{ row.test_date or "" }}</td>
+          <td>{{ row.route or "" }}</td>
+          <td>{{ row.test_notes or "" }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+"""
+		return frappe.render_template(template, {
+			"doc": self,
+			"frappe": frappe,
+			"related_docs": related_docs,
+			"operations": operations,
+			"road_tests": road_tests,
+			"linked_display_status": linked_display_status,
+		})
 
 	def set_currency_from_settings(self):
 		if not self.currency:
@@ -248,7 +465,7 @@ class RepairJob(Document):
 	def check_in(self):
 		"""Check in the vehicle. Creates the ERPNext Project on first check-in."""
 		self._require_write_permission()
-		self._transition_to("Checked In")
+		self._transition_to("Assessment")
 		self.save()
 		self._ensure_project()
 		self._write_log("check_in")
@@ -257,7 +474,7 @@ class RepairJob(Document):
 	def start_diagnosis(self):
 		self._require_write_permission()
 		self._require_primary_document("walkaround_inspection", "Walkaround Inspection")
-		self._transition_to("Diagnosis")
+		self._transition_to("Assessment")
 		self.save()
 		self._write_log("start_diagnosis")
 
@@ -265,8 +482,7 @@ class RepairJob(Document):
 	def prepare_estimate(self):
 		self._require_write_permission()
 		self._require_primary_document("diagnosis_report", "Diagnosis Report")
-		self._transition_to("Estimate Prepared")
-		self._normalize_pending_services()
+		self._transition_to("Awaiting Approval")
 		self.save()
 		self._write_log("estimate_prepared")
 
@@ -274,9 +490,12 @@ class RepairJob(Document):
 	def complete_diagnosis(self):
 		self._require_write_permission()
 		self._require_primary_document("diagnosis_report", "Diagnosis Report")
-		if self.job_status != "Estimate Prepared":
-			self._transition_to("Estimate Prepared")
-			self._normalize_pending_services()
+		if _has_any_service_rows(self.name):
+			target_status = "Awaiting Approval"
+		else:
+			target_status = "Billing"
+		if self.job_status != target_status:
+			self._transition_to(target_status)
 			self.save()
 		self._write_log("complete_diagnosis")
 
@@ -284,81 +503,29 @@ class RepairJob(Document):
 	def request_authorization(self):
 		self._require_write_permission()
 		self._require_primary_document("diagnosis_report", "Diagnosis Report")
-		if self.job_status == "Diagnosis":
-			self._transition_to("Estimate Prepared")
-			self._normalize_pending_services()
+		if self.job_status != "Awaiting Approval":
+			self._transition_to("Awaiting Approval")
 			self.save()
-			self._write_log("estimate_prepared")
-		self._transition_to("Waiting for Customer Approval")
-		self._normalize_pending_services()
-		self.save()
 		self._write_log("request_authorization")
+		return
 
 	@frappe.whitelist()
 	def authorize(self):
 		self._require_write_permission()
 		self._require_approved_authorization()
-		self._approve_remaining_pending_services()
-		if not self._has_service_status({"Approved", "Completed"}):
-			frappe.throw(_("At least one Repair Job Service must be approved before starting repair work."))
-		self._transition_to("Approved")
+		self.reload()
+		self._transition_to("In Repair")
 		self.save()
 		self._write_log("authorized")
-
-	@frappe.whitelist(methods=["POST"])
-	def approve_service_lines(self, line_names: list | str | None = None):
-		self._require_write_permission()
-		names = self._coerce_line_names(line_names)
-		self._apply_service_status(
-			"Approved",
-			names,
-			{"Pending Approval", "Rejected", "Deferred", "Approved"},
-			"service_lines_approved",
-		)
-
-	@frappe.whitelist(methods=["POST"])
-	def reject_service_lines(self, line_names: list | str | None = None):
-		self._require_write_permission()
-		names = self._coerce_line_names(line_names)
-		self._apply_service_status(
-			"Rejected",
-			names,
-			{"Pending Approval", "Approved", "Rejected", "Deferred"},
-			"service_lines_rejected",
-		)
-
-	@frappe.whitelist(methods=["POST"])
-	def defer_service_lines(self, line_names: list | str | None = None):
-		self._require_write_permission()
-		names = self._coerce_line_names(line_names)
-		self._apply_service_status(
-			"Deferred",
-			names,
-			{"Pending Approval", "Approved", "Deferred"},
-			"service_lines_deferred",
-		)
 
 	@frappe.whitelist()
 	def start_work(self):
 		"""Begin repair work. Requires authorization."""
 		self._require_write_permission()
 		self._require_approved_authorization()
-		if not self._has_service_status({"Approved", "Completed"}):
-			frappe.throw(_("At least one approved Repair Job Service is required before starting work."))
 		self._transition_to("In Repair")
 		self.save()
 		self._write_log("start_work")
-
-	@frappe.whitelist(methods=["POST"])
-	def complete_service_lines(self, line_names: list | str | None = None):
-		self._require_write_permission()
-		names = self._coerce_line_names(line_names)
-		self._apply_service_status(
-			"Completed",
-			names,
-			{"Approved", "Completed"},
-			"service_lines_completed",
-		)
 
 	@frappe.whitelist()
 	def hold_for_qc(self):
@@ -372,7 +539,7 @@ class RepairJob(Document):
 		self._require_write_permission()
 		self._require_passed_quality_check()
 		self._require_passed_road_test_if_needed()
-		self._transition_to("Ready for Invoice")
+		self._transition_to("Billing")
 		self.save()
 		self._sync_invoice_state()
 		self._write_log("pass_qc")
@@ -380,9 +547,9 @@ class RepairJob(Document):
 	@frappe.whitelist()
 	def mark_ready_for_invoice(self):
 		self._require_write_permission()
-		if not self._has_service_status({"Completed"}):
-			frappe.throw(_("At least one completed Repair Job Service is required before invoicing."))
-		self._transition_to("Ready for Invoice")
+		if not self._get_services():
+			frappe.throw(_("At least one Repair Job Service is required before invoicing."))
+		self._transition_to("Billing")
 		self.save()
 		self._sync_invoice_state()
 		self._write_log("ready_for_invoice")
@@ -390,7 +557,8 @@ class RepairJob(Document):
 	@frappe.whitelist()
 	def release(self):
 		self._require_write_permission()
-		self._transition_to("Gate Pass Issued")
+		self._sync_invoice_state()
+		self._transition_to("Ready for Release")
 		self.save()
 		self._write_log("released")
 
@@ -411,13 +579,8 @@ class RepairJob(Document):
 	def close_as_diagnosis_only(self):
 		self._require_write_permission()
 		self._require_issued_gate_pass()
-		if self._has_service_status({"Pending Approval", "Approved", "In Progress"}):
-			frappe.throw(
-				_(
-					"Diagnosis-only closure requires all repair recommendations to be rejected, deferred, cancelled, or completed."
-				)
-			)
-		self._transition_to("Closed - Diagnosis Only")
+		self.closure_type = "Diagnosis Only"
+		self._transition_to("Closed")
 		self.closed_on = datetime.now()
 		self.closed_by = frappe.session.user
 		self.save()
@@ -433,7 +596,7 @@ class RepairJob(Document):
 		self._write_log("cancelled")
 
 	@frappe.whitelist()
-	def create_service(self, service_name=None, repair_service_template=None):
+	def create_service(self, service_name=None):
 		self._require_write_permission()
 		service = frappe.get_doc(
 			{
@@ -442,7 +605,6 @@ class RepairJob(Document):
 				"customer": self.customer,
 				"customer_vehicle": self.customer_vehicle,
 				"diagnosis_report": self.diagnosis_report,
-				"repair_service_template": repair_service_template,
 				"service_name": service_name or _("New Repair Service"),
 				"currency": self.currency,
 			}
@@ -523,7 +685,11 @@ class RepairJob(Document):
 		)
 
 		invoices = validate_job_invoices_for_gate_pass(self.name)
-		primary_invoice = self.sales_invoice if self.sales_invoice in invoices else invoices[0]
+		primary_invoice = invoices[0]
+		for row in self.get("sales_invoices") or []:
+			if row.sales_invoice in invoices:
+				primary_invoice = row.sales_invoice
+				break
 		gp = frappe.get_doc(
 			{
 				"doctype": "Gate Pass",
@@ -577,7 +743,7 @@ class RepairJob(Document):
 	def _require_approved_authorization(self):
 		self._require_primary_document("customer_authorization", "Customer Authorization")
 		authorization = frappe.get_doc("Customer Authorization", self.customer_authorization)
-		if authorization.status != "Approved":
+		if getattr(authorization, "docstatus", 0) != 1:
 			frappe.throw(_("Customer Authorization must be approved before continuing."))
 
 	def _require_passed_quality_check(self):
@@ -594,10 +760,13 @@ class RepairJob(Document):
 		)
 		if not road_test_required:
 			return
-		self._require_primary_document("road_test_report", "Road Test Report")
-		road_test = frappe.get_doc("Road Test Report", self.road_test_report)
-		if road_test.status != "Passed":
-			frappe.throw(_("Road Test Report must be in Passed status before continuing."))
+		self._require_primary_document("quality_check", "Quality Check")
+		quality_check = frappe.get_doc("Quality Check", self.quality_check)
+		road_tests = quality_check.get("road_tests") or []
+		if not road_tests:
+			frappe.throw(_("At least one road test must be recorded on the Quality Check before continuing."))
+		if not any(_road_test_is_passed(road_test) for road_test in road_tests):
+			frappe.throw(_("At least one recorded road test must pass before continuing."))
 
 	def _require_issued_gate_pass(self):
 		self._require_primary_document("gate_pass", "Gate Pass")
@@ -615,14 +784,12 @@ class RepairJob(Document):
 				parsed = [line_names]
 			line_names = parsed if isinstance(parsed, (list, tuple, set)) else [parsed]
 		return {str(name) for name in line_names if name}
-
 	def _get_services(self):
 		return get_repair_job_services(self.name)
 
 	def _get_service_components(
 		self,
 		*,
-		service_statuses=None,
 		component_types=None,
 		billable_only=False,
 		include_excluded=False,
@@ -630,66 +797,11 @@ class RepairJob(Document):
 		return list(
 			iter_repair_job_components(
 				self.name,
-				service_statuses=service_statuses,
 				component_types=component_types,
 				billable_only=billable_only,
 				include_excluded=include_excluded,
 			)
 		)
-
-	def _has_service_status(self, statuses):
-		statuses = set(statuses)
-		return any(service.status in statuses for service in self._get_services())
-
-	def _normalize_pending_services(self):
-		for service in self._get_services():
-			if service.status in (None, "", "Pending", "Draft"):
-				service.status = "Pending Approval"
-				service.save(ignore_permissions=True)
-
-	def _approve_remaining_pending_services(self):
-		for service in self._get_services():
-			if service.status == "Pending Approval":
-				service.status = "Approved"
-				service.save(ignore_permissions=True)
-
-	def _apply_service_status(self, target_status, line_names, allowed_current_statuses, event_type):
-		service_names = self._resolve_service_names(line_names)
-		if line_names and not service_names:
-			frappe.throw(_("No Repair Job Service matches the selected records."))
-		updated = []
-		for service in self._get_services():
-			if service_names and service.name not in service_names:
-				continue
-			if service.status not in allowed_current_statuses:
-				continue
-			if target_status in EXCLUDED_SERVICE_STATUSES and any(
-				component_has_downstream(component) for component in get_service_components(service)
-			):
-				frappe.throw(
-					_(
-						"Repair Job Service {0} has linked ERPNext records. Cancel or reverse those records before changing it to {1}."
-					).format(service.service_name or service.name, target_status)
-				)
-			old_status = service.status
-			service.status = target_status
-			service.save(ignore_permissions=True)
-			updated.append(f"{service.service_name or service.name}:{old_status}->{target_status}")
-
-		if not updated:
-			frappe.throw(_("No eligible Repair Job Services were updated."))
-
-		self.reload()
-		self._write_log(event_type, new_value="\n".join(updated))
-
-	def _resolve_service_names(self, names):
-		if not names:
-			return set()
-		service_names = {service.name for service in self._get_services() if service.name in names}
-		for service in self._get_services():
-			if any(component.name in names for component in get_service_components(service)):
-				service_names.add(service.name)
-		return service_names
 
 	def _sync_invoice_state(self):
 		from auto_service_management.auto_service_management.integration.erpnext.document_sync import (
@@ -740,9 +852,7 @@ class RepairJob(Document):
 
 		services = []
 		parts = []
-		for service, line in self._get_service_components(
-			service_statuses={"Completed"}, include_excluded=True
-		):
+		for service, line in self._get_service_components(include_excluded=True):
 			if line.service_type == "Labour":
 				services.append(f"{service.service_name}: {line.service_description or ''}")
 			elif line.service_type in STOCK_COMPONENT_TYPES:
@@ -762,3 +872,20 @@ class RepairJob(Document):
 				"parts_replaced": "\n".join(parts),
 			}
 		).insert(ignore_permissions=True)
+
+
+def _road_test_is_passed(road_test):
+	if getattr(road_test, "status", None) == "Passed":
+		return True
+	if getattr(road_test, "passed", None):
+		return True
+	if getattr(road_test, "road_test_passed", None):
+		return True
+	check_fields = (
+		"braking_ok",
+		"steering_ok",
+		"engine_performance_ok",
+		"transmission_ok",
+		"no_warning_lights",
+	)
+	return all(bool(getattr(road_test, field, None)) for field in check_fields)

@@ -6,6 +6,7 @@
   "engine": "InnoDB",
   "autoname": "format:CA-{YYYY}-{#####}",
   "track_changes": 1,
+  "is_submittable": 1,
   "fields": [
     {
       "fieldname": "auth_section",
@@ -57,6 +58,20 @@
       "options": "currency"
     },
     {
+      "fieldname": "scope_revision",
+      "fieldtype": "Int",
+      "label": "Scope Revision",
+      "default": 0,
+      "read_only": 1
+    },
+    {
+      "fieldname": "scope_total_amount",
+      "fieldtype": "Currency",
+      "label": "Scope Total Amount",
+      "options": "currency",
+      "read_only": 1
+    },
+    {
       "fieldname": "currency",
       "fieldtype": "Link",
       "label": "Currency",
@@ -88,13 +103,6 @@
       "fieldname": "authorization_notes",
       "fieldtype": "Text Editor",
       "label": "Notes"
-    },
-    {
-      "fieldname": "status",
-      "fieldtype": "Select",
-      "label": "Status",
-      "options": "\nPending\nApproved\nRejected\nExpired",
-      "default": "Pending"
     },
     {
       "fieldname": "expiry_date",

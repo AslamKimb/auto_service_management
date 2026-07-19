@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "autoname": "format:RJ-{YYYY}-{#####}",
  "track_changes": 1,
+ "is_submittable": 1,
  "fields": [
   {
    "fieldname": "customer_section",
@@ -60,10 +61,17 @@
    "label": "Job Details"
   },
   {
+   "fieldname": "scope_revision",
+   "fieldtype": "Int",
+   "label": "Scope Revision",
+   "default": 0,
+   "read_only": 1
+  },
+  {
    "fieldname": "job_status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "\nDraft\nChecked In\nWalkaround Inspection\nDiagnosis\nEstimate Prepared\nWaiting for Customer Approval\nApproved\nIn Repair\nQuality Check\nReady for Invoice\nInvoiced\nGate Pass Issued\nClosed\nClosed - Diagnosis Only\nCancelled",
+    "options": "\nDraft\nAssessment\nAwaiting Approval\nApproved\nIn Repair\nQuality Check\nBilling\nReady for Invoice\nReady for Release\nClosed\nCancelled",
    "default": "Draft",
    "in_list_view": 1
   },
@@ -152,22 +160,10 @@
    "options": "Quality Check"
   },
   {
-   "fieldname": "road_test_report",
-   "fieldtype": "Link",
-   "label": "Road Test Report",
-   "options": "Road Test Report"
-  },
-  {
    "fieldname": "gate_pass",
    "fieldtype": "Link",
    "label": "Gate Pass",
    "options": "Gate Pass"
-  },
-  {
-   "fieldname": "repair_job_service",
-   "fieldtype": "Link",
-   "options": "Repair Job Service",
-   "label": "Repair Job Service"
   },
   {
    "fieldname": "intake_notes_section",
@@ -205,6 +201,24 @@
    "in_list_view": 1
   },
   {
+   "fieldname": "repair_job_services",
+   "fieldtype": "Table",
+   "label": "Repair Job Services",
+   "options": "Repair Job Service Row"
+  },
+  {
+   "fieldname": "sales_invoices",
+   "fieldtype": "Table",
+   "label": "Sales Invoices",
+   "options": "Repair Job Invoice Row"
+  },
+  {
+   "fieldname": "payment_entries",
+   "fieldtype": "Table",
+   "label": "Payment Entries",
+   "options": "Repair Job Payment Row"
+  },
+  {
    "fieldname": "currency",
    "fieldtype": "Link",
    "label": "Currency",
@@ -214,28 +228,15 @@
   {
    "fieldtype": "Section Break",
    "collapsible": 1,
-   "label": "Road Test",
-   "fieldname": "road_test_section"
-  },
-  {
-   "fieldtype": "Section Break",
-   "collapsible": 1,
    "label": "Billing and Release",
    "fieldname": "billing_section"
-  },
-  {
-   "fieldname": "sales_invoice",
-   "fieldtype": "Link",
-   "label": "Sales Invoice",
-   "options": "Sales Invoice",
-   "read_only": 1
   },
   {
    "fieldname": "payment_status",
    "fieldtype": "Select",
    "label": "Payment Status",
-   "options": "\nUnpaid\nPartially Paid\nPaid",
-   "default": "Unpaid"
+   "options": "\nNot Invoiced\nUnpaid\nPartially Paid\nPaid",
+   "default": "Not Invoiced"
   },
   {
    "fieldname": "column_break_billing",
@@ -263,6 +264,20 @@
    "fieldtype": "Link",
    "label": "Closed By",
    "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "closure_type",
+   "fieldtype": "Select",
+   "label": "Closure Type",
+   "options": "\nRepair Completed\nDiagnosis Only",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_total",
+   "fieldtype": "Currency",
+   "label": "Payment Total",
+   "options": "currency",
    "read_only": 1
   }
  ],

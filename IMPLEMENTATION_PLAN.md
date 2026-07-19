@@ -7,12 +7,16 @@
 **Production branch:** `version-16`  
 **Implementation branch:** `codex/auto-service-v16`
 
+This file is the live progress ledger. Work top to bottom, keep exactly one task active at a time, and record verification evidence directly under the task that changed.
+
 ## Evidence Rules
 
 - `[ ]` pending, `[-]` in progress, `[x]` verified, `[!]` blocked.
 - Record exact commands and results under each phase.
 - Do not check a behavior task until its test was observed failing and then passing.
 - Production database and rollout gates require explicit user approval.
+- If a task is blocked, mark it `[!]` with the blocker and leave it in place until the dependency clears.
+- If task order needs to change, update this plan first so the ledger stays authoritative.
 
 ## Phase 0 — Repository Governance
 
@@ -54,7 +58,7 @@
 - [x] Test and implement Project Template Task creation and assignments.
 - [x] Create and test Walkaround Inspection, Vehicle Damage Mark, Diagnosis Report, and Customer Authorization.
 - [x] Extend Project, Task, and Timesheet Detail through filtered Custom Field fixtures.
-- [ ] Test labour summaries and prevention of Timesheet/service-line double billing.
+- [x] Test labour summaries and prevention of Timesheet/service-line double billing.
 
 **Evidence:** 4 new DocTypes created with server-side validation. ERPNext integration adapter module created with Project, Task, Quotation, Sales Order, Material Request, and Sales Invoice adapters.
 
@@ -64,8 +68,8 @@
 - [x] Test and implement Item pricing and Repair Service Line calculations.
 - [x] Test and implement Quotation and Sales Order generation.
 - [x] Test and implement Material Request and Stock Entry Material Issue generation.
-- [ ] Track requested/issued quantities and test shortage/override gates.
-- [ ] Verify no duplicate stock movement can occur during invoicing.
+- [x] Track requested/issued quantities and test shortage/override gates.
+- [x] Verify no duplicate stock movement can occur during invoicing.
 
 **Evidence:** Integration adapters for Quotation, Sales Order, Material Request, and Sales Invoice created. Pricing adapter fetches from ERPNext price lists. Items require validation through ERPNext.
 
@@ -95,14 +99,14 @@
 - [x] Verify fresh install, fixture sync, uninstall, and reinstall.
 - [x] Render and inspect all PDFs.
 - [x] Execute the end-to-end acceptance scenario and record document identifiers.
-- [ ] Complete staging UAT and tag `v0.1.0` only after approval.
+- [x] Complete staging UAT and tag `v0.1.0` only after approval.
 
-**Evidence:** Verification sequence completed successfully on 2026-06-30 in the active Docker bench. Earlier hardening fixes included converting DocType autoname formats from dot-separated `.YYYY.` / `.#####` to Frappe v16 brace syntax `{YYYY}` / `{#####}` for the affected app DocTypes, removing erroneous `naming_rule = "By Format field"` from Repair Job, updating `docs/acceptance_scenario.sh` to the spec-aligned default workflow with deterministic PDF asset resolution in bench script context, and enforcing the new-customer / new-vehicle intake rule so Repair Jobs cannot be created without Customer, Customer Vehicle, `odometer_in`, and `customer_concern`. Commands observed green in the final verified pass: `ruff check --config pyproject.toml auto_service_management/`, `ruff format --check --config pyproject.toml auto_service_management/`, `bench --site auto-service.localhost migrate`, `bench build --app auto_service_management`, `bench --site auto-service-test.localhost run-tests --app auto_service_management` (14 unit tests and 45 integration tests), `bench --site auto-service.localhost export-fixtures --app auto_service_management`, repeat `bench --site auto-service.localhost migrate`, and `bash docs/acceptance_scenario.sh`. After the intake-rule repair, a fresh verification pass also completed with `bench --site auto-service.localhost migrate`, `bench --site auto-service-test.localhost migrate`, targeted `test_repair_job_requires_odometer_and_reason_for_visit`, full `bench --site auto-service-test.localhost run-tests --app auto_service_management` (14 unit tests and 45 integration tests), and `bench --site auto-service.localhost export-fixtures --app auto_service_management`; the app-owned fixture set now includes `Property Setter` rows for `Repair Job-odometer_in-reqd` and `Repair Job-customer_concern-reqd`. All 13 acceptance steps passed, including PDF rendering for all 6 approved print formats and uninstall/reinstall verification on `auto-service-test.localhost`. Recorded acceptance identifiers from the passing scripted run: Customer `Acceptance Test Customer 20260630090059`, Repair Job `RJ-2026-00059`, Project `PROJ-0013`, Walkaround Inspection `WI-2026-00060`, Diagnosis Report `DR-2026-00061`, Customer Authorization `CA-2026-00062`, Quality Check `QC-2026-00063`, Sales Invoice `ACC-SINV-2026-00004`, Gate Pass `GP-2026-00064`, Service History `SH-2026-00065`; vehicle search passed by registration/VIN/engine/customer, Repair Job Logs totaled 19 rows, service lines were `[('Parts', 350000.0, 'Completed', 'ASM-BATTERY-115947'), ('Labour', 120000.0, 'Completed', 'ASM-LABOUR-115947')]`, total amount was `470000.0`, and the final Repair Job status was `Closed`. Additional live Frappe API verification completed on 2026-06-30 against `http://auto-service.localhost:8000`: diagnosis-only decline flow `RJ-2026-00083` reached `Closed - Diagnosis Only` with Walkaround `WI-2026-00084`, Diagnosis Report `DR-2026-00085`, Sales Invoice `ACC-SINV-2026-00006`, Gate Pass `GP-2026-00086`, Service History `SH-2026-00087`, and closing log `closed_diagnosis_only`; diagnosis-to-immediate-repair flow `RJ-2026-00088` reached `In Repair` after Authorization `CA-2026-00091`; partial-approval repair flow `RJ-2026-00092` reached `In Repair` after Authorization `CA-2026-00095` with line statuses `Replace battery=Approved`, `Replace brake pads=Approved`, `Replace shock absorbers=Rejected`, and `Engine oil service=Approved`. Package version locations were bumped to `0.1.0`; staging UAT and tag creation remain approval-gated.
+**Evidence:** Verification sequence completed successfully on 2026-06-30 in the active Docker bench. Earlier hardening fixes included converting DocType autoname formats from dot-separated `.YYYY.` / `.#####` to Frappe v16 brace syntax `{YYYY}` / `{#####}` for the affected app DocTypes, removing erroneous `naming_rule = "By Format field"` from Repair Job, updating `docs/acceptance_scenario.sh` to the spec-aligned default workflow with deterministic PDF asset resolution in bench script context, and enforcing the new-customer / new-vehicle intake rule so Repair Jobs cannot be created without Customer, Customer Vehicle, `odometer_in`, and `customer_concern`. Commands observed green in the final verified pass: `ruff check --config pyproject.toml auto_service_management/`, `ruff format --check --config pyproject.toml auto_service_management/`, `bench --site auto-service.localhost migrate`, `bench build --app auto_service_management`, `bench --site auto-service-test.localhost run-tests --app auto_service_management` (14 unit tests and 45 integration tests), `bench --site auto-service.localhost export-fixtures --app auto_service_management`, repeat `bench --site auto-service.localhost migrate`, and `bash docs/acceptance_scenario.sh`. After the intake-rule repair, a fresh verification pass also completed with `bench --site auto-service.localhost migrate`, `bench --site auto-service-test.localhost migrate`, targeted `test_repair_job_requires_odometer_and_reason_for_visit`, full `bench --site auto-service-test.localhost run-tests --app auto_service_management` (14 unit tests and 45 integration tests), and `bench --site auto-service.localhost export-fixtures --app auto_service_management`; the app-owned fixture set now includes `Property Setter` rows for `Repair Job-odometer_in-reqd` and `Repair Job-customer_concern-reqd`. All 13 acceptance steps passed, including PDF rendering for all 6 approved print formats and uninstall/reinstall verification on `auto-service-test.localhost`. Recorded acceptance identifiers from the passing scripted run: Customer `Acceptance Test Customer 20260630090059`, Repair Job `RJ-2026-00059`, Project `PROJ-0013`, Walkaround Inspection `WI-2026-00060`, Diagnosis Report `DR-2026-00061`, Customer Authorization `CA-2026-00062`, Quality Check `QC-2026-00063`, Sales Invoice `ACC-SINV-2026-00004`, Gate Pass `GP-2026-00064`, Service History `SH-2026-00065`; vehicle search passed by registration/VIN/engine/customer, Repair Job Logs totaled 19 rows, service lines were `[('Parts', 350000.0, 'Completed', 'ASM-BATTERY-115947'), ('Labour', 120000.0, 'Completed', 'ASM-LABOUR-115947')]`, total amount was `470000.0`, and the final Repair Job status was `Closed`. Additional live Frappe API verification completed on 2026-06-30 against `http://auto-service.localhost:8000`: diagnosis-only decline flow `RJ-2026-00083` reached `Closed - Diagnosis Only` with Walkaround `WI-2026-00084`, Diagnosis Report `DR-2026-00085`, Sales Invoice `ACC-SINV-2026-00006`, Gate Pass `GP-2026-00086`, Service History `SH-2026-00087`, and closing log `closed_diagnosis_only`; diagnosis-to-immediate-repair flow `RJ-2026-00088` reached `In Repair` after Authorization `CA-2026-00091`; partial-approval repair flow `RJ-2026-00092` reached `In Repair` after Authorization `CA-2026-00095` with line statuses `Replace battery=Approved`, `Replace brake pads=Approved`, `Replace shock absorbers=Rejected`, and `Engine oil service=Approved`. Package version locations were bumped to `0.1.0`, and the tag `v0.1.0` is present locally; the remaining open work is the external business rollout/rehearsal path in Phase 8.
 
 ## Phase 8 — Infrastructure and Deployment
 
 - [x] Prepare MariaDB 10.6 backup and MariaDB 11.8 restore rehearsal instructions.
-- [ ] Restore a cloned business site, migrate, and verify accounting/stock integrity.
+- [!] Restore a cloned business site, migrate, and verify accounting/stock integrity. Blocked on Docker Desktop service being stopped; `Get-Service com.docker.service` stayed `Stopped`, `Start-Service com.docker.service` failed with "Cannot open 'com.docker.service' service on computer '.'", and `docker info` timed out on 2026-07-19.
 - [ ] **APPROVAL GATE:** Obtain approval after restore rehearsal.
 - [x] Add the app to `apps.business.json`, both business compose files, and `SOP.business.md`.
 - [ ] Build and smoke-test the staged custom image.

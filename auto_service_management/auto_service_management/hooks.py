@@ -10,17 +10,6 @@ from auto_service_management.auto_service_management.custom_fields import TRACE_
 # Apps
 required_apps = ["erpnext"]
 
-# Desk desktop surfacing — creates an App-type Desktop Icon so the module
-# card appears on the Frappe Desk desktop alongside Accounting, Selling, etc.
-add_to_apps_screen = [
-	{
-		"name": app_name,
-		"title": app_title,
-		"route": "/app/workshop-management",
-		"has_permission": "auto_service_management.auto_service_management.desktop.ensure_permission",
-	}
-]
-
 # Fixtures — filtered to app-owned roles only
 fixtures = [
 	{
@@ -43,8 +32,8 @@ fixtures = [
 	{
 		"dt": "Custom DocPerm",
 		"filters": [
-			["parent", "=", "Sales Invoice"],
-			["role", "=", "Cashier"],
+			["parent", "in", ["Sales Invoice", "Customer"]],
+			["role", "in", ["Cashier", "Service Advisor"]],
 			["permlevel", "=", 0],
 		],
 	},
@@ -81,6 +70,11 @@ doc_events = {
 		"on_cancel": "auto_service_management.auto_service_management.integration.erpnext.document_sync.cancel_sales_invoice",
 		"on_trash": "auto_service_management.auto_service_management.integration.erpnext.document_sync.trash_sales_invoice",
 	},
+	"Payment Entry": {
+		"on_submit": "auto_service_management.auto_service_management.integration.erpnext.document_sync.sync_payment_entry",
+		"on_cancel": "auto_service_management.auto_service_management.integration.erpnext.document_sync.sync_payment_entry",
+		"on_trash": "auto_service_management.auto_service_management.integration.erpnext.document_sync.sync_payment_entry",
+	},
 	"Material Request": {
 		"validate": "auto_service_management.auto_service_management.integration.erpnext.document_sync.validate_material_request",
 		"on_update": "auto_service_management.auto_service_management.integration.erpnext.document_sync.sync_material_request",
@@ -97,13 +91,17 @@ doc_events = {
 # Lifecycle hooks — ensure Desktop Icon records exist after install/migrate
 after_install = [
 	"auto_service_management.auto_service_management.custom_fields.ensure_trace_custom_fields",
+	"auto_service_management.auto_service_management.workflow_setup.ensure_repair_job_workflow",
 	"auto_service_management.auto_service_management.desktop.setup_desktop",
 ]
 after_migrate = [
 	"auto_service_management.auto_service_management.custom_fields.ensure_trace_custom_fields",
+	"auto_service_management.auto_service_management.workflow_setup.ensure_repair_job_workflow",
 	"auto_service_management.auto_service_management.desktop.setup_desktop",
 ]
 before_tests = [
 	"auto_service_management.auto_service_management.custom_fields.ensure_trace_custom_fields",
+	"auto_service_management.auto_service_management.workflow_setup.ensure_repair_job_workflow",
 	"auto_service_management.auto_service_management.desktop.setup_desktop",
 ]
+boot_session = ["auto_service_management.auto_service_management.desktop.remove_auto_generated_sidebar"]

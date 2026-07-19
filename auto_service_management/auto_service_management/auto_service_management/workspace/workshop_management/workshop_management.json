@@ -21,7 +21,7 @@
       "label": "Quality Check Status Breakdown"
     }
   ],
-  "content": "[{\"id\":\"overview_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Overview</b></span>\",\"col\":12}},{\"id\":\"repair_status_chart\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Repair Job Status Breakdown\",\"col\":6}},{\"id\":\"repair_intake_chart\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Repair Job Intake Trend\",\"col\":6}},{\"id\":\"revenue_chart\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Closed Repair Revenue Trend\",\"col\":4}},{\"id\":\"gate_pass_chart\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Gate Pass Status Breakdown\",\"col\":4}},{\"id\":\"quality_check_chart\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Quality Check Status Breakdown\",\"col\":4}},{\"id\":\"operational_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Operational KPIs</b></span>\",\"col\":12}},{\"id\":\"open_jobs_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Open Repair Jobs\",\"col\":2}},{\"id\":\"pending_authorizations_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Authorizations\",\"col\":2}},{\"id\":\"pending_qc_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Quality Checks\",\"col\":2}},{\"id\":\"pending_road_tests_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Road Tests\",\"col\":2}},{\"id\":\"issued_gate_passes_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Issued Gate Passes\",\"col\":2}},{\"id\":\"ongoing_fleet_campaigns_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Ongoing Fleet Campaigns\",\"col\":2}},{\"id\":\"coverage_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>DocType Coverage</b></span>\",\"col\":12}},{\"id\":\"settings_configured_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Auto Service Settings Configured\",\"col\":3}},{\"id\":\"customer_vehicles_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Customer Vehicles\",\"col\":3}},{\"id\":\"workshop_bays_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Workshop Bays\",\"col\":3}},{\"id\":\"repair_jobs_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Jobs\",\"col\":3}},{\"id\":\"repair_job_services_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Job Services\",\"col\":3}},{\"id\":\"repair_job_service_parts_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Job Service Parts\",\"col\":3}},{\"id\":\"repair_job_service_labour_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Job Service Labour\",\"col\":3}},{\"id\":\"repair_job_service_consumables_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Job Service Consumables\",\"col\":3}},{\"id\":\"repair_service_templates_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Service Templates\",\"col\":3}},{\"id\":\"repair_service_template_parts_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Service Template Parts\",\"col\":3}},{\"id\":\"repair_service_template_labour_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Service Template Labour\",\"col\":3}},{\"id\":\"repair_service_template_consumables_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Service Template Consumables\",\"col\":3}},{\"id\":\"repair_job_overrides_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Job Overrides\",\"col\":3}},{\"id\":\"repair_job_logs_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Job Logs\",\"col\":3}},{\"id\":\"walkaround_inspections_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Walkaround Inspections\",\"col\":3}},{\"id\":\"vehicle_damage_marks_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Vehicle Damage Marks\",\"col\":3}},{\"id\":\"diagnosis_reports_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Diagnosis Reports\",\"col\":3}},{\"id\":\"customer_authorizations_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Customer Authorizations\",\"col\":3}},{\"id\":\"quality_checks_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Quality Checks\",\"col\":3}},{\"id\":\"road_test_reports_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Road Test Reports\",\"col\":3}},{\"id\":\"gate_passes_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Gate Passes\",\"col\":3}},{\"id\":\"service_history_records_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Service History Records\",\"col\":3}},{\"id\":\"fleet_service_campaigns_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Fleet Service Campaigns\",\"col\":3}},{\"id\":\"fleet_campaign_jobs_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Fleet Campaign Jobs\",\"col\":3}},{\"id\":\"reports_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Reports &amp; Drilldown</b></span>\",\"col\":12}},{\"id\":\"vehicle_search_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vehicle Search\",\"col\":3}},{\"id\":\"new_repair_job_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Repair Job\",\"col\":3}},{\"id\":\"open_repair_jobs_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Open Repair Jobs\",\"col\":3}},{\"id\":\"approval_queue_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Approval Queue\",\"col\":3}},{\"id\":\"repair_queue_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Repair Queue\",\"col\":3}},{\"id\":\"parts_queue_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Parts Queue\",\"col\":3}},{\"id\":\"qc_queue_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"QC Queue\",\"col\":3}},{\"id\":\"invoice_queue_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Invoice Queue\",\"col\":3}},{\"id\":\"gate_passes_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Gate Passes\",\"col\":3}},{\"id\":\"service_history_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Service History\",\"col\":3}},{\"id\":\"reports_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Reports\",\"col\":3}},{\"id\":\"intake_setup_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Intake & Setup\",\"col\":4}},{\"id\":\"workshop_execution_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Workshop Execution\",\"col\":4}},{\"id\":\"qc_release_history_card\",\"type\":\"card\",\"data\":{\"card_name\":\"QC, Release & History\",\"col\":4}},{\"id\":\"fleet_exceptions_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Fleet & Exceptions\",\"col\":6}},{\"id\":\"reports_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":6}}]",
+  "content": "[{\"id\":\"overview_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Overview</b></span>\",\"col\":12}},{\"id\":\"repair_status_chart\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Repair Job Status Breakdown\",\"col\":6}},{\"id\":\"repair_intake_chart\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Repair Job Intake Trend\",\"col\":6}},{\"id\":\"revenue_chart\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Closed Repair Revenue Trend\",\"col\":4}},{\"id\":\"gate_pass_chart\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Gate Pass Status Breakdown\",\"col\":4}},{\"id\":\"quality_check_chart\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Quality Check Status Breakdown\",\"col\":4}},{\"id\":\"operational_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Operational KPIs</b></span>\",\"col\":12}},{\"id\":\"open_jobs_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Open Repair Jobs\",\"col\":2}},{\"id\":\"pending_authorizations_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Authorizations\",\"col\":2}},{\"id\":\"pending_qc_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Quality Checks\",\"col\":2}},{\"id\":\"issued_gate_passes_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Issued Gate Passes\",\"col\":2}},{\"id\":\"ongoing_fleet_campaigns_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Ongoing Fleet Campaigns\",\"col\":2}},{\"id\":\"coverage_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>DocType Coverage</b></span>\",\"col\":12}},{\"id\":\"settings_configured_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Auto Service Settings Configured\",\"col\":3}},{\"id\":\"customer_vehicles_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Customer Vehicles\",\"col\":3}},{\"id\":\"workshop_bays_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Workshop Bays\",\"col\":3}},{\"id\":\"repair_jobs_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Jobs\",\"col\":3}},{\"id\":\"repair_job_services_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Job Services\",\"col\":3}},{\"id\":\"repair_job_service_parts_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Job Service Parts\",\"col\":3}},{\"id\":\"repair_job_service_labour_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Job Service Labour\",\"col\":3}},{\"id\":\"repair_job_service_consumables_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Job Service Consumables\",\"col\":3}},{\"id\":\"repair_job_overrides_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Job Overrides\",\"col\":3}},{\"id\":\"repair_job_logs_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Repair Job Logs\",\"col\":3}},{\"id\":\"walkaround_inspections_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Walkaround Inspections\",\"col\":3}},{\"id\":\"vehicle_damage_marks_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Vehicle Damage Marks\",\"col\":3}},{\"id\":\"diagnosis_reports_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Diagnosis Reports\",\"col\":3}},{\"id\":\"customer_authorizations_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Customer Authorizations\",\"col\":3}},{\"id\":\"quality_checks_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Quality Checks\",\"col\":3}},{\"id\":\"gate_passes_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Gate Passes\",\"col\":3}},{\"id\":\"service_history_records_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Service History Records\",\"col\":3}},{\"id\":\"fleet_service_campaigns_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Fleet Service Campaigns\",\"col\":3}},{\"id\":\"fleet_campaign_jobs_card\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Fleet Campaign Jobs\",\"col\":3}},{\"id\":\"reports_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Reports &amp; Drilldown</b></span>\",\"col\":12}},{\"id\":\"vehicle_search_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vehicle Search\",\"col\":3}},{\"id\":\"new_repair_job_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Repair Job\",\"col\":3}},{\"id\":\"open_repair_jobs_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Open Repair Jobs\",\"col\":3}},{\"id\":\"approval_queue_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Approval Queue\",\"col\":3}},{\"id\":\"repair_queue_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Repair Queue\",\"col\":3}},{\"id\":\"parts_queue_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Parts Queue\",\"col\":3}},{\"id\":\"qc_queue_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"QC Queue\",\"col\":3}},{\"id\":\"invoice_queue_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Invoice Queue\",\"col\":3}},{\"id\":\"gate_passes_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Gate Passes\",\"col\":3}},{\"id\":\"service_history_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Service History\",\"col\":3}},{\"id\":\"reports_shortcut\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Reports\",\"col\":3}},{\"id\":\"intake_setup_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Intake & Setup\",\"col\":4}},{\"id\":\"workshop_execution_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Workshop Execution\",\"col\":4}},{\"id\":\"qc_release_history_card\",\"type\":\"card\",\"data\":{\"card_name\":\"QC, Release & History\",\"col\":4}},{\"id\":\"fleet_exceptions_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Fleet & Exceptions\",\"col\":6}},{\"id\":\"reports_card\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":6}}]",
   "doctype": "Workspace",
   "for_user": "",
   "hide_custom": 0,
@@ -79,17 +79,6 @@
       "link_to": "Repair Job",
       "link_type": "DocType",
       "onboard": 1,
-      "type": "Link"
-    },
-    {
-      "dependencies": "",
-      "hidden": 0,
-      "is_query_report": 0,
-      "label": "Repair Service Template",
-      "link_count": 0,
-      "link_to": "Repair Service Template",
-      "link_type": "DocType",
-      "onboard": 0,
       "type": "Link"
     },
     {
@@ -170,17 +159,6 @@
       "dependencies": "Repair Job",
       "hidden": 0,
       "is_query_report": 0,
-      "label": "Road Test Report",
-      "link_count": 0,
-      "link_to": "Road Test Report",
-      "link_type": "DocType",
-      "onboard": 0,
-      "type": "Link"
-    },
-    {
-      "dependencies": "Repair Job",
-      "hidden": 0,
-      "is_query_report": 0,
       "label": "Repair Job Log",
       "link_count": 0,
       "link_to": "Repair Job Log",
@@ -214,17 +192,6 @@
       "label": "Quality Check",
       "link_count": 0,
       "link_to": "Quality Check",
-      "link_type": "DocType",
-      "onboard": 0,
-      "type": "Link"
-    },
-    {
-      "dependencies": "Repair Job",
-      "hidden": 0,
-      "is_query_report": 0,
-      "label": "Road Test Report",
-      "link_count": 0,
-      "link_to": "Road Test Report",
       "link_type": "DocType",
       "onboard": 0,
       "type": "Link"
@@ -460,10 +427,6 @@
       "number_card_name": "Pending Quality Checks"
     },
     {
-      "label": "Pending Road Tests",
-      "number_card_name": "Pending Road Tests"
-    },
-    {
       "label": "Issued Gate Passes",
       "number_card_name": "Issued Gate Passes"
     },
@@ -504,22 +467,6 @@
       "number_card_name": "Repair Job Service Consumables"
     },
     {
-      "label": "Repair Service Templates",
-      "number_card_name": "Repair Service Templates"
-    },
-    {
-      "label": "Repair Service Template Parts",
-      "number_card_name": "Repair Service Template Parts"
-    },
-    {
-      "label": "Repair Service Template Labour",
-      "number_card_name": "Repair Service Template Labour"
-    },
-    {
-      "label": "Repair Service Template Consumables",
-      "number_card_name": "Repair Service Template Consumables"
-    },
-    {
       "label": "Repair Job Overrides",
       "number_card_name": "Repair Job Overrides"
     },
@@ -546,10 +493,6 @@
     {
       "label": "Quality Checks",
       "number_card_name": "Quality Checks"
-    },
-    {
-      "label": "Road Test Reports",
-      "number_card_name": "Road Test Reports"
     },
     {
       "label": "Gate Passes",

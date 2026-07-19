@@ -28,11 +28,10 @@
       "fetch_from": "repair_job.customer_vehicle"
     },
     {
-      "fieldname": "sales_invoice",
+     "fieldname": "sales_invoice",
       "fieldtype": "Link",
       "label": "Sales Invoice",
-      "options": "Sales Invoice",
-      "fetch_from": "repair_job.sales_invoice"
+      "options": "Sales Invoice"
     },
     {
       "fieldname": "column_break_1",
@@ -116,7 +115,8 @@
     {
       "role": "Security Gate Officer",
       "read": 1,
-      "write": 1
+      "write": 1,
+      "report": 1
     },
     {
       "role": "Service Advisor",

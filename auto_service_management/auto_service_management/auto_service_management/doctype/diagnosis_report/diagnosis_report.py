@@ -29,17 +29,10 @@ class DiagnosisReport(Document):
 		"""Diagnosis can only happen after check-in."""
 		if self.repair_job:
 			status = frappe.db.get_value("Repair Job", self.repair_job, "job_status")
-			if status not in (
-				"Walkaround Inspection",
-				"Diagnosis",
-				"Estimate Prepared",
-				"Waiting for Customer Approval",
-				"Approved",
-			):
+			if status not in ("Assessment", "Awaiting Approval", "In Repair"):
 				frappe.throw(
 					f"Diagnosis Report requires the Repair Job to be in "
-					f"'Walkaround Inspection', 'Diagnosis', 'Estimate Prepared', "
-					f"'Waiting for Customer Approval', or 'Approved' state. Current: {status}"
+					f"'Assessment', 'Awaiting Approval', or 'In Repair' state. Current: {status}"
 				)
 
 	def validate_unique_for_repair_job(self):

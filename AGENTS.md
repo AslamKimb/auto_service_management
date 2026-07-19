@@ -4,6 +4,15 @@
 
 This repository contains the `auto_service_management` Frappe app for ERPNext v16. Implement the approved requirements in this order: `docs/specs/automobile-repair-management.md`, `IMPLEMENTATION_PLAN.md`, then `Automotive DMS.md` as contextual research only. Do not expand scope from the research notes.
 
+## Plan Operating Contract
+
+- Treat `IMPLEMENTATION_PLAN.md` as the live progress ledger for implementation work.
+- Select the next unchecked task whose dependencies are already `[x]`; do not skip ahead.
+- Activate one task at a time by marking it `[-]` and recording the exact files, commands, and evidence under that task.
+- Mark a task `[x]` only after the behavior is verified and the evidence is written in the plan.
+- Use `[!]` only when a task is genuinely blocked and state the blocker plainly.
+- Do not mass-tick tasks or remove dependency evidence; if the sequence needs to change, update the plan first.
+
 ## Architecture Rules
 
 - Keep all behavior inside this app. Never edit Frappe or ERPNext core files.

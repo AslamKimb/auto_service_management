@@ -10,8 +10,8 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
 
-EXCLUDED_SERVICE_STATUSES = frozenset({"Cancelled", "Deferred", "Rejected"})
 INVOICEABLE_SERVICE_STATUSES = frozenset({"Approved", "Completed"})
+EXCLUDED_SERVICE_STATUSES = frozenset({"Rejected", "Cancelled", "Canceled"})
 STOCK_COMPONENT_TYPES = {"Part", "Consumable"}
 STATUS_ALIASES = {
 	"Parts": "Part",
@@ -104,10 +104,18 @@ class ServiceComponent:
 		return getattr(self.row, "rate", None) or 0
 
 	@property
+	def rate(self):
+		return self.invoice_rate
+
+	@property
 	def invoice_amount(self):
 		if self.component_type == "Labour":
 			return getattr(self.row, "billing_amount", None) or 0
 		return getattr(self.row, "amount", None) or 0
+
+	@property
+	def amount(self):
+		return self.invoice_amount
 
 	def __getattr__(self, fieldname):
 		return getattr(self.row, fieldname)
@@ -116,19 +124,67 @@ class ServiceComponent:
 class RepairJobService(Document):
 	def before_validate(self):
 		self.sync_from_repair_job()
-		if self.repair_service_template and not self.has_components():
-			self.load_template_components()
 		self.sync_component_context()
 
+	def before_submit(self):
+		self.sync_from_repair_job()
+		self.workshop_bay = self.workshop_bay or self._get_submission_workshop_bay()
+		if not self.workshop_bay:
+			frappe.throw(_("Workshop Bay is required before submitting a Repair Job Service."))
+
 	def validate(self):
+		if not self.repair_job:
+			frappe.throw(_("Repair Job is required before saving a Repair Job Service."))
 		self.validate_diagnosis_report()
 		self.calculate_totals()
-		self.derive_status_from_components()
+		from auto_service_management.auto_service_management.workflow_compatibility import (
+			sync_repair_job_service_summary,
+		)
+
+		sync_repair_job_service_summary(self)
 
 	def on_update(self):
+		from auto_service_management.auto_service_management.workflow_compatibility import (
+			recompute_repair_job_state,
+			sync_repair_job_related_tables,
+			sync_repair_job_service_summary,
+		)
+
+		sync_repair_job_service_summary(self)
+		sync_repair_job_related_tables(self.repair_job)
+		recompute_repair_job_state(self.repair_job)
+		sync_repair_job_total(self.repair_job)
+
+	def on_submit(self):
+		from auto_service_management.auto_service_management.workflow_compatibility import bump_repair_job_scope_revision
+		from auto_service_management.auto_service_management.workflow_compatibility import invalidate_repair_job_authorizations
+		from auto_service_management.auto_service_management.workflow_compatibility import recompute_repair_job_state
+		from auto_service_management.auto_service_management.workflow_compatibility import sync_repair_job_related_tables
+
+		bump_repair_job_scope_revision(self.repair_job)
+		invalidate_repair_job_authorizations(self.repair_job)
+		sync_repair_job_related_tables(self.repair_job)
+		recompute_repair_job_state(self.repair_job)
+		sync_repair_job_total(self.repair_job)
+
+	def on_cancel(self):
+		from auto_service_management.auto_service_management.workflow_compatibility import bump_repair_job_scope_revision
+		from auto_service_management.auto_service_management.workflow_compatibility import invalidate_repair_job_authorizations
+		from auto_service_management.auto_service_management.workflow_compatibility import recompute_repair_job_state
+		from auto_service_management.auto_service_management.workflow_compatibility import sync_repair_job_related_tables
+
+		bump_repair_job_scope_revision(self.repair_job)
+		invalidate_repair_job_authorizations(self.repair_job)
+		sync_repair_job_related_tables(self.repair_job)
+		recompute_repair_job_state(self.repair_job)
 		sync_repair_job_total(self.repair_job)
 
 	def after_delete(self):
+		from auto_service_management.auto_service_management.workflow_compatibility import (
+			sync_repair_job_related_tables,
+		)
+
+		sync_repair_job_related_tables(self.repair_job)
 		sync_repair_job_total(self.repair_job)
 
 	def on_trash(self):
@@ -158,6 +214,13 @@ class RepairJobService(Document):
 		if not self.diagnosis_report:
 			self.diagnosis_report = job.diagnosis_report
 
+	def _get_submission_workshop_bay(self):
+		if self.workshop_bay:
+			return self.workshop_bay
+		if not self.repair_job:
+			return None
+		return frappe.db.get_value("Repair Job", self.repair_job, "workshop_bay")
+
 	def validate_diagnosis_report(self):
 		if not self.diagnosis_report:
 			return
@@ -176,22 +239,6 @@ class RepairJobService(Document):
 
 	def has_components(self):
 		return any(self.get(row["fieldname"]) for row in COMPONENT_TABLES)
-
-	def load_template_components(self):
-		template = frappe.get_doc("Repair Service Template", self.repair_service_template)
-		if not self.service_name:
-			self.service_name = template.service_name or template.template_name
-		if not self.description:
-			self.description = template.description
-		if template.default_billable is not None:
-			self.billable = template.default_billable
-
-		for definition in COMPONENT_TABLES:
-			for template_row in template.get(definition["template_fieldname"]) or []:
-				self.append(
-					definition["fieldname"],
-					_template_row_to_service_row(template_row, definition["component_type"]),
-				)
 
 	def sync_component_context(self):
 		for component in get_service_components(self):
@@ -238,13 +285,6 @@ class RepairJobService(Document):
 			self.precision("margin_percentage"),
 		)
 
-	def derive_status_from_components(self):
-		if self.status in {"Rejected", "Deferred", "Cancelled"}:
-			return
-		if self.status in {None, "", "Draft"}:
-			self.status = "Pending Approval"
-
-
 class RepairJobServiceComponent(Document):
 	component_type = None
 
@@ -252,43 +292,6 @@ class RepairJobServiceComponent(Document):
 		if self.billable is None:
 			self.billable = 1
 		calculate_component_amount(self, self.component_type)
-
-
-def _template_row_to_service_row(template_row, component_type):
-	values = {
-		"description": template_row.description,
-		"item_code": getattr(template_row, "item_code", None),
-		"rate": getattr(template_row, "rate", None),
-		"cost_rate": getattr(template_row, "cost_rate", None),
-		"billable": getattr(template_row, "billable", 1),
-	}
-	if component_type in STOCK_COMPONENT_TYPES:
-		values.update(
-			{
-				"quantity": getattr(template_row, "quantity", None) or 1,
-				"uom": getattr(template_row, "uom", None),
-				"warehouse": getattr(template_row, "warehouse", None),
-			}
-		)
-	if component_type == "Consumable":
-		values["consumption_basis"] = getattr(template_row, "consumption_basis", None)
-	if component_type == "Labour":
-		values.pop("rate", None)
-		values.pop("cost_rate", None)
-		values.update(
-			{
-				"activity_type": getattr(template_row, "activity_type", None),
-				"estimated_hours": getattr(template_row, "estimated_hours", None) or 1,
-				"billing_rate": getattr(template_row, "billing_rate", None)
-				or getattr(template_row, "rate", None),
-				"billing_hours": getattr(template_row, "billing_hours", None)
-				or getattr(template_row, "estimated_hours", None)
-				or 1,
-				"costing_rate": getattr(template_row, "costing_rate", None)
-				or getattr(template_row, "cost_rate", None),
-			}
-		)
-	return values
 
 
 def _component_quantity(row, component_type):
@@ -319,6 +322,53 @@ def calculate_component_amount(row, component_type):
 
 def _normalize_service_type(service_type):
 	return STATUS_ALIASES.get(service_type, service_type)
+
+
+def _component_signature(row, component_type):
+	return (
+		component_type,
+		getattr(row, "description", None),
+		getattr(row, "item_code", None),
+		getattr(row, "assigned_to", None),
+		getattr(row, "activity_type", None),
+		getattr(row, "task", None),
+		getattr(row, "quantity", None),
+		getattr(row, "hours", None),
+		getattr(row, "estimated_hours", None),
+		getattr(row, "billing_hours", None),
+		getattr(row, "billing_rate", None),
+		getattr(row, "costing_rate", None),
+		getattr(row, "billable", None),
+		getattr(row, "rate", None),
+		getattr(row, "discount_percentage", None),
+		getattr(row, "cost_rate", None),
+		getattr(row, "consumption_basis", None),
+	)
+
+
+def _copy_template_component_row(target_row, source_row):
+	for fieldname in (
+		"description",
+		"item_code",
+		"assigned_to",
+		"activity_type",
+		"task",
+		"quantity",
+		"hours",
+		"estimated_hours",
+		"billing_hours",
+		"billing_rate",
+		"costing_rate",
+		"billable",
+		"rate",
+		"discount_percentage",
+		"cost_rate",
+		"consumption_basis",
+		"legacy_repair_service_line",
+	):
+		value = getattr(source_row, fieldname, None)
+		if value is not None:
+			setattr(target_row, fieldname, value)
 
 
 def component_has_downstream(component):
@@ -376,17 +426,17 @@ def iter_repair_job_components(
 	include_excluded=False,
 	service_names=None,
 ):
-	service_statuses = set(service_statuses or [])
 	component_types = {
 		_normalize_service_type(component_type) for component_type in set(component_types or [])
 	}
+	service_statuses = {str(status) for status in service_statuses} if service_statuses is not None else None
 	service_names = set(service_names or [])
 	for service in get_repair_job_services(repair_job_name):
 		if service_names and service.name not in service_names:
 			continue
-		if not include_excluded and service.status in EXCLUDED_SERVICE_STATUSES:
+		if not include_excluded and getattr(service, "docstatus", 0) == 2:
 			continue
-		if service_statuses and service.status not in service_statuses:
+		if service_statuses is not None and getattr(service, "status", None) not in service_statuses:
 			continue
 		for component in get_service_components(service, component_types=component_types):
 			if billable_only and not component.billable:
@@ -404,6 +454,6 @@ def sync_repair_job_total(repair_job_name):
 		return
 	total = 0
 	for service in get_repair_job_services(repair_job_name):
-		if service.status not in EXCLUDED_SERVICE_STATUSES:
+		if getattr(service, "docstatus", 0) != 2:
 			total += service.total_amount or 0
 	frappe.db.set_value("Repair Job", repair_job_name, "total_amount", total, update_modified=False)

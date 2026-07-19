@@ -20,7 +20,6 @@ MATERIAL_REQUEST_JOB_STATUSES = {
 	"Quality Check",
 	"Ready for Invoice",
 }
-SALES_INVOICE_JOB_STATUSES = {"Approved", "Ready for Invoice"}
 
 
 def map_sales_invoice(
@@ -30,21 +29,19 @@ def map_sales_invoice(
 	service_names: Iterable[str] | None = None,
 ) -> Document:
 	repair_job = _get_repair_job(repair_job_name)
-	if repair_job.job_status not in SALES_INVOICE_JOB_STATUSES:
-		frappe.throw(_("Repair Job must be Approved or Ready for Invoice before creating a Sales Invoice."))
 
 	target = _get_target_doc("Sales Invoice", target_doc)
 	_validate_target_job(target, repair_job)
 	_validate_service_scope(
 		repair_job.name,
 		service_names,
-		INVOICEABLE_SERVICE_STATUSES,
+		None,
 		document_label=_("Sales Invoice"),
 	)
 	current_refs = _component_refs(target)
 	components, reserved = _eligible_components(
 		repair_job,
-		service_statuses=INVOICEABLE_SERVICE_STATUSES,
+		service_statuses=None,
 		billable_only=True,
 		service_names=service_names,
 		current_refs=current_refs,
@@ -55,9 +52,7 @@ def map_sales_invoice(
 	if not components:
 		_throw_no_components(
 			reserved,
-			_(
-				"No billable Parts, Consumables, or Labour components are available in Approved or Completed services."
-			),
+			_("No billable Parts, Consumables, or Labour components are available on this Repair Job."),
 		)
 	if reserved:
 		_show_reservation_notice(reserved)
@@ -67,6 +62,7 @@ def map_sales_invoice(
 	_set_if_empty(target, "customer", repair_job.customer)
 	_set_if_empty(target, "company", _settings.company)
 	_set_if_empty(target, "selling_price_list", _settings.selling_price_list or _settings.price_list)
+	target.currency = _settings.default_currency or target.get("currency")
 	_set_if_empty(target, "project", repair_job.project)
 	target.repair_job = repair_job.name
 	target.update_stock = 0
@@ -245,6 +241,8 @@ def _sales_invoice_item(repair_job, service, component: ServiceComponent):
 		uom = frappe.db.get_value("Item", item_code, "stock_uom")
 	if not uom:
 		uom = "Hour" if component.component_type == "Labour" else "Nos"
+	if uom and not frappe.db.exists("UOM", uom):
+		uom = frappe.db.get_value("UOM", {}, "name") or uom
 	item = {
 		"item_code": item_code,
 		"item_name": item_name,
@@ -255,6 +253,14 @@ def _sales_invoice_item(repair_job, service, component: ServiceComponent):
 		"project": repair_job.project,
 		**_component_trace_fields(repair_job, service, component),
 	}
+	company_name = frappe.get_single("Auto Service Settings").company
+	income_account = frappe.db.get_value(
+		"Account",
+		{"company": company_name, "root_type": "Income", "is_group": 0},
+		"name",
+	)
+	if income_account:
+		item["income_account"] = income_account
 	if component.component_type in STOCK_COMPONENT_TYPES:
 		item["discount_percentage"] = flt(component.discount_percentage)
 	return item
@@ -318,19 +324,19 @@ def _validate_company(target, company):
 def _validate_service_scope(
 	repair_job_name: str,
 	service_names: Iterable[str] | None,
-	allowed_statuses: Iterable[str],
+	allowed_statuses: Iterable[str] | None,
 	*,
 	document_label: str,
 ) -> None:
 	service_names = set(service_names or [])
-	allowed_statuses = set(allowed_statuses)
+	allowed_statuses = set(allowed_statuses or []) if allowed_statuses is not None else None
 	if not service_names:
 		return
 
 	services = frappe.get_all(
 		"Repair Job Service",
 		filters={"name": ["in", sorted(service_names)]},
-		fields=["name", "repair_job", "status", "service_name"],
+		fields=["name", "repair_job", "docstatus", "service_name"],
 		limit_page_length=0,
 	)
 	services_by_name = {service.name: service for service in services}
@@ -348,12 +354,7 @@ def _validate_service_scope(
 					repair_job_name,
 				)
 			)
-		if service.status not in allowed_statuses:
-			frappe.throw(
-				_("Repair Job Service {0} must be Approved or Completed before creating a {1}.").format(
-					service.service_name or service.name, document_label
-				)
-			)
+		# Service lifecycle status was removed; submission is handled by docstatus on the document itself.
 
 
 def _throw_no_components(reserved, empty_message):

@@ -6,7 +6,6 @@
  "engine": "InnoDB",
  "istable": 1,
  "fields": [
-  {"fieldname": "marker_number", "fieldtype": "Int", "label": "#", "reqd": 1},
   {"fieldname": "damage_area", "fieldtype": "Select", "label": "Area", "options": "\nFront\nRear\nLeft Side\nRight Side\nRoof\nUndercarriage\nInterior\nEngine Bay\nOther", "reqd": 1},
   {"fieldname": "damage_type", "fieldtype": "Select", "label": "Type", "options": "\nScratch\nDent\nCrack\nChip\nRust\nPaint Transfer\nBroken Glass\nOther"},
   {"fieldname": "severity", "fieldtype": "Select", "label": "Severity", "options": "\nMinor\nModerate\nSevere"},

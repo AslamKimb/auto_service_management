@@ -4,15 +4,12 @@ frappe.ui.form.on('Material Request', {
 
         frm.add_custom_button(__('Repair Job'), function() {
             erpnext.utils.map_current_doc({
-                method: 'auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_material_request',
-                source_doctype: 'Repair Job',
-                target: frm,
-                setters: { company: frm.doc.company || undefined },
-                get_query_filters: {
-                    job_status: ['in', ['Approved', 'In Repair', 'Quality Check', 'Ready for Invoice']],
-                },
-            });
-        }, __('Get Items From'));
+				method: 'auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_material_request',
+				source_doctype: 'Repair Job',
+				target: frm,
+				setters: { company: frm.doc.company || undefined },
+			});
+		}, __('Get Items From'));
 
         frm.add_custom_button(__('Repair Job Service'), function() {
             erpnext.utils.map_current_doc({

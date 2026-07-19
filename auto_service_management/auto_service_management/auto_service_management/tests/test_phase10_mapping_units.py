@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import frappe
 from frappe.tests import UnitTestCase
+from types import SimpleNamespace
 
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
 	ServiceComponent,
@@ -13,6 +14,75 @@ from auto_service_management.auto_service_management.integration.erpnext import 
 
 
 class TestPhase10MappingUnits(UnitTestCase):
+	def test_sales_invoice_draft_validation_skips_service_status_gate(self):
+		services = [frappe._dict(name="RJS-1", repair_job="RJ-1", status="Draft", service_name="Job service")]
+
+		with patch.object(component_mapping.frappe, "get_all", return_value=services):
+			component_mapping._validate_service_scope("RJ-1", {"RJS-1"}, None, document_label="Sales Invoice")
+
+	def test_sales_invoice_submission_requires_submitted_services(self):
+		with (
+			patch.object(
+				document_sync,
+				"_trace_items",
+				return_value=[frappe._dict(repair_job_service="RJS-1")],
+			),
+			patch.object(document_sync.frappe.db, "get_value", return_value=0),
+		):
+			with self.assertRaises(frappe.ValidationError):
+				document_sync._validate_invoice_service_submission(frappe._dict())
+
+	def test_repair_job_sales_invoices_returns_multiple_rows(self):
+		class _Job:
+			def get(self, field):
+				if field == "sales_invoices":
+					return [frappe._dict(sales_invoice="SI-1"), frappe._dict(sales_invoice="SI-2")]
+				return None
+
+		job = _Job()
+
+		with (
+			patch.object(document_sync.frappe, "get_doc", return_value=job),
+			patch.object(document_sync.frappe.db, "exists", return_value=True),
+		):
+			self.assertEqual(
+				document_sync.get_repair_job_sales_invoices("RJ-1"),
+				["SI-1", "SI-2"],
+			)
+
+	def test_payment_entry_sync_is_deferred_until_after_commit(self):
+		class _AfterCommit:
+			def __init__(self):
+				self.callbacks = []
+
+			def add(self, callback):
+				self.callbacks.append(callback)
+
+		fake_db = SimpleNamespace(after_commit=_AfterCommit(), get_value=lambda *args, **kwargs: None)
+		doc = frappe._dict(
+			references=[frappe._dict(reference_doctype="Sales Invoice", reference_name="SI-1")]
+		)
+
+		with (
+			patch.object(document_sync.frappe, "db", fake_db),
+			patch.object(document_sync, "_sync_payment_jobs") as sync_jobs,
+			patch.object(document_sync.frappe.db, "get_value", return_value="RJ-1"),
+		):
+			document_sync.sync_payment_entry(doc)
+			self.assertEqual(len(fake_db.after_commit.callbacks), 1)
+			fake_db.after_commit.callbacks[0]()
+
+		sync_jobs.assert_called_once_with(("RJ-1",))
+
+	def test_payment_rows_skip_unsubmitted_payment_entries(self):
+		with (
+			patch.object(document_sync.frappe.db, "get_all", return_value=[
+				frappe._dict(parent="PE-1", reference_name="SI-1", allocated_amount=50),
+			]),
+			patch.object(document_sync.frappe.db, "get_value", return_value=0),
+		):
+			self.assertEqual(document_sync._service_payment_total(frappe._dict(), []), 0)
+
 	def test_labour_invoice_item_uses_billing_fields(self):
 		job = frappe._dict(name="RJ-1", customer_vehicle="VEH-1", project="PROJ-1")
 		service = frappe._dict(name="RJS-1", service_name="Brake service")

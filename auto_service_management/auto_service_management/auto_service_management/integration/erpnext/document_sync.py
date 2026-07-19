@@ -9,12 +9,17 @@ from auto_service_management.auto_service_management.doctype.repair_job_service.
 	INVOICEABLE_SERVICE_STATUSES,
 	iter_repair_job_components,
 )
+from auto_service_management.auto_service_management.workflow_compatibility import (
+	recompute_repair_job_state,
+	sync_repair_job_related_tables,
+	_service_payment_total as _compat_service_payment_total,
+)
 
 ACTIVE_COMPONENT_DOCTYPES = {row["doctype"] for row in COMPONENT_TABLES}
 TRACE_COMPONENT_DOCTYPES = ACTIVE_COMPONENT_DOCTYPES | {
 	"Repair Job Service Subcontracted Service",
 }
-PROTECTED_JOB_STATUSES = {"Gate Pass Issued", "Closed", "Closed - Diagnosis Only"}
+PROTECTED_JOB_STATUSES = {"Closed", "Cancelled"}
 
 
 def validate_sales_invoice(doc, method=None):
@@ -28,6 +33,7 @@ def validate_sales_invoice(doc, method=None):
 	doc.update_stock = 0
 	_validate_component_links(doc, "Sales Invoice", "sales_invoice")
 	_validate_component_quantities(doc, labour_uses_billing_hours=True)
+	_validate_invoice_service_submission(doc)
 
 
 def validate_material_request(doc, method=None):
@@ -50,22 +56,17 @@ def sync_sales_invoice(doc, method=None):
 		linked_item_field="sales_invoice_item",
 	)
 	for job_name in job_names:
-		_set_primary_sales_invoice(job_name)
-		sync_repair_job_invoice_state(job_name)
+		recompute_repair_job_state(job_name)
+		sync_repair_job_related_tables(job_name)
 
 
 def submit_sales_invoice(doc, method=None):
 	if not _has_repair_traces(doc):
 		return
+	_validate_invoice_service_submission(doc)
 	sync_sales_invoice(doc)
 	for job_name in _repair_job_names(doc):
-		job = frappe.get_doc("Repair Job", job_name)
-		if not job.sales_invoice or frappe.db.get_value("Sales Invoice", job.sales_invoice, "docstatus") != 1:
-			job.sales_invoice = doc.name
-		job.payment_status = "Unpaid"
-		job.flags.ignore_links = True
-		job.save(ignore_permissions=True)
-		sync_repair_job_invoice_state(job_name)
+		recompute_repair_job_state(job_name)
 
 
 def cancel_sales_invoice(doc, method=None):
@@ -74,16 +75,36 @@ def cancel_sales_invoice(doc, method=None):
 		_assert_invoice_cancellation_allowed(job_name)
 	_release_component_links(doc, "sales_invoice", "sales_invoice_item")
 	for job_name in job_names:
-		_set_primary_sales_invoice(job_name)
-		sync_repair_job_invoice_state(job_name)
+		recompute_repair_job_state(job_name)
 
 
 def trash_sales_invoice(doc, method=None):
 	job_names = _repair_job_names(doc)
 	_release_component_links(doc, "sales_invoice", "sales_invoice_item")
 	for job_name in job_names:
-		_set_primary_sales_invoice(job_name)
-		sync_repair_job_invoice_state(job_name)
+		recompute_repair_job_state(job_name)
+		sync_repair_job_related_tables(job_name)
+
+
+def sync_payment_entry(doc, method=None):
+	job_names = _payment_entry_job_names(doc)
+	if not job_names:
+		return
+	after_commit = getattr(frappe.db, "after_commit", None)
+	if after_commit and hasattr(after_commit, "add"):
+		after_commit.add(lambda job_names=tuple(sorted(job_names)): _sync_payment_jobs(job_names))
+		return
+	_sync_payment_jobs(tuple(sorted(job_names)))
+
+
+def _sync_payment_jobs(job_names):
+	for job_name in job_names:
+		sync_repair_job_related_tables(job_name)
+		recompute_repair_job_state(job_name)
+
+
+def _service_payment_total(service, invoice_rows):
+	return _compat_service_payment_total(service, invoice_rows)
 
 
 def sync_material_request(doc, method=None):
@@ -133,14 +154,8 @@ def validate_job_invoices_for_gate_pass(repair_job_name: str) -> list[str]:
 
 
 def get_repair_job_sales_invoices(repair_job_name: str, *, submitted_only: bool = False) -> list[str]:
-	invoices = {
-		component.sales_invoice
-		for _service, component in iter_repair_job_components(
-			repair_job_name,
-			include_excluded=True,
-		)
-		if component.sales_invoice
-	}
+	job = frappe.get_doc("Repair Job", repair_job_name)
+	invoices = {row.sales_invoice for row in (job.get("sales_invoices") or []) if row.sales_invoice}
 	if submitted_only:
 		invoices = {
 			invoice for invoice in invoices if frappe.db.get_value("Sales Invoice", invoice, "docstatus") == 1
@@ -149,18 +164,7 @@ def get_repair_job_sales_invoices(repair_job_name: str, *, submitted_only: bool 
 
 
 def sync_repair_job_invoice_state(repair_job_name: str):
-	if not repair_job_name or not frappe.db.exists("Repair Job", repair_job_name):
-		return
-	job = frappe.get_doc("Repair Job", repair_job_name)
-	if job.job_status in PROTECTED_JOB_STATUSES:
-		return
-	all_submitted = _all_billable_components_submitted(repair_job_name)
-	target_status = "Invoiced" if all_submitted else "Ready for Invoice"
-	if job.job_status not in {"Ready for Invoice", "Invoiced"} or job.job_status == target_status:
-		return
-	job.job_status = target_status
-	job.flags.ignore_links = True
-	job.save(ignore_permissions=True)
+	recompute_repair_job_state(repair_job_name)
 
 
 def _all_billable_components_submitted(repair_job_name: str) -> bool:
@@ -179,6 +183,16 @@ def _all_billable_components_submitted(repair_job_name: str) -> bool:
 		and frappe.db.get_value("Sales Invoice", component.sales_invoice, "docstatus") == 1
 		for component in components
 	)
+
+
+def _validate_invoice_service_submission(doc):
+	service_names = {
+		row.repair_job_service
+		for row in _trace_items(doc)
+		if getattr(row, "repair_job_service", None)
+	}
+	if not service_names:
+		return
 
 
 def _validate_single_repair_job(doc):
@@ -312,23 +326,6 @@ def _linked_field_exists(component_doctype, linked_field):
 	return bool(frappe.get_meta(component_doctype).get_field(linked_field))
 
 
-def _set_primary_sales_invoice(repair_job_name):
-	invoices = get_repair_job_sales_invoices(repair_job_name, submitted_only=True)
-	if not invoices:
-		invoices = [
-			invoice
-			for invoice in get_repair_job_sales_invoices(repair_job_name)
-			if frappe.db.get_value("Sales Invoice", invoice, "docstatus") == 0
-		]
-	frappe.db.set_value(
-		"Repair Job",
-		repair_job_name,
-		"sales_invoice",
-		invoices[0] if invoices else None,
-		update_modified=False,
-	)
-
-
 def _assert_invoice_cancellation_allowed(repair_job_name):
 	job_status = frappe.db.get_value("Repair Job", repair_job_name, "job_status")
 	if job_status in PROTECTED_JOB_STATUSES:
@@ -348,6 +345,22 @@ def _repair_job_names(doc):
 	job_names = {row.repair_job for row in _trace_items(doc) if getattr(row, "repair_job", None)}
 	if doc.get("repair_job"):
 		job_names.add(doc.repair_job)
+	return job_names
+
+
+def _payment_entry_job_names(doc):
+	invoice_names = {
+		row.reference_name
+		for row in doc.get("references") or []
+		if getattr(row, "reference_doctype", None) == "Sales Invoice" and getattr(row, "reference_name", None)
+	}
+	if not invoice_names:
+		return set()
+	job_names = set()
+	for invoice_name in invoice_names:
+		job_name = frappe.db.get_value("Sales Invoice", invoice_name, "repair_job")
+		if job_name:
+			job_names.add(job_name)
 	return job_names
 
 

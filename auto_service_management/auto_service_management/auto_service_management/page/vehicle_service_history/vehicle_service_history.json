@@ -1,0 +1,27 @@
+{
+ "content": null,
+ "docstatus": 0,
+ "doctype": "Page",
+ "module": "Auto Service Management",
+ "name": "vehicle-service-history",
+ "page_name": "vehicle-service-history",
+ "roles": [
+  {
+   "role": "Workshop Manager"
+  },
+  {
+   "role": "Service Advisor"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Security Gate Officer"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Vehicle Service History"
+}

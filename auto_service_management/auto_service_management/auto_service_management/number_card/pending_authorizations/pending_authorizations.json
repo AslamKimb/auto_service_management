@@ -1,7 +1,7 @@
 {
  "document_type": "Customer Authorization",
  "doctype": "Number Card",
- "filters_json": "[[\"Customer Authorization\",\"status\",\"=\",\"Pending\"]]",
+ "filters_json": "[[\"Customer Authorization\",\"docstatus\",\"=\",0]]",
  "function": "Count",
  "is_public": 1,
  "is_standard": 1,

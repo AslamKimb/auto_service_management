@@ -84,6 +84,18 @@
       "label": "Road Test Passed"
     },
     {
+      "fieldname": "road_test_section",
+      "fieldtype": "Section Break",
+      "label": "Road Tests",
+      "collapsible": 1
+    },
+    {
+      "fieldname": "road_tests",
+      "fieldtype": "Table",
+      "label": "Road Tests",
+      "options": "Quality Check Road Test"
+    },
+    {
       "fieldname": "notes_section",
       "fieldtype": "Section Break",
       "label": "Notes",

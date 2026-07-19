@@ -17,6 +17,7 @@ from auto_service_management.auto_service_management.user_defaults import (
 ROLE_MATRIX = {
 	"Service Advisor": {
 		"doctypes": {
+			"Customer": "read",
 			"Customer Vehicle": "read",
 			"Repair Job": "create",
 			"Customer Authorization": "read",
@@ -55,9 +56,6 @@ ACTIVE_COMPONENT_CHILD_DOCTYPES = (
 	"Repair Job Service Part",
 	"Repair Job Service Labour",
 	"Repair Job Service Consumable",
-	"Repair Service Template Part",
-	"Repair Service Template Labour",
-	"Repair Service Template Consumable",
 )
 
 
@@ -141,9 +139,6 @@ class TestPermissionMatrix(IntegrationTestCase):
 			"Repair Job Service Part": "Repair Job Service",
 			"Repair Job Service Labour": "Repair Job Service",
 			"Repair Job Service Consumable": "Repair Job Service",
-			"Repair Service Template Part": "Repair Service Template",
-			"Repair Service Template Labour": "Repair Service Template",
-			"Repair Service Template Consumable": "Repair Service Template",
 		}
 
 		for role in ("Workshop Manager", "Service Advisor", "Parts Interpreter"):

@@ -12,7 +12,6 @@ WORKSPACE_OPERATIONAL_NUMBER_CARDS = (
 	"Open Repair Jobs",
 	"Pending Authorizations",
 	"Pending Quality Checks",
-	"Pending Road Tests",
 	"Issued Gate Passes",
 	"Ongoing Fleet Campaigns",
 )
@@ -26,10 +25,6 @@ WORKSPACE_DOC_TYPE_COVERAGE = {
 	"Repair Job Service Part": "Repair Job Service Parts",
 	"Repair Job Service Labour": "Repair Job Service Labour",
 	"Repair Job Service Consumable": "Repair Job Service Consumables",
-	"Repair Service Template": "Repair Service Templates",
-	"Repair Service Template Part": "Repair Service Template Parts",
-	"Repair Service Template Labour": "Repair Service Template Labour",
-	"Repair Service Template Consumable": "Repair Service Template Consumables",
 	"Repair Job Override": "Repair Job Overrides",
 	"Repair Job Log": "Repair Job Logs",
 	"Walkaround Inspection": "Walkaround Inspections",
@@ -37,7 +32,6 @@ WORKSPACE_DOC_TYPE_COVERAGE = {
 	"Diagnosis Report": "Diagnosis Reports",
 	"Customer Authorization": "Customer Authorizations",
 	"Quality Check": "Quality Checks",
-	"Road Test Report": "Road Test Reports",
 	"Gate Pass": "Gate Passes",
 	"Service History": "Service History Records",
 	"Fleet Service Campaign": "Fleet Service Campaigns",
@@ -61,21 +55,6 @@ CHILD_COMPONENT_CARD_CONFIG = {
 		"child_doctype": "Repair Job Service Consumable",
 		"parent_doctype": "Repair Job Service",
 		"route": ["List", "Repair Job Service", "List"],
-	},
-	"Repair Service Template Parts": {
-		"child_doctype": "Repair Service Template Part",
-		"parent_doctype": "Repair Service Template",
-		"route": ["List", "Repair Service Template", "List"],
-	},
-	"Repair Service Template Labour": {
-		"child_doctype": "Repair Service Template Labour",
-		"parent_doctype": "Repair Service Template",
-		"route": ["List", "Repair Service Template", "List"],
-	},
-	"Repair Service Template Consumables": {
-		"child_doctype": "Repair Service Template Consumable",
-		"parent_doctype": "Repair Service Template",
-		"route": ["List", "Repair Service Template", "List"],
 	},
 }
 
@@ -115,7 +94,6 @@ WORKSPACE_SIDEBAR_SECTIONS = {
 		{"label": "Customer Vehicle", "link_type": "DocType", "link_to": "Customer Vehicle"},
 		{"label": "Workshop Bay", "link_type": "DocType", "link_to": "Workshop Bay"},
 		{"label": "Repair Job", "link_type": "DocType", "link_to": "Repair Job"},
-		{"label": "Repair Service Template", "link_type": "DocType", "link_to": "Repair Service Template"},
 		{
 			"label": "Walkaround Inspection",
 			"link_type": "DocType",
@@ -136,7 +114,7 @@ WORKSPACE_SIDEBAR_SECTIONS = {
 			"link_type": "DocType",
 			"link_to": "Repair Job",
 			"route_options": {
-				"job_status": ["not in", ["Closed", "Closed - Diagnosis Only", "Cancelled"]],
+				"job_status": ["not in", ["Closed", "Cancelled"]],
 			},
 		},
 		{
@@ -146,7 +124,6 @@ WORKSPACE_SIDEBAR_SECTIONS = {
 			"is_query_report": 1,
 		},
 		{"label": "Quality Check", "link_type": "DocType", "link_to": "Quality Check"},
-		{"label": "Road Test Report", "link_type": "DocType", "link_to": "Road Test Report"},
 		{"label": "Repair Job Log", "link_type": "DocType", "link_to": "Repair Job Log"},
 		{
 			"label": "Repair Job Override",
@@ -251,18 +228,3 @@ def get_repair_job_service_labour_card_data():
 @frappe.whitelist()
 def get_repair_job_service_consumables_card_data():
 	return get_component_child_card_data("Repair Job Service Consumables")
-
-
-@frappe.whitelist()
-def get_repair_service_template_parts_card_data():
-	return get_component_child_card_data("Repair Service Template Parts")
-
-
-@frappe.whitelist()
-def get_repair_service_template_labour_card_data():
-	return get_component_child_card_data("Repair Service Template Labour")
-
-
-@frappe.whitelist()
-def get_repair_service_template_consumables_card_data():
-	return get_component_child_card_data("Repair Service Template Consumables")
