@@ -10,6 +10,15 @@
 
 ## Bugs Found
 
+### Chrome Recovery Update - 2026-07-19 18:25 EAT
+
+| Status | Area | Evidence |
+| --- | --- | --- |
+| Passed | Chrome control recovery | The bundled Chrome plugin reconnected to the existing Chrome extension session without opening a new selected-profile Chrome window. Fresh Service Advisor login reached `/desk/workshop-management` and showed avatar `SA`. |
+| Bug | Workspace navigation console errors | Fresh Service Advisor workspace load still logged `"" is not a valid color.` twice and `NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.` from `desk.bundle.OBHPYFFY.js`. |
+| Bug | Repair Job intake Link-field interaction | On `/desk/repair-job/new`, field inspection confirmed `Customer` and `Customer Vehicle` are Frappe `Link` comboboxes, `Odometer In` is a `Float`, and `Fuel Level` is a native `Select`. Clicking the visible `Amina Nanyonga` listbox option did not commit the customer: the input stayed empty, the dropdown remained open, and `cur_frm.doc.customer` was still unset. Keyboard entry plus `ArrowDown`/`Enter` left `Customer = Amina Nanyonga` as uncommitted text with the dropdown still open. After `Tab`, typing `UBA 482M`, `Tab`, and `123456` produced `Customer Vehicle = UBA 482M123456`, `Odometer In` stayed empty, and `cur_frm.doc` still had no customer, vehicle, or odometer values. |
+| Bug | Ready for Invoice action menu exposes wrong workflow action | As Service Advisor, `/desk/repair-job/RJ-2026-00023` loaded with visible business status `Ready for Invoice` and total `Sh 350,000.00`. The top `Actions` button now opens, but the menu contains `Check In` and `Help`; no visible `Create`, `Sales Invoice`, or release action is exposed. This is inconsistent with a Ready for Invoice record and would let a normal user see a backward workflow action instead of the expected billing/release workflow. |
+
 ### Chrome Retry Update - 2026-07-19 18:00 EAT
 
 | Status | Area | Evidence |
