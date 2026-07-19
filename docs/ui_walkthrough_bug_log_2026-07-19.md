@@ -10,6 +10,15 @@
 
 ## Bugs Found
 
+### Service Advisor Vehicle Search Update - 2026-07-19
+
+| Status | Area | Evidence |
+| --- | --- | --- |
+| Passed | Service Advisor vehicle search list | Fresh headed Chrome login as `walkthrough.service.advisor@example.com` with password `admin` reached `/desk/workshop-management` with avatar `SA`. Opening `/desk/customer-vehicle` loaded the Customer Vehicle list with `TEST-PH7-001`, `UBA 482M`, and `UAX3354`. |
+| Passed | Customer Vehicle detail opens | Opening `/desk/customer-vehicle/TEST-PH7-001` as Service Advisor loaded `TEST-PH7-001 - TEST-PH7-001`, showed editable `Save`, the customer name `Test Workshop Customer`, and the linked Customer route `/desk/customer/Test%20Workshop%20Customer`. |
+| Bug | Customer Vehicle Link-field display mismatch | On `TEST-PH7-001`, the visible `Customer` Link-field wrapper displayed `Begin typing for results.` even though the same form showed `Customer Name = Test Workshop Customer` and exposed a customer link to `/desk/customer/Test%20Workshop%20Customer`. A normal Service Advisor sees the saved vehicle as if the primary customer link is blank. |
+| Bug | Desk/workspace console warnings persist | The Service Advisor workspace load again captured two `"" is not a valid color.` warnings from `desk.bundle.OBHPYFFY.js`. |
+
 ### Parts Interpreter Parts Queue Update - 2026-07-19
 
 | Status | Area | Evidence |
