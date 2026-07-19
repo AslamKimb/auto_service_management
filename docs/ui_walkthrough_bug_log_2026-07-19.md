@@ -10,6 +10,24 @@
 
 ## Bugs Found
 
+### Chrome Retry Update - 2026-07-19 18:00 EAT
+
+| Status | Area | Evidence |
+| --- | --- | --- |
+| Passed | Service Advisor role surfaces | Fresh headed Chrome login as `walkthrough.service.advisor@example.com` showed avatar `SA`; `/desk/workshop-management`, `/desk/customer-vehicle`, `/desk/repair-job/new`, `/desk/customer-authorization`, and `/desk/query-report/Open%20Repair%20Jobs` all loaded without visible permission or not-found errors. |
+| Passed | Workshop Manager role surfaces | Headed Chrome session showed avatar `WM`; `/desk/workshop-management`, `/desk/repair-job`, `/desk/quality-check`, and `/desk/query-report/Jobs%20by%20Status` all loaded without visible permission or not-found errors. |
+| Passed | Parts Interpreter role surfaces | Fresh headed Chrome login as `walkthrough.parts.interpreter@example.com` showed avatar `PI`; `/desk/workshop-management`, `/desk/query-report/Jobs%20Waiting%20for%20Parts`, and `/desk/repair-job` all loaded without visible permission or not-found errors. |
+| Passed | Cashier role surfaces | Fresh headed Chrome login as `walkthrough.cashier@example.com` showed avatar `C`; `/desk/workshop-management`, `/desk/sales-invoice`, and `/desk/query-report/Jobs%20by%20Status` all loaded without visible permission or not-found errors. |
+| Passed | Security Gate Officer role surfaces | Fresh headed Chrome login as `walkthrough.security.gate@example.com` showed avatar `SG`; `/desk/workshop-management`, `/desk/gate-pass`, `/desk/service-history`, `/desk/query-report/Gate%20Pass%20Register`, and `/desk/query-report/Vehicle%20Service%20History` all loaded without visible permission or not-found errors. |
+| Bug | Workspace navigation console errors | Loading `/desk/workshop-management` repeatedly logs `"" is not a valid color.` and `NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.` from `desk.bundle.OBHPYFFY.js`. The page still renders, but the browser console is not clean. |
+| Bug | Repair Job intake Link-field interaction | In headed Chrome as Service Advisor, the new Repair Job form opened and showed `Customer`, `Customer Vehicle`, `Odometer In`, `Fuel Level`, `Status`, and `Priority` widgets. The `Customer` Link dropdown did not commit a visible option by mouse or DOM click; after keyboard entry of `Amina Nanyonga`, the dropdown stayed open and later vehicle/odometer typing was appended into the Customer field (`Amina NanyongaUBA 482M123456`) instead of moving to `Customer Vehicle` and `Odometer In`. |
+| Passed | Existing Approved Repair Job view | As Service Advisor, `/desk/repair-job/RJ-2026-00028` loaded with avatar `SA`, title `UBA 482M - RJ-2026-00028`, business status `Approved`, visible `Services`, `Related Documents`, and visible primary `Actions` label. |
+| Passed | Existing Ready for Invoice Repair Job view | As Service Advisor, `/desk/repair-job/RJ-2026-00023` loaded with avatar `SA`, title `TEST-PH7-001 - RJ-2026-00023`, business status `Ready for Invoice`, and visible `Services`, `Create`, `Related Documents`, and `Actions` controls. |
+| Bug | Repair Job workflow dropdowns do not open | On `RJ-2026-00023`, headed Chrome showed the `Create` and `Actions` controls with chevrons. Playwright click and DOM click on the visible `Create` button left the menu closed; screenshots after the click showed no dropdown, and the DOM still exposed only the same top buttons. `Actions` behaved the same way. No new console error was emitted beyond existing blank-color warnings. This blocks normal users from reaching invoice/release workflow actions from the record header. |
+| Passed | Cashier invoice queue | Fresh headed Chrome login as `walkthrough.cashier@example.com` showed avatar `C`; `/desk/sales-invoice` loaded the invoice list with 6 rows including statuses `Paid`, `Cancelled`, `Overdue`, and `Draft`. |
+| Setup issue | Persona session switching | UI logout worked earlier from the avatar menu with confirmation, but became unreliable from report/desktop states in this retry. To isolate personas, dev sessions were cleared with `bench --site auto-service.localhost execute frappe.sessions.clear_all_sessions`, then each persona logged in through a fresh headed Chrome tab and was counted only after the expected avatar initials were visible. |
+| Setup issue | Chrome control channel unavailable after retry | After the headed workflow checks, Chrome browser-control setup and clean runtime setup both timed out before selecting Chrome. Local diagnostics showed Chrome installed and running, ChatGPT Chrome Extension installed/enabled in the selected `Default` profile, and the native host manifest correct. Per Chrome plugin troubleshooting, the next recovery step requires user permission to open a Chrome window for the selected profile and retry. |
+
 ### Fix Verification Update - 2026-07-19
 
 | Status | Area | Verification |
