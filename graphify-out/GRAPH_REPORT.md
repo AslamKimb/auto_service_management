@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `82b58598`
+- Built from commit: `9dcad55a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -284,40 +284,40 @@ Cohesion: 0.09
 Nodes (10): _doc_status(), ensure_repair_job_workflow(), _ensure_workflow_actions(), _ensure_workflow_states(), _upsert_simple_doc(), TestPhase31AuthorizationContract, _FakeDB, _FakeDoc (+2 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.12
-Nodes (14): _create_test_vehicle(), _ensure_erpnext_basics(), _get_or_create_customer(), Create or reuse a test Customer Vehicle., Create or reuse a test Customer Vehicle., Create or reuse a test Customer Vehicle., Create minimal ERPNext setup data if missing., Create minimal ERPNext setup data if missing. (+6 more)
-
-### Community 9 - "Community 9"
 Cohesion: 0.1
 Nodes (5): RepairServiceTemplate, RoadTestReport, _FreezeProbe, _RoadTestProbe, TestLegacyFreeze
 
-### Community 10 - "Community 10"
+### Community 9 - "Community 9"
 Cohesion: 0.09
 Nodes (18): approve(), CustomerAuthorization, Authorization is needed before work can begin., Approved amount must be positive., Authorization is needed before work can begin., Warn if authorization is expired., Authorization is needed before work can begin., Authorization is needed before work can begin. (+10 more)
 
-### Community 11 - "Community 11"
-Cohesion: 0.12
-Nodes (9): IntegrationTestCase, TestCustomerAuthorization, TestDiagnosisReport, TestERPNextAdapters, TestFleetServiceCampaign, TestQualityCheck, TestRepairJobOverride, TestRoadTestReport (+1 more)
+### Community 10 - "Community 10"
+Cohesion: 0.08
+Nodes (11): AutoServiceSettings, Document, FleetServiceCampaignJob, QualityCheckRoadTest, RepairJobInvoiceRow, RepairJobPaymentRow, RepairJobServiceRow, RepairServiceTemplateComponent (+3 more)
 
-### Community 12 - "Community 12"
+### Community 11 - "Community 11"
 Cohesion: 0.18
 Nodes (23): _active_link_name(), _component_description(), _component_refs(), _component_trace_fields(), _eligible_components(), _get_repair_job(), _get_target_doc(), _has_active_link() (+15 more)
 
+### Community 12 - "Community 12"
+Cohesion: 0.13
+Nodes (7): IntegrationTestCase, TestCustomerAuthorization, TestFleetServiceCampaign, TestQualityCheck, TestRepairJobOverride, TestRoadTestReport, TestWorkshopBay
+
 ### Community 13 - "Community 13"
 Cohesion: 0.12
-Nodes (12): execute(), execute(), execute(), execute(), execute(), execute(), execute(), _build_filters() (+4 more)
+Nodes (12): execute(), execute(), execute(), execute(), execute(), execute(), _build_filters(), _get_rows() (+4 more)
 
 ### Community 14 - "Community 14"
-Cohesion: 0.1
-Nodes (10): AutoServiceSettings, Document, FleetServiceCampaignJob, QualityCheckRoadTest, RepairJobInvoiceRow, RepairJobPaymentRow, RepairJobServiceRow, RepairServiceTemplateComponent (+2 more)
-
-### Community 15 - "Community 15"
 Cohesion: 0.14
 Nodes (12): assign_default_workspace(), backfill_default_workspace_for_existing_users(), Assign the workshop workspace when a qualifying user has no explicit default., Backfill the workshop workspace for qualifying users with a blank default., _roles_from_user_doc(), _should_assign_default_workspace(), _ensure_app_roles(), ensure_cashier_sales_invoice_custom_docperm() (+4 more)
 
-### Community 16 - "Community 16"
+### Community 15 - "Community 15"
 Cohesion: 0.14
 Nodes (7): _backfill_service_scope_revisions(), execute(), _submitted_service_scope(), FakeDB, FakeFrappe, FakeLogger, TestPhase24ServiceScopeBackfill
+
+### Community 16 - "Community 16"
+Cohesion: 0.16
+Nodes (14): _create_test_vehicle(), _ensure_erpnext_basics(), _get_or_create_customer(), Create or reuse a test Customer Vehicle., Create or reuse a test Customer Vehicle., Create or reuse a test Customer Vehicle., Create minimal ERPNext setup data if missing., Create minimal ERPNext setup data if missing. (+6 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.1
@@ -352,144 +352,144 @@ Cohesion: 0.12
 Nodes (10): Test actual Repair Job document transitions., Test actual Repair Job document transitions., Test actual Repair Job document transitions., Test actual Repair Job document transitions., Test actual Repair Job document transitions., Test actual Repair Job document transitions., Test actual Repair Job document transitions., Test actual Repair Job document transitions. (+2 more)
 
 ### Community 26 - "Community 26"
+Cohesion: 0.14
+Nodes (8): _create_repair_job(), Create a Draft Repair Job., Create a Draft Repair Job., Create a Draft Repair Job., Create a Draft Repair Job., Create a Draft Repair Job., TestGatePass, TestWalkaroundInspection
+
+### Community 27 - "Community 27"
 Cohesion: 0.15
 Nodes (3): get_auto_service_settings_configured_card_data(), _payment_entry_job_names(), TestWorkspaceDashboardContracts
 
-### Community 27 - "Community 27"
+### Community 28 - "Community 28"
+Cohesion: 0.28
+Nodes (14): build_quality_check_road_test_row(), build_quality_check_road_test_rows(), _derive_payment_status(), _get_enabled_job_workshop_bay(), _get_job_field(), _has_work_started(), _resolve_doc(), _service_invoice_rows() (+6 more)
+
+### Community 29 - "Community 29"
 Cohesion: 0.12
 Nodes (15): Auto Service Management, code:bash (git clone https://github.com/your-org/auto_service_managemen), code:bash (# Windows (run PowerShell as Administrator)), code:bash (docker compose -f docker-compose.dev.yml up -d), code:bash (curl http://auto-service.localhost:8080/api/method/ping), code:bash (docker exec dms-backend-1 bench --site auto-service-test.loc), code:bash (docker exec -it dms-backend-1 bash), code:bash (docker exec dms-backend-1 bench build --app auto_service_man) (+7 more)
 
-### Community 28 - "Community 28"
+### Community 30 - "Community 30"
 Cohesion: 0.12
 Nodes (15): Acceptance Scenario, Approved Architecture Corrections, Automobile Repair Management Specification, Configuration and Masters, Domain Model, ERPNext Integrations, Non-Functional Requirements, Objective and Boundaries (+7 more)
 
-### Community 29 - "Community 29"
+### Community 31 - "Community 31"
 Cohesion: 0.13
 Nodes (15): code:mermaid (graph TD), Final Practical Insight, Real-World Workflows — Auto Service Management, The Cast, The Main Records and How They Connect, The Numbers Behind the Stories, The Status Flow, The Workspace View Staff Actually Use (+7 more)
 
-### Community 30 - "Community 30"
+### Community 32 - "Community 32"
 Cohesion: 0.13
 Nodes (14): Create and save a draft Material Request for compatibility callers., Create the ERPNext Project if one does not yet exist., Create the ERPNext Project if one does not yet exist., Create the ERPNext Project if one does not yet exist., Create the ERPNext Project if one does not yet exist., Create the ERPNext Project if one does not yet exist., Create the ERPNext Project if one does not yet exist., Create the ERPNext Project if one does not yet exist. (+6 more)
 
-### Community 31 - "Community 31"
-Cohesion: 0.3
-Nodes (14): build_quality_check_road_test_row(), build_quality_check_road_test_rows(), _derive_payment_status(), _get_enabled_job_workshop_bay(), _get_job_field(), _has_work_started(), _resolve_doc(), _service_invoice_rows() (+6 more)
-
-### Community 32 - "Community 32"
-Cohesion: 0.16
-Nodes (8): _create_repair_job(), Create a Draft Repair Job., Create a Draft Repair Job., Create a Draft Repair Job., Create a Draft Repair Job., Create a Draft Repair Job., TestGatePass, TestWalkaroundInspection
-
 ### Community 33 - "Community 33"
+Cohesion: 0.16
+Nodes (6): build_repair_job_invoice_rows(), build_repair_job_payment_rows(), _derive_closure_type(), _legacy_invoice_names(), sync_repair_job_compatibility_views(), _FakeDoc
+
+### Community 34 - "Community 34"
 Cohesion: 0.24
 Nodes (9): _ensure_quality_check(), execute(), _insert_quality_check(), _insert_quality_check_road_test(), _insert_row(), _migrate_road_tests(), _next_road_test_idx(), _quality_check_road_test_exists() (+1 more)
 
-### Community 35 - "Community 35"
+### Community 36 - "Community 36"
 Cohesion: 0.14
 Nodes (13): App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden., App-type Desktop Icon for Auto Service Management must exist and not be hidden. (+5 more)
 
-### Community 36 - "Community 36"
+### Community 37 - "Community 37"
 Cohesion: 0.23
 Nodes (3): _ServiceProbe, _TemplateProbe, TestPhase13TemplateMaterialization
 
-### Community 37 - "Community 37"
+### Community 38 - "Community 38"
+Cohesion: 0.28
+Nodes (11): _active_service_total(), _collect_release_a_safety_issues(), _derive_payment_status(), execute(), _financial_issues(), _money(), _patch_log_issue(), _road_test_issues() (+3 more)
+
+### Community 39 - "Community 39"
 Cohesion: 0.22
 Nodes (5): _backfill_invoice_payment_summaries(), execute(), FakeDB, FakeFrappe, TestPhase25InvoicePaymentBackfill
 
-### Community 38 - "Community 38"
+### Community 40 - "Community 40"
 Cohesion: 0.15
 Nodes (12): Auto Service Management Implementation Plan, Evidence Rules, Phase 0 — Repository Governance, Phase 1 — Reproducible v16 Development, Phase 2 — Domain and Control Foundation, Phase 3 — Intake and Workshop Operations, Phase 4 — Estimates, Pricing, and Inventory, Phase 5 — QC, Billing, Release, and Closure (+4 more)
 
-### Community 39 - "Community 39"
+### Community 41 - "Community 41"
 Cohesion: 0.17
 Nodes (10): Bugs Found, Chrome Retry Update - 2026-07-19 18:00 EAT, DMS UI Walkthrough Bug Log - 2026-07-19, Fix Verification Update - 2026-07-19, Notes, Persona Setup, Persona UI Checks, Scope (+2 more)
 
-### Community 40 - "Community 40"
+### Community 42 - "Community 42"
 Cohesion: 0.26
 Nodes (3): Ensure linked Repair Job is in an appropriate state., Ensure linked Repair Job is in an appropriate state., WalkaroundInspection
 
-### Community 41 - "Community 41"
+### Community 43 - "Community 43"
 Cohesion: 0.3
 Nodes (9): add_related_document_button(), before_save(), can_create_gate_pass(), customer(), customer_vehicle(), refresh(), set_business_status_indicator(), setup() (+1 more)
 
-### Community 42 - "Community 42"
-Cohesion: 0.32
-Nodes (11): _active_service_total(), _collect_release_a_safety_issues(), _derive_payment_status(), execute(), _financial_issues(), _money(), _patch_log_issue(), _road_test_issues() (+3 more)
+### Community 44 - "Community 44"
+Cohesion: 0.21
+Nodes (6): _all_billable_components_submitted(), build_repair_job_service_rows(), _derive_repair_job_status(), _get_linked_doc(), _has_any_service_rows(), TestWorkflowCompatibility
 
-### Community 43 - "Community 43"
+### Community 45 - "Community 45"
 Cohesion: 0.24
 Nodes (5): build_repair_job_service_workshop_bay_rows(), _backfill_workshop_bays(), execute(), _ServiceProbe, TestPhase21WorkshopBayBackfill
 
-### Community 44 - "Community 44"
+### Community 46 - "Community 46"
 Cohesion: 0.17
 Nodes (11): hooks.py must declare after_install and after_migrate to ensure Desktop Icon exi, hooks.py must declare lifecycle hooks that run the full desktop setup., hooks.py must declare lifecycle hooks that run the full desktop setup., hooks.py must declare lifecycle hooks that run the full desktop setup., hooks.py must declare lifecycle hooks that run the full desktop setup., hooks.py must declare lifecycle hooks that run the full desktop setup., hooks.py must declare lifecycle hooks that run the full desktop setup., hooks.py must declare lifecycle hooks that run the full desktop setup. (+3 more)
 
-### Community 45 - "Community 45"
+### Community 47 - "Community 47"
 Cohesion: 0.31
 Nodes (6): _apply_docstatus_map(), execute(), _prepare_authorization_docstatus(), _prepare_service_docstatus(), _row_value(), TestPhase23DocstatusMapping
 
-### Community 46 - "Community 46"
+### Community 48 - "Community 48"
 Cohesion: 0.18
 Nodes (11): 10. Cancellation Before Completion, 2. First-Time Customer With a New Vehicle, 4. Partial Approval, 5. Fleet Service Campaign, 6. Walkaround Upsell, 7. Corporate Credit Release, 8. QC Failure and Rework, 9. Road-Test-Required Job (+3 more)
 
-### Community 47 - "Community 47"
+### Community 49 - "Community 49"
 Cohesion: 0.18
 Nodes (9): hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop I, hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop I, hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop I, hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop I, hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop I, Desktop setup owns the DMS menu; a second app-screen entry would duplicate it., hooks.py must declare add_to_apps_screen so Frappe creates an App-type Desktop I, desktop.py must exist and export create_app_desktop_icon and ensure_permission. (+1 more)
 
-### Community 48 - "Community 48"
+### Community 50 - "Community 50"
 Cohesion: 0.18
 Nodes (10): Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle., Gate Pass issue → use lifecycle. (+2 more)
 
-### Community 49 - "Community 49"
+### Community 51 - "Community 51"
 Cohesion: 0.29
 Nodes (3): DiagnosisReport, Diagnosis can only happen after check-in., Diagnosis can only happen after check-in.
 
-### Community 50 - "Community 50"
-Cohesion: 0.27
-Nodes (5): _all_billable_components_submitted(), _derive_repair_job_status(), _get_linked_doc(), _has_any_service_rows(), TestWorkflowCompatibility
-
-### Community 51 - "Community 51"
+### Community 52 - "Community 52"
 Cohesion: 0.2
 Nodes (9): desktop.py must exist and export create_app_desktop_icon and ensure_permission., desktop.py must exist and export create_app_desktop_icon and ensure_permission., desktop.py must exist and export create_app_desktop_icon and ensure_permission., desktop.py must exist and export create_app_desktop_icon and ensure_permission., desktop.py must exist and export create_app_desktop_icon and ensure_permission., desktop.py must create the app icon and the grouped workspace sidebar., desktop.py must create the app icon and the grouped workspace sidebar., desktop.py must exist and export create_app_desktop_icon and ensure_permission. (+1 more)
 
-### Community 52 - "Community 52"
+### Community 53 - "Community 53"
 Cohesion: 0.2
 Nodes (9): Walk a Repair Job through the entire happy path., Walk a Repair Job through the entire happy path., Walk a Repair Job through the entire happy path., Walk a Repair Job through the entire happy path., Walk a Repair Job through the entire happy path., Walk a Repair Job through the entire happy path., Walk a Repair Job through the entire happy path., Walk a Repair Job through the entire happy path. (+1 more)
 
-### Community 54 - "Community 54"
-Cohesion: 0.25
-Nodes (6): build_repair_job_invoice_rows(), build_repair_job_payment_rows(), build_repair_job_service_rows(), _derive_closure_type(), _legacy_invoice_names(), sync_repair_job_compatibility_views()
-
-### Community 58 - "Community 58"
+### Community 55 - "Community 55"
 Cohesion: 0.25
 Nodes (7): Return service/component rows for print formats and summaries., Return service/component rows for print formats and summaries., Return service/component rows for print formats and summaries., Return service/component rows for print formats and summaries., Return service/component rows for print formats and summaries., Return service/component rows for print formats and summaries., Return service/component rows for print formats and summaries.
 
-### Community 59 - "Community 59"
+### Community 57 - "Community 57"
 Cohesion: 0.46
 Nodes (7): get_component_child_card_data(), get_repair_job_service_consumables_card_data(), get_repair_job_service_labour_card_data(), get_repair_job_service_parts_card_data(), get_repair_service_template_consumables_card_data(), get_repair_service_template_labour_card_data(), get_repair_service_template_parts_card_data()
 
-### Community 60 - "Community 60"
+### Community 58 - "Community 58"
 Cohesion: 0.32
 Nodes (6): _ensure_erpnext_basics(), _get_or_create_test_customer(), Create or reuse a test Customer for vehicle tests., Two vehicles with the same VIN should not coexist., Create minimal ERPNext setup data if missing., TestCustomerVehicle
 
-### Community 63 - "Community 63"
+### Community 62 - "Community 62"
 Cohesion: 0.25
 Nodes (7): Conclusion, Global Finding, Goal, Method, Phase 6 Role UI Walkthrough — 2026-06-30, Role Results, Verification Source
 
-### Community 64 - "Community 64"
+### Community 63 - "Community 63"
 Cohesion: 0.29
 Nodes (6): Auto Service Management, code:bash (cd $PATH_TO_YOUR_BENCH), code:bash (cd apps/auto_service_management), Contributing, Installation, License
 
-### Community 65 - "Community 65"
+### Community 64 - "Community 64"
 Cohesion: 0.29
 Nodes (6): Counts, Migration Baseline, Notes, Relationships, Snapshot, Totals
 
 ### Community 68 - "Community 68"
 Cohesion: 0.33
-Nodes (6): code:text (Draft), Status journey, The Core Status Journey, Use Case 1: The Normal Walk-In Repair, What happens, What the system enforces
+Nodes (6): 3. Diagnosis Only, code:text (Draft -> Checked In -> Walkaround Inspection -> Diagnosis ->), Status journey, Use Case 8: The Quality Reject — Rework Required, What happens, What the system enforces
 
 ### Community 69 - "Community 69"
 Cohesion: 0.33
-Nodes (6): 3. Diagnosis Only, code:text (Draft -> Checked In -> Walkaround Inspection -> Diagnosis ->), Status journey, Use Case 8: The Quality Reject — Rework Required, What happens, What the system enforces
+Nodes (6): code:text (Draft), Status journey, The Core Status Journey, Use Case 1: The Normal Walk-In Repair, What happens, What the system enforces
 
 ### Community 70 - "Community 70"
 Cohesion: 0.33
@@ -501,15 +501,15 @@ Nodes (3): Create workspace from JSON, with forced module map rebuild., Create w
 
 ### Community 90 - "Community 90"
 Cohesion: 0.67
-Nodes (3): Use Case 10: The Angry Customer — Cancellation Mid-Work, What happens, What the system enforces
+Nodes (3): Use Case 5: The Corporate Fleet — Batch Service, What happens, What the system enforces
 
 ### Community 91 - "Community 91"
 Cohesion: 0.67
-Nodes (3): Use Case 9: The Diagnostic Dilemma — Road Test Required, What happens, What the system enforces
+Nodes (3): Use Case 4: Partial Approval — "Fix This, Not That", What happens, What the system enforces
 
 ### Community 92 - "Community 92"
 Cohesion: 0.67
-Nodes (3): Use Case 5: The Corporate Fleet — Batch Service, What happens, What the system enforces
+Nodes (3): Use Case 9: The Diagnostic Dilemma — Road Test Required, What happens, What the system enforces
 
 ### Community 93 - "Community 93"
 Cohesion: 0.67
@@ -517,7 +517,7 @@ Nodes (3): Use Case 2: First-Time Customer, New Vehicle, What happens, What's di
 
 ### Community 94 - "Community 94"
 Cohesion: 0.67
-Nodes (3): Use Case 4: Partial Approval — "Fix This, Not That", What happens, What the system enforces
+Nodes (3): Use Case 10: The Angry Customer — Cancellation Mid-Work, What happens, What the system enforces
 
 ## Knowledge Gaps
 - **546 isolated node(s):** `Scope`, `Chrome Retry Update - 2026-07-19 18:00 EAT`, `Fix Verification Update - 2026-07-19`, `Surfaces Checked`, `Persona UI Checks` (+541 more)
@@ -527,11 +527,11 @@ Nodes (3): Use Case 4: Partial Approval — "Fix This, Not That", What happens, 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `RepairJob` connect `Community 0` to `Community 17`, `Community 58`, `Community 14`, `Community 30`?**
+- **Why does `RepairJob` connect `Community 0` to `Community 32`, `Community 17`, `Community 10`, `Community 55`?**
   _High betweenness centrality (0.089) - this node is a cross-community bridge._
-- **Why does `iter_repair_job_components()` connect `Community 1` to `Community 0`, `Community 2`, `Community 3`, `Community 5`, `Community 12`, `Community 50`, `Community 54`, `Community 26`?**
+- **Why does `iter_repair_job_components()` connect `Community 1` to `Community 0`, `Community 33`, `Community 2`, `Community 3`, `Community 5`, `Community 11`, `Community 44`, `Community 27`?**
   _High betweenness centrality (0.088) - this node is a cross-community bridge._
-- **Why does `TestPhase6Contracts` connect `Community 24` to `Community 72`, `Community 44`, `Community 47`, `Community 51`, `Community 26`?**
+- **Why does `TestPhase6Contracts` connect `Community 24` to `Community 71`, `Community 46`, `Community 49`, `Community 52`, `Community 27`?**
   _High betweenness centrality (0.068) - this node is a cross-community bridge._
 - **Are the 7 inferred relationships involving `RepairJobService` (e.g. with `_FreezeProbe` and `TestLegacyFreeze`) actually correct?**
   _`RepairJobService` has 7 INFERRED edges - model-reasoned connections that need verification._
