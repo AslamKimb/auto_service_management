@@ -10,6 +10,14 @@
 
 ## Bugs Found
 
+### Authorization and Invoice Detail Update - 2026-07-19 19:05 EAT
+
+| Status | Area | Evidence |
+| --- | --- | --- |
+| Passed | Service Advisor submitted authorization detail | Fresh Service Advisor session opened `/desk/customer-authorization/CA-2026-00039` linked to `RJ-2026-00034`. The submitted form showed avatar `SA`, title `RJ-2026-00034 - CA-2026-00039`, `Repair Job = RJ-2026-00034`, `Customer = Abdul`, `Approved Amount = Sh 440,000.00`, `Scope Revision = 2`, `Scope Total Amount = Sh 440,000.00`, `Currency = UGX`, and no captured console warnings or errors. |
+| Passed | Submitted authorization Link-field display | Unlike editable Quality Check and Gate Pass records, the submitted Customer Authorization rendered linked fields as visible values (`RJ-2026-00034`, `Abdul`, `asl.kimb@gmail.com`) instead of `Begin typing for results.`. |
+| Setup issue | Cashier invoice detail login blocked | After clearing sessions, `walkthrough.cashier@example.com` stayed on `/login?redirect-to=%2Fdesk%2Fsales-invoice%2FACC-SINV-2026-00007` with no visible error when using password `admin`. Resetting the persona with `bench --site auto-service.localhost set-password walkthrough.cashier@example.com admin` did not restore headed login in this retry. Server checks confirmed the user is enabled, `System User`, `default_workspace = "Workshop Management"`, and has roles `Cashier`, `Desk User`, `All`, and `Guest`. The paid invoice detail could not be verified in headed Chrome as Cashier in this pass. |
+
 ### Remaining Workflow Record Update - 2026-07-19 18:45 EAT
 
 | Status | Area | Evidence |
