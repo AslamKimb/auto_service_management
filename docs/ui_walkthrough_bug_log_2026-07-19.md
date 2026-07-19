@@ -10,6 +10,15 @@
 
 ## Bugs Found
 
+### Parts Interpreter Parts Queue Update - 2026-07-19
+
+| Status | Area | Evidence |
+| --- | --- | --- |
+| Passed | Parts Interpreter parts queue loads | Fresh headed Chrome login as `walkthrough.parts.interpreter@example.com` with password `admin` reached `/desk/workshop-management` with avatar `PI`. Opening `/desk/query-report/Jobs%20Waiting%20for%20Parts` loaded the live report and displayed shortage rows with `Repair Job`, `Service`, `Item`, `Description`, `Quantity`, and `Stock Request Status`. |
+| Bug | Jobs Waiting for Parts includes closed jobs | The report listed `RJ-2026-00034` with `Front brake pad set` and `TEST-CONSUMABLE-20260711180429` rows marked `Not Requested`. Opening `/desk/repair-job/RJ-2026-00034` as Parts Interpreter showed the job status is `Closed` and the form is workflow read-only. A normal parts user sees completed work mixed into the actionable parts queue. |
+| Source confirmation | Parts queue report lacks parent job status filter | `WORKSHOP_REPORTS["Jobs Waiting for Parts"]` filters only `stock_request_status in ["Not Requested", "Requested"]`; unlike `Open Repair Jobs`, it does not exclude parent `Repair Job` statuses `Closed` or `Cancelled`. |
+| Bug | Desk/workspace console warnings persist | The Parts Interpreter workspace load again captured two `"" is not a valid color.` warnings from `desk.bundle.OBHPYFFY.js`. |
+
 ### Cashier Invoice Detail Recovery - 2026-07-19 19:20 EAT
 
 | Status | Area | Evidence |
