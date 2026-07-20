@@ -91,17 +91,17 @@ doc_events = {
 # Lifecycle hooks — ensure Desktop Icon records exist after install/migrate
 after_install = [
 	"auto_service_management.auto_service_management.custom_fields.ensure_trace_custom_fields",
-	"auto_service_management.auto_service_management.workflow_setup.ensure_repair_job_workflow",
+	"auto_service_management.auto_service_management.workflow_setup.deactivate_repair_job_workflow",
 	"auto_service_management.auto_service_management.desktop.setup_desktop",
 ]
 after_migrate = [
 	"auto_service_management.auto_service_management.custom_fields.ensure_trace_custom_fields",
-	"auto_service_management.auto_service_management.workflow_setup.ensure_repair_job_workflow",
+	"auto_service_management.auto_service_management.workflow_setup.deactivate_repair_job_workflow",
 	"auto_service_management.auto_service_management.desktop.setup_desktop",
 ]
 before_tests = [
 	"auto_service_management.auto_service_management.custom_fields.ensure_trace_custom_fields",
-	"auto_service_management.auto_service_management.workflow_setup.ensure_repair_job_workflow",
+	"auto_service_management.auto_service_management.workflow_setup.deactivate_repair_job_workflow",
 	"auto_service_management.auto_service_management.desktop.setup_desktop",
 ]
 boot_session = ["auto_service_management.auto_service_management.desktop.remove_auto_generated_sidebar"]

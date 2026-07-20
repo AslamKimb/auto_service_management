@@ -42,26 +42,16 @@ REPAIR_JOB_PAYMENT_FIELDS = (
 
 
 TERMINAL_JOB_STATUSES = {"Closed", "Cancelled"}
-JOB_STATUS_RANK = {
-	"Draft": 0,
-	"Assessment": 1,
-	"Checked In": 1,
-	"Walkaround Inspection": 1,
-	"Diagnosis": 1,
-	"Awaiting Approval": 2,
-	"Estimate Prepared": 2,
-	"Waiting for Customer Approval": 2,
-	"Approved": 3,
-	"In Repair": 3,
-	"Quality Check": 4,
-	"Billing": 5,
-	"Ready for Invoice": 5,
-	"Invoiced": 6,
-	"Ready for Release": 6,
-	"Gate Pass Issued": 6,
-	"Closed": 7,
-	"Closed - Diagnosis Only": 7,
-	"Cancelled": 99,
+CANONICAL_JOB_STATUSES = {
+	"Draft",
+	"Assessment",
+	"Awaiting Approval",
+	"In Repair",
+	"Quality Check",
+	"Billing",
+	"Ready for Release",
+	"Closed",
+	"Cancelled",
 }
 
 
@@ -129,11 +119,16 @@ def recompute_repair_job_state(repair_job_name: str):
 	if getattr(job.flags, "skip_compatibility_sync", False):
 		return job
 	target = _derive_repair_job_status(job)
-	if target and JOB_STATUS_RANK.get(target, -1) < JOB_STATUS_RANK.get(job.job_status or "Draft", -1):
-		target = job.job_status
+	if target == "Closed":
+		gate_pass = _get_linked_doc(job.name, "Gate Pass")
+		if gate_pass and gate_pass.status == "Used" and job.docstatus == 0:
+			job._finalize_closure(ignore_permissions=True)
+		return job
 	if not target or target == job.job_status:
 		return job
 	job.job_status = target
+	if job.meta.has_field("workflow_state"):
+		job.workflow_state = target
 	job.flags.skip_status_validation = True
 	job.flags.ignore_links = True
 	job.save(ignore_permissions=True)
@@ -169,7 +164,6 @@ def sync_repair_job_service_summary(service):
 	if getattr(service.flags, "skip_compatibility_sync", False):
 		return service
 
-	service.workshop_bay = service.workshop_bay or _get_enabled_job_workshop_bay(service.repair_job)
 	invoices = _service_invoice_rows(service)
 	payment_total = _service_payment_total(service, invoices)
 	service.invoice_total = flt(sum(flt(row.get("invoice_amount")) for row in invoices))
@@ -447,11 +441,11 @@ def _derive_repair_job_status(job):
 		return "Ready for Release"
 
 	if _all_billable_components_submitted(job.name):
-		if _has_work_started(job.name) and getattr(job, "payment_status", None) == "Paid":
+		if getattr(job, "payment_status", None) == "Paid":
 			return "Ready for Release"
-		return "Ready for Invoice"
+		return "Billing"
 	if _has_any_billable_invoice(job.name):
-		return "Ready for Invoice"
+		return "Billing"
 
 	quality_check = _get_linked_doc(job.name, "Quality Check")
 	if quality_check:
@@ -459,27 +453,29 @@ def _derive_repair_job_status(job):
 		if qc_status in {"Failed", "Rework"}:
 			return "In Repair"
 		if qc_status == "Passed":
-			return "Ready for Invoice"
+			return "Billing"
 		return "Quality Check"
 
 	authorization = _get_linked_doc(job.name, "Customer Authorization")
 	if authorization:
 		if getattr(authorization, "docstatus", 0) == 1:
-			if _has_work_started(job.name):
-				return "In Repair"
-			return "Awaiting Approval"
+			return "In Repair"
 		return "Awaiting Approval"
 
 	diagnosis = _get_linked_doc(job.name, "Diagnosis Report")
 	if diagnosis:
+		if getattr(diagnosis, "docstatus", 0) != 1:
+			return "Assessment"
 		if _has_any_service_rows(job.name):
 			return "Awaiting Approval"
-		return "Ready for Invoice"
+		return "Billing"
 
 	if _get_linked_doc(job.name, "Walkaround Inspection"):
 		return "Assessment"
+	if getattr(job, "project", None):
+		return "Assessment"
 
-	if current != "Draft":
+	if current in CANONICAL_JOB_STATUSES:
 		return current
 	return "Draft"
 

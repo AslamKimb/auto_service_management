@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import sys
+import types
+import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
-import unittest
 
-from auto_service_management.auto_service_management.workflow_setup import (
+sys.modules.setdefault("frappe", types.SimpleNamespace())
+
+from auto_service_management.auto_service_management.auto_service_management.workflow_setup import (
 	WORKFLOW_NAME,
-	ensure_repair_job_workflow,
+	deactivate_repair_job_workflow,
 )
 
 
@@ -45,9 +49,16 @@ class _FakeDoc:
 class _FakeDB:
 	def __init__(self):
 		self.existing = set()
+		self.values = {("Workflow", WORKFLOW_NAME, "is_active"): 1}
 
 	def exists(self, doctype, name):
 		return (doctype, name) in self.existing
+
+	def get_value(self, doctype, name, fieldname):
+		return self.values.get((doctype, name, fieldname))
+
+	def set_value(self, doctype, name, fieldname, value, update_modified=False):
+		self.values[(doctype, name, fieldname)] = value
 
 
 class _FakeFrappe:
@@ -66,29 +77,16 @@ class _FakeFrappe:
 
 
 class TestPhase41WorkflowSetup(unittest.TestCase):
-	def test_ensure_repair_job_workflow_builds_reduced_state_machine(self):
+	def test_deactivate_repair_job_workflow_disables_legacy_workflow(self):
 		fake_frappe = _FakeFrappe()
+		workflow = _FakeDoc("Workflow", is_active=1)
+		fake_frappe.created[WORKFLOW_NAME] = workflow
+		fake_frappe.db.existing.add(("Workflow", WORKFLOW_NAME))
 
-		with patch("auto_service_management.auto_service_management.workflow_setup.frappe", fake_frappe):
-			ensure_repair_job_workflow()
+		with patch(
+			"auto_service_management.auto_service_management.auto_service_management.workflow_setup.frappe",
+			fake_frappe,
+		):
+			deactivate_repair_job_workflow()
 
-		workflow = fake_frappe.created[WORKFLOW_NAME]
-		self.assertEqual(workflow.document_type, "Repair Job")
-		self.assertEqual(workflow.workflow_state_field, "workflow_state")
-		self.assertTrue(workflow.inserted)
-		self.assertEqual(9, len(workflow.states))
-		self.assertEqual(12, len(workflow.transitions))
-		self.assertEqual(
-			{
-				"Draft",
-				"Assessment",
-				"Awaiting Approval",
-				"In Repair",
-				"Quality Check",
-				"Billing",
-				"Ready for Release",
-				"Closed",
-				"Cancelled",
-			},
-			{row["state"] for row in workflow.states},
-		)
+		self.assertEqual(0, fake_frappe.db.values[("Workflow", WORKFLOW_NAME, "is_active")])

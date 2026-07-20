@@ -14,6 +14,21 @@ class DiagnosisReport(Document):
 	def on_update(self):
 		self.sync_primary_link()
 
+	def on_submit(self):
+		self.sync_primary_link()
+		self._recompute_repair_job()
+
+	def on_cancel(self):
+		self._recompute_repair_job()
+
+	def _recompute_repair_job(self):
+		if self.repair_job:
+			from auto_service_management.auto_service_management.workflow_compatibility import (
+				recompute_repair_job_state,
+			)
+
+			recompute_repair_job_state(self.repair_job)
+
 	def sync_with_repair_job(self):
 		if not self.repair_job:
 			return
@@ -38,10 +53,14 @@ class DiagnosisReport(Document):
 	def validate_unique_for_repair_job(self):
 		if not self.repair_job:
 			return
-		existing = frappe.db.exists(
-			"Diagnosis Report",
-			{"repair_job": self.repair_job, "name": ["!=", self.name or ""]},
+		existing = frappe.db.sql(
+			"""SELECT name FROM `tabDiagnosis Report`
+			WHERE repair_job = %s AND name != %s AND docstatus != 2 LIMIT 1""",
+			(self.repair_job, self.name or ""),
+			as_dict=False,
 		)
+		if existing:
+			existing = existing[0][0]
 		if existing:
 			frappe.throw("Only one Diagnosis Report may be linked to a Repair Job.")
 

@@ -15,6 +15,16 @@ def _doctype_fields(folder):
 
 
 class TestRepairWorkflowCharacterization(unittest.TestCase):
+	def test_legacy_workflow_cannot_override_job_status(self):
+		workflow_setup = (MODULE_ROOT / "workflow_setup.py").read_text(encoding="utf-8")
+		hooks = (MODULE_ROOT.parent / "hooks.py").read_text(encoding="utf-8")
+		patches = (MODULE_ROOT.parent / "patches.txt").read_text(encoding="utf-8")
+
+		self.assertIn('"is_active", 0', workflow_setup)
+		self.assertNotIn('"is_active", 1', workflow_setup)
+		self.assertIn("deactivate_repair_job_workflow", hooks)
+		self.assertIn("phase18_reconcile_repair_job_state", patches)
+
 	def test_repair_job_status_contract_is_reduced_and_automatic(self):
 		statuses = [value for value in _doctype_fields("repair_job")["job_status"]["options"].splitlines() if value]
 

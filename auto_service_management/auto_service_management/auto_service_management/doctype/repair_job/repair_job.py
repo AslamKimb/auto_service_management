@@ -65,6 +65,10 @@ class RepairJob(Document):
 		self.set_currency_from_settings()
 		self.fetch_vehicle_details()
 
+	def before_submit(self):
+		if self.job_status != "Closed":
+			frappe.throw(_("Only a Closed Repair Job can be submitted."))
+
 	def validate_intake_requirements(self):
 		if self.odometer_in is None:
 			frappe.throw(_("Odometer In (km) is required before creating a Repair Job."))
@@ -461,7 +465,7 @@ class RepairJob(Document):
 	def _require_write_permission(self):
 		self.check_permission("write")
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def check_in(self):
 		"""Check in the vehicle. Creates the ERPNext Project on first check-in."""
 		self._require_write_permission()
@@ -470,7 +474,7 @@ class RepairJob(Document):
 		self._ensure_project()
 		self._write_log("check_in")
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def start_diagnosis(self):
 		self._require_write_permission()
 		self._require_primary_document("walkaround_inspection", "Walkaround Inspection")
@@ -478,19 +482,19 @@ class RepairJob(Document):
 		self.save()
 		self._write_log("start_diagnosis")
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def prepare_estimate(self):
 		self._require_write_permission()
-		self._require_primary_document("diagnosis_report", "Diagnosis Report")
+		self._require_submitted_diagnosis()
 		self._transition_to("Awaiting Approval")
 		self.save()
 		self._write_log("estimate_prepared")
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def complete_diagnosis(self):
 		self._require_write_permission()
-		self._require_primary_document("diagnosis_report", "Diagnosis Report")
-		if _has_any_service_rows(self.name):
+		self._require_submitted_diagnosis()
+		if self._get_services():
 			target_status = "Awaiting Approval"
 		else:
 			target_status = "Billing"
@@ -499,17 +503,17 @@ class RepairJob(Document):
 			self.save()
 		self._write_log("complete_diagnosis")
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def request_authorization(self):
 		self._require_write_permission()
-		self._require_primary_document("diagnosis_report", "Diagnosis Report")
+		self._require_submitted_diagnosis()
 		if self.job_status != "Awaiting Approval":
 			self._transition_to("Awaiting Approval")
 			self.save()
 		self._write_log("request_authorization")
 		return
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def authorize(self):
 		self._require_write_permission()
 		self._require_approved_authorization()
@@ -518,7 +522,7 @@ class RepairJob(Document):
 		self.save()
 		self._write_log("authorized")
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def start_work(self):
 		"""Begin repair work. Requires authorization."""
 		self._require_write_permission()
@@ -527,14 +531,14 @@ class RepairJob(Document):
 		self.save()
 		self._write_log("start_work")
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def hold_for_qc(self):
 		self._require_write_permission()
 		self._transition_to("Quality Check")
 		self.save()
 		self._write_log("hold_for_qc")
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def pass_qc(self):
 		self._require_write_permission()
 		self._require_passed_quality_check()
@@ -554,7 +558,7 @@ class RepairJob(Document):
 		self._sync_invoice_state()
 		self._write_log("ready_for_invoice")
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def release(self):
 		self._require_write_permission()
 		self._sync_invoice_state()
@@ -562,33 +566,21 @@ class RepairJob(Document):
 		self.save()
 		self._write_log("released")
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def close(self):
 		"""Close the job. Creates Service History and updates vehicle."""
 		self._require_write_permission()
-		self._require_issued_gate_pass()
-		self._transition_to("Closed")
-		self.closed_on = datetime.now()
-		self.closed_by = frappe.session.user
-		self.save()
-		self._update_vehicle_after_closure()
-		self._create_service_history()
+		self._finalize_closure()
 		self._write_log("closed")
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def close_as_diagnosis_only(self):
 		self._require_write_permission()
-		self._require_issued_gate_pass()
 		self.closure_type = "Diagnosis Only"
-		self._transition_to("Closed")
-		self.closed_on = datetime.now()
-		self.closed_by = frappe.session.user
-		self.save()
-		self._update_vehicle_after_closure()
-		self._create_service_history()
+		self._finalize_closure()
 		self._write_log("closed_diagnosis_only")
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def cancel(self):
 		self._require_write_permission()
 		self._transition_to("Cancelled")
@@ -734,11 +726,24 @@ class RepairJob(Document):
 
 	def _transition_to(self, target_status):
 		self.job_status = target_status
+		if self.meta.has_field("workflow_state"):
+			self.workflow_state = target_status
 
 	def _require_primary_document(self, fieldname, label):
 		self.resolve_primary_related_documents()
 		if not getattr(self, fieldname, None):
 			frappe.throw(_("{0} must be linked to this Repair Job before continuing.").format(label))
+
+	def _require_submitted_diagnosis(self):
+		self.resolve_primary_related_documents()
+		if not self.diagnosis_report:
+			self.diagnosis_report = frappe.db.get_value(
+				"Diagnosis Report", {"repair_job": self.name, "docstatus": ["!=", 2]}, "name"
+			)
+		if not self.diagnosis_report:
+			frappe.throw(_("Diagnosis Report must be linked to this Repair Job before continuing."))
+		if frappe.db.get_value("Diagnosis Report", self.diagnosis_report, "docstatus") != 1:
+			frappe.throw(_("Diagnosis Report must be submitted before continuing."))
 
 	def _require_approved_authorization(self):
 		self._require_primary_document("customer_authorization", "Customer Authorization")
@@ -771,8 +776,22 @@ class RepairJob(Document):
 	def _require_issued_gate_pass(self):
 		self._require_primary_document("gate_pass", "Gate Pass")
 		gate_pass = frappe.get_doc("Gate Pass", self.gate_pass)
-		if gate_pass.status not in {"Issued", "Used"}:
-			frappe.throw(_("Gate Pass must be issued before closing the Repair Job."))
+		if gate_pass.status != "Used":
+			frappe.throw(_("Gate Pass must be used before closing the Repair Job."))
+
+	def _finalize_closure(self, ignore_permissions=False):
+		self._require_issued_gate_pass()
+		self._transition_to("Closed")
+		self.closed_on = self.closed_on or datetime.now()
+		self.closed_by = self.closed_by or frappe.session.user
+		self.flags.ignore_permissions = ignore_permissions
+		self.flags.ignore_links = True
+		self.flags.skip_status_validation = True
+		self.save(ignore_permissions=ignore_permissions)
+		if self.docstatus == 0:
+			self.submit()
+		self._update_vehicle_after_closure()
+		self._create_service_history()
 
 	def _coerce_line_names(self, line_names):
 		if not line_names:

@@ -30,6 +30,7 @@ frappe.ui.form.on("Repair Job", {
 			return;
 		}
 		frm.set_df_property("job_status", "read_only", 1);
+		add_workflow_action_buttons(frm);
 
 		frm.add_custom_button("Create Service", () => {
 			new_doc_with_values("Repair Job Service", {
@@ -47,7 +48,7 @@ frappe.ui.form.on("Repair Job", {
 			});
 		}, "Services");
 
-		if (["Billing", "Ready for Invoice", "Ready for Release"].includes(frm.doc.job_status)) {
+		if (["Billing", "Ready for Release"].includes(frm.doc.job_status)) {
 			frm.add_custom_button(__("Sales Invoice"), () => {
 				frappe.model.open_mapped_doc({
 					method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_sales_invoice",
@@ -170,6 +171,20 @@ frappe.ui.form.on("Repair Job", {
 		});
 	},
 });
+
+function add_workflow_action_buttons(frm) {
+	const actions = {
+		Draft: [["Check In", "check_in"]],
+		Assessment: [["Complete Diagnosis", "complete_diagnosis"]],
+		"In Repair": [["Send to QC", "hold_for_qc"]],
+		"Quality Check": [["Pass QC", "pass_qc"]],
+	};
+	for (const [label, method] of actions[frm.doc.job_status] || []) {
+		frm.add_custom_button(__(label), () => {
+			frm.call(method).then(() => frm.reload_doc());
+		}, __("Workflow"));
+	}
+}
 
 function add_related_document_button(frm, options) {
 	if (frm.doc[options.fieldname]) {

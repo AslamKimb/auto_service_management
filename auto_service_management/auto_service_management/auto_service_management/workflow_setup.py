@@ -35,48 +35,20 @@ WORKFLOW_TRANSITIONS = (
 
 
 def ensure_repair_job_workflow():
-	_ensure_workflow_states()
-	_ensure_workflow_actions()
-	workflow = frappe.get_doc({"doctype": "Workflow", "workflow_name": WORKFLOW_NAME})
-	if frappe.db.exists("Workflow", WORKFLOW_NAME):
-		workflow = frappe.get_doc("Workflow", WORKFLOW_NAME)
+	"""Compatibility hook: keep the legacy Workflow record inactive.
 
-	workflow.document_type = DOCUMENT_TYPE
-	workflow.is_active = 1
-	workflow.override_status = 1
-	workflow.send_email_alert = 0
-	workflow.enable_action_confirmation = 0
-	workflow.workflow_state_field = WORKFLOW_STATE_FIELD
-	workflow.set(
-		"states",
-		[
-			{
-				"state": state,
-				"doc_status": _doc_status(state),
-				"allow_edit": allow_edit,
-				"style": style,
-			}
-			for state, allow_edit, style in WORKFLOW_STATES
-		],
-	)
-	workflow.set(
-		"transitions",
-		[
-			{
-				"state": state,
-				"action": action,
-				"next_state": next_state,
-				"allowed": allowed,
-				"condition": condition,
-				"allow_self_approval": 1 if action == "Check In" else 0,
-			}
-			for state, action, next_state, allowed, condition in WORKFLOW_TRANSITIONS
-		],
-	)
-	if frappe.db.exists("Workflow", WORKFLOW_NAME):
-		workflow.save(ignore_permissions=True)
-	else:
-		workflow.insert(ignore_permissions=True)
+	Repair Job transitions belong to the controller and documentary evidence.
+	The old native workflow is retained for one release so existing
+	``workflow_state`` data remains readable, but it must not be executable.
+	"""
+	deactivate_repair_job_workflow()
+
+
+def deactivate_repair_job_workflow():
+	if not frappe.db.exists("Workflow", WORKFLOW_NAME):
+		return
+	if frappe.db.get_value("Workflow", WORKFLOW_NAME, "is_active"):
+		frappe.db.set_value("Workflow", WORKFLOW_NAME, "is_active", 0, update_modified=False)
 
 
 def _ensure_workflow_states():

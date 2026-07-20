@@ -1,6 +1,7 @@
 [pre_model_sync]
 # Patches added in this section will be executed before doctypes are migrated
 # Read docs to understand patches: https://frappeframework.com/docs/v14/user/en/database-migrations
+auto_service_management.patches.phase19_document_model_reconciliation
 auto_service_management.patches.phase17_pre_model_sync_safety
 
 [post_model_sync]
@@ -10,8 +11,8 @@ auto_service_management.patches.phase8_service_operations
 auto_service_management.patches.phase9_type_specific_service_components
 auto_service_management.patches.phase10_archive_subcontracted_services
 auto_service_management.patches.phase11_materialize_template_services
-auto_service_management.patches.phase12_backfill_workshop_bays
 auto_service_management.patches.phase13_migrate_road_tests
 auto_service_management.patches.phase14_prepare_service_authorization_docstatus
 auto_service_management.patches.phase15_backfill_service_scope_revisions
 auto_service_management.patches.phase16_backfill_invoice_payment_summaries
+auto_service_management.patches.phase18_reconcile_repair_job_state

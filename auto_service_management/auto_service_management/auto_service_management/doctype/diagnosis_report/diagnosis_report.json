@@ -4,6 +4,7 @@
   "doctype": "DocType",
   "document_type": "Document",
   "engine": "InnoDB",
+  "is_submittable": 1,
   "autoname": "format:DR-{YYYY}-{#####}",
   "track_changes": 1,
   "fields": [
@@ -91,13 +92,6 @@
       "fieldname": "required_parts",
       "fieldtype": "Small Text",
       "label": "Required Parts Summary"
-    },
-    {
-      "fieldname": "status",
-      "fieldtype": "Select",
-      "label": "Status",
-      "options": "\nDraft\nSubmitted\nCancelled",
-      "default": "Draft"
     }
   ],
   "permissions": [
@@ -106,19 +100,23 @@
       "read": 1,
       "write": 1,
       "create": 1,
+      "submit": 1,
+      "cancel": 1,
       "delete": 1
     },
     {
       "role": "Service Advisor",
       "read": 1,
       "write": 1,
-      "create": 1
+      "create": 1,
+      "submit": 1
     },
     {
       "role": "Workshop Technician",
       "read": 1,
       "write": 1,
-      "create": 1
+      "create": 1,
+      "submit": 1
     }
   ],
   "sort_field": "modified",

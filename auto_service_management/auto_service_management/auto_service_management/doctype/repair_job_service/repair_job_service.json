@@ -4,7 +4,7 @@
  "doctype": "DocType",
  "document_type": "Document",
  "engine": "InnoDB",
- "is_submittable": 1,
+ "is_submittable": 0,
  "autoname": "format:RJS-{YYYY}-{#####}",
  "track_changes": 1,
  "fields": [
@@ -46,7 +46,7 @@
    "fieldtype": "Link",
    "label": "Workshop Bay",
    "options": "Workshop Bay",
-   "fetch_from": "repair_job.workshop_bay",
+   "reqd": 1,
    "in_list_view": 1
   },
   {

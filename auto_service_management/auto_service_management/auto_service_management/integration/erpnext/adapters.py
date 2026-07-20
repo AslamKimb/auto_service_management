@@ -79,13 +79,17 @@ def create_project_for_repair_job(repair_job):
 		return repair_job.project
 
 	settings = get_settings()
+	expected_start_date = frappe.utils.getdate()
+	expected_end_date = frappe.utils.getdate(repair_job.promised_date) if repair_job.promised_date else None
+	if not expected_end_date or expected_end_date <= expected_start_date:
+		expected_end_date = frappe.utils.add_days(expected_start_date, 1)
 	project = _make_doc(
 		{
 			"doctype": "Project",
 			"project_name": f"RJ-{repair_job.name}",
 			"customer": repair_job.customer,
-			"expected_start_date": frappe.utils.today(),
-			"expected_end_date": repair_job.promised_date,
+			"expected_start_date": expected_start_date,
+			"expected_end_date": expected_end_date,
 			"company": settings.company,
 			"status": "Working",
 		}

@@ -71,7 +71,7 @@
    "fieldname": "job_status",
    "fieldtype": "Select",
    "label": "Status",
-    "options": "\nDraft\nAssessment\nAwaiting Approval\nApproved\nIn Repair\nQuality Check\nBilling\nReady for Invoice\nReady for Release\nClosed\nCancelled",
+    "options": "\nDraft\nAssessment\nAwaiting Approval\nIn Repair\nQuality Check\nBilling\nReady for Release\nClosed\nCancelled",
    "default": "Draft",
    "in_list_view": 1
   },
@@ -85,12 +85,6 @@
   {
    "fieldname": "column_break_job",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "workshop_bay",
-   "fieldtype": "Link",
-   "label": "Workshop Bay",
-   "options": "Workshop Bay"
   },
   {
    "fieldname": "promised_date",

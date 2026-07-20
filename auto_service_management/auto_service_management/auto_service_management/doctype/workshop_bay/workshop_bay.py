@@ -12,13 +12,11 @@ class WorkshopBay(Document):
 
 	def occupied_count(self):
 		"""Count active repair jobs assigned to this bay."""
-		return frappe.db.count(
-			"Repair Job",
-			{
-				"workshop_bay": self.name,
-				"job_status": (
-					"in",
-					["Checked In", "Walkaround Inspection", "Diagnosis", "In Repair", "Quality Check"],
-				),
-			},
-		)
+		return frappe.db.sql(
+			"""SELECT COUNT(*) FROM `tabRepair Job Service` service
+			JOIN `tabRepair Job` job ON job.name = service.repair_job
+			WHERE service.workshop_bay = %s
+			AND service.docstatus != 2
+			AND job.job_status NOT IN ('Closed', 'Cancelled')""",
+			self.name,
+		)[0][0]

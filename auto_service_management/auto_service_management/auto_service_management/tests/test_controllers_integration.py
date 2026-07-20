@@ -68,6 +68,15 @@ def _ensure_erpnext_basics():
 				"stock_uom": "Nos",
 			}
 		).insert(ignore_permissions=True)
+	if not frappe.db.exists("Workshop Bay", "Bay 1"):
+		frappe.get_doc(
+			{
+				"doctype": "Workshop Bay",
+				"name": "Bay 1",
+				"bay_name": "Bay 1",
+				"status": "Available",
+			}
+		).insert(ignore_permissions=True)
 	if not frappe.db.exists("Customer Group", {"is_group": 0, "name": "Commercial"}):
 		frappe.get_doc(
 			{
@@ -173,7 +182,7 @@ def _append_pending_labour_line(job, description="Workshop labour", rate=120000)
 	return line.name
 
 
-def _create_job_service(job, service_name="Workshop service", status="Pending Approval"):
+def _create_job_service(job, service_name="Workshop service", status=None):
 	service = frappe.get_doc(
 		{
 			"doctype": "Repair Job Service",
@@ -182,16 +191,12 @@ def _create_job_service(job, service_name="Workshop service", status="Pending Ap
 			"customer_vehicle": job.customer_vehicle,
 			"diagnosis_report": job.diagnosis_report,
 			"service_name": service_name,
-			"status": status,
+			"workshop_bay": "Bay 1",
 			"billable": 1,
 			"currency": job.currency,
 		}
 	)
 	service.insert(ignore_permissions=True)
-	service._desired_status = status
-	if status and getattr(service, "status", None) != status:
-		frappe.db.set_value("Repair Job Service", service.name, "status", status, update_modified=False)
-		service.reload()
 	return service
 
 
@@ -274,9 +279,11 @@ def _insert_diagnosis(job_name, vehicle, complaint="Battery warning and brake no
 			"findings": "Electrical fault isolated",
 			"recommendations": "Replace faulty component",
 			"road_test_required": road_test_required,
-			"status": "Submitted",
 		}
-	).insert(ignore_permissions=True)
+	)
+	report.insert(ignore_permissions=True)
+	report.submit()
+	return report
 
 
 def _insert_authorization(job_name, amount=500000):

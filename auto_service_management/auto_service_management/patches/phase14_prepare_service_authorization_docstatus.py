@@ -25,7 +25,6 @@ AUTHORIZATION_DOCSTATUS_MAP = {
 
 
 def execute():
-	_prepare_service_docstatus()
 	_prepare_authorization_docstatus()
 
 

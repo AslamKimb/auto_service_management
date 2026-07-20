@@ -126,15 +126,11 @@ class RepairJobService(Document):
 		self.sync_from_repair_job()
 		self.sync_component_context()
 
-	def before_submit(self):
-		self.sync_from_repair_job()
-		self.workshop_bay = self.workshop_bay or self._get_submission_workshop_bay()
-		if not self.workshop_bay:
-			frappe.throw(_("Workshop Bay is required before submitting a Repair Job Service."))
-
 	def validate(self):
 		if not self.repair_job:
 			frappe.throw(_("Repair Job is required before saving a Repair Job Service."))
+		if not self.workshop_bay:
+			frappe.throw(_("Workshop Bay is required for a Repair Job Service."))
 		self.validate_diagnosis_report()
 		self.calculate_totals()
 		from auto_service_management.auto_service_management.workflow_compatibility import (
@@ -151,30 +147,6 @@ class RepairJobService(Document):
 		)
 
 		sync_repair_job_service_summary(self)
-		sync_repair_job_related_tables(self.repair_job)
-		recompute_repair_job_state(self.repair_job)
-		sync_repair_job_total(self.repair_job)
-
-	def on_submit(self):
-		from auto_service_management.auto_service_management.workflow_compatibility import bump_repair_job_scope_revision
-		from auto_service_management.auto_service_management.workflow_compatibility import invalidate_repair_job_authorizations
-		from auto_service_management.auto_service_management.workflow_compatibility import recompute_repair_job_state
-		from auto_service_management.auto_service_management.workflow_compatibility import sync_repair_job_related_tables
-
-		bump_repair_job_scope_revision(self.repair_job)
-		invalidate_repair_job_authorizations(self.repair_job)
-		sync_repair_job_related_tables(self.repair_job)
-		recompute_repair_job_state(self.repair_job)
-		sync_repair_job_total(self.repair_job)
-
-	def on_cancel(self):
-		from auto_service_management.auto_service_management.workflow_compatibility import bump_repair_job_scope_revision
-		from auto_service_management.auto_service_management.workflow_compatibility import invalidate_repair_job_authorizations
-		from auto_service_management.auto_service_management.workflow_compatibility import recompute_repair_job_state
-		from auto_service_management.auto_service_management.workflow_compatibility import sync_repair_job_related_tables
-
-		bump_repair_job_scope_revision(self.repair_job)
-		invalidate_repair_job_authorizations(self.repair_job)
 		sync_repair_job_related_tables(self.repair_job)
 		recompute_repair_job_state(self.repair_job)
 		sync_repair_job_total(self.repair_job)
@@ -213,13 +185,6 @@ class RepairJobService(Document):
 		self.currency = job.currency
 		if not self.diagnosis_report:
 			self.diagnosis_report = job.diagnosis_report
-
-	def _get_submission_workshop_bay(self):
-		if self.workshop_bay:
-			return self.workshop_bay
-		if not self.repair_job:
-			return None
-		return frappe.db.get_value("Repair Job", self.repair_job, "workshop_bay")
 
 	def validate_diagnosis_report(self):
 		if not self.diagnosis_report:
