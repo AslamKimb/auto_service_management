@@ -41,14 +41,24 @@ COMPONENT_TABLE_BY_TYPE = {row["component_type"]: row for row in COMPONENT_TABLE
 
 
 @frappe.whitelist(methods=["POST"])
-def make_sales_invoice(source_name: str, target_doc: str | None = None):
+def make_sales_invoice(
+	source_name: str,
+	target_doc: str | None = None,
+	component_refs=None,
+):
 	service = frappe.get_doc("Repair Job Service", source_name)
 	service.check_permission("read")
 	from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
 		map_sales_invoice,
 	)
 
-	return map_sales_invoice(service.repair_job, target_doc=target_doc, service_names={service.name})
+	args = getattr(frappe.flags, "args", None) or {}
+	return map_sales_invoice(
+		service.repair_job,
+		target_doc=target_doc,
+		service_names={service.name},
+		component_refs=component_refs or args.get("component_refs"),
+	)
 
 
 @frappe.whitelist(methods=["POST"])

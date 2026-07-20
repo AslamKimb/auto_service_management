@@ -6,7 +6,7 @@
  "engine": "InnoDB",
  "autoname": "format:RJ-{YYYY}-{#####}",
  "track_changes": 1,
- "is_submittable": 1,
+ "is_submittable": 0,
  "fields": [
   {
    "fieldname": "customer_section",
@@ -231,6 +231,11 @@
    "label": "Payment Status",
    "options": "\nNot Invoiced\nUnpaid\nPartially Paid\nPaid",
    "default": "Not Invoiced"
+  },
+  {
+   "fieldname": "billing_components_html",
+   "fieldtype": "HTML",
+   "label": "Component Billing Status"
   },
   {
    "fieldname": "column_break_billing",

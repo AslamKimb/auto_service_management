@@ -27,8 +27,10 @@ def map_sales_invoice(
 	*,
 	target_doc: str | dict | None = None,
 	service_names: Iterable[str] | None = None,
+	component_refs: Iterable[dict] | str | None = None,
 ) -> Document:
 	repair_job = _get_repair_job(repair_job_name)
+	requested_refs = _normalize_component_refs(component_refs)
 
 	target = _get_target_doc("Sales Invoice", target_doc)
 	_validate_target_job(target, repair_job)
@@ -38,6 +40,7 @@ def map_sales_invoice(
 		None,
 		document_label=_("Sales Invoice"),
 	)
+	_validate_requested_component_refs(repair_job.name, requested_refs, service_names)
 	current_refs = _component_refs(target)
 	components, reserved = _eligible_components(
 		repair_job,
@@ -48,6 +51,7 @@ def map_sales_invoice(
 		current_target_name=target.name if not target.is_new() else None,
 		linked_doctype="Sales Invoice",
 		linked_field="sales_invoice",
+		component_refs=requested_refs,
 	)
 	if not components:
 		_throw_no_components(
@@ -75,6 +79,54 @@ def map_sales_invoice(
 	target.run_method("set_missing_values")
 	target.run_method("calculate_taxes_and_totals")
 	return target
+
+
+@frappe.whitelist()
+def get_sales_invoice_components(
+	repair_job_name: str,
+	service_name: str | None = None,
+) -> dict:
+	repair_job = _get_repair_job(repair_job_name)
+	service_names = {service_name} if service_name else None
+	if service_name:
+		frappe.get_doc("Repair Job Service", service_name).check_permission("read")
+		_validate_service_scope(
+			repair_job.name,
+			service_names,
+			None,
+			document_label=_("Sales Invoice"),
+		)
+
+	rows = []
+	counts = {"Unbilled": 0, "Reserved": 0, "Invoiced": 0, "Not Billable": 0}
+	totals = {key: 0 for key in counts}
+	for service, component in iter_repair_job_components(
+		repair_job.name,
+		include_excluded=False,
+		service_names=service_names,
+	):
+		state = _component_invoice_state(component)
+		amount = flt(component.invoice_amount)
+		counts[state] += 1
+		totals[state] += amount
+		rows.append(
+			{
+				"repair_job_service": service.name,
+				"service_name": service.service_name or service.name,
+				"component_doctype": component.row_doctype,
+				"component_name": component.name,
+				"component_type": component.component_type,
+				"description": component.service_description or component.item_code or component.name,
+				"quantity": flt(component.invoice_quantity),
+				"rate": flt(component.invoice_rate),
+				"amount": amount,
+				"billable": bool(component.billable),
+				"invoice_state": state,
+				"sales_invoice": component.sales_invoice,
+			}
+		)
+
+	return {"repair_job": repair_job.name, "components": rows, "counts": counts, "totals": totals}
 
 
 def map_material_request(
@@ -169,6 +221,7 @@ def _eligible_components(
 	component_types=None,
 	billable_only=False,
 	service_names=None,
+	component_refs=None,
 ):
 	eligible = []
 	reserved = {}
@@ -180,6 +233,8 @@ def _eligible_components(
 		service_names=service_names,
 	):
 		ref = (component.row_doctype, component.name)
+		if component_refs is not None and ref not in component_refs:
+			continue
 		if ref in current_refs:
 			continue
 		linked_name = _active_link_name(
@@ -193,6 +248,52 @@ def _eligible_components(
 			continue
 		eligible.append((service, component))
 	return eligible, reserved
+
+
+def _normalize_component_refs(component_refs):
+	if component_refs is None:
+		return None
+	if isinstance(component_refs, str):
+		component_refs = frappe.parse_json(component_refs)
+	if not isinstance(component_refs, (list, tuple, set)):
+		frappe.throw(_("Selected component references must be a list."))
+	refs = set()
+	for ref in component_refs:
+		if not isinstance(ref, dict) or not ref.get("doctype") or not ref.get("name"):
+			frappe.throw(_("Each selected component must include a DocType and name."))
+		refs.add((str(ref["doctype"]), str(ref["name"])))
+	return refs
+
+
+def _validate_requested_component_refs(repair_job_name, component_refs, service_names):
+	if component_refs is None:
+		return
+	available = {
+		(component.row_doctype, component.name): (service, component)
+		for service, component in iter_repair_job_components(
+			repair_job_name,
+			include_excluded=True,
+			service_names=service_names,
+		)
+	}
+	missing = component_refs - set(available)
+	if missing:
+		frappe.throw(_("Selected component {0} was not found on this Repair Job.").format(sorted(missing)[0][1]))
+	for ref in component_refs:
+		service, component = available[ref]
+		if getattr(service, "docstatus", 0) == 2:
+			frappe.throw(_("Component {0} belongs to a cancelled Repair Job Service.").format(component.name))
+		if not component.billable:
+			frappe.throw(_("Component {0} is not billable.").format(component.name))
+
+
+def _component_invoice_state(component):
+	if not component.billable:
+		return "Not Billable"
+	if not component.sales_invoice:
+		return "Unbilled"
+	invoice_status = frappe.db.get_value("Sales Invoice", component.sales_invoice, "docstatus")
+	return {0: "Reserved", 1: "Invoiced"}.get(invoice_status, "Unbilled")
 
 
 def _has_active_link(component, linked_doctype, linked_field, *, current_target_name=None):

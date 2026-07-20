@@ -31,7 +31,13 @@ frappe.ui.form.on('Repair Job Service', {
             });
 
             if (!frm.is_new()) {
-                add_sales_invoice_button(frm);
+                auto_service_billing.setup(frm, {
+                    fieldname: 'billing_components_html',
+                    repairJob: frm.doc.repair_job,
+                    serviceName: frm.doc.name,
+                    method: 'auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service.make_sales_invoice',
+                    title: __('Select service components to invoice'),
+                });
                 frm.add_custom_button(__('Material Request'), function() {
                     frappe.model.open_mapped_doc({
                         method: 'auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service.make_material_request',
@@ -221,17 +227,6 @@ function apply_default_labour_rate(frm, cdt, cdn) {
             }
             frm._settings_loaded = true;
         },
-    });
-}
-
-function add_sales_invoice_button(frm) {
-    frappe.db.get_value('Repair Job', frm.doc.repair_job, 'job_status').then(function(r) {
-        frm.add_custom_button(__('Sales Invoice'), function() {
-            frappe.model.open_mapped_doc({
-                method: 'auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service.make_sales_invoice',
-                frm: frm,
-            });
-        }, __('Create'));
     });
 }
 

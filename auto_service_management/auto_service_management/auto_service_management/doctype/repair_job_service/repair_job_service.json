@@ -165,6 +165,11 @@
    "read_only": 1
   },
   {
+   "fieldname": "billing_components_html",
+   "fieldtype": "HTML",
+   "label": "Component Billing Status"
+  },
+  {
    "fieldname": "cost_total",
    "fieldtype": "Currency",
    "label": "Cost Total",

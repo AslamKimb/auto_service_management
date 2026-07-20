@@ -2,6 +2,7 @@
 # Patches added in this section will be executed before doctypes are migrated
 # Read docs to understand patches: https://frappeframework.com/docs/v14/user/en/database-migrations
 auto_service_management.patches.phase19_document_model_reconciliation
+auto_service_management.patches.phase20_repair_job_docstatus
 auto_service_management.patches.phase17_pre_model_sync_safety
 
 [post_model_sync]

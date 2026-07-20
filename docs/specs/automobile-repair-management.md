@@ -17,7 +17,7 @@ The repository research file `Automotive DMS.md` explains legacy dealership work
 3. Enforce one Customer Vehicle and one ERPNext Project per Repair Job.
 4. Model fleet work through `Fleet Service Campaign`, which groups separate Repair Jobs.
 5. Use a dedicated, submittable `Repair Job Override` for controlled exceptions.
-6. Use a submittable `Repair Job` with an automatic workflow; the workflow state changes are derived from server-side validation and closure submits the job.
+6. Use a non-submittable `Repair Job` with an automatic workflow; the workflow state changes are derived from server-side validation and `job_status` is the sole business status.
 7. Treat ERPNext-generated quotation, invoice, tax, stock, payment, and credit figures as authoritative.
 8. Do not use `Repair Job Service` status as an eligibility gate; downstream actions must derive from submitted content and parent job state.
 
@@ -81,7 +81,7 @@ Required gates:
 
 ## Submission and Document Policy
 
-- `Repair Job` is submittable and closes through the workflow.
+- `Repair Job` is non-submittable and closes through the app-owned workflow.
 - `Repair Job Service` is the service-level document used for billing, stock, and labour lines; it does not depend on a user-facing status field for eligibility.
 - `Customer Authorization`, `Diagnosis Report`, `Quality Check`, and `Gate Pass` are submittable workshop control documents.
 - `Walkaround Inspection`, `Road Test` evidence, `Repair Job Override`, `Quotation`, `Sales Order`, `Material Request`, `Stock Entry`, and `Timesheet` are optional or conditional records.

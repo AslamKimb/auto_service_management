@@ -1,8 +1,11 @@
+import inspect
+import json
+from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import frappe
 from frappe.tests import UnitTestCase
-from types import SimpleNamespace
 
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
 	ServiceComponent,
@@ -14,13 +17,44 @@ from auto_service_management.auto_service_management.integration.erpnext import 
 
 
 class TestPhase10MappingUnits(UnitTestCase):
+	def test_invoice_component_state_distinguishes_draft_and_submitted_invoice(self):
+		component = frappe._dict(billable=1, sales_invoice="SI-1")
+		with patch.object(component_mapping.frappe.db, "get_value", return_value=0):
+			self.assertEqual(component_mapping._component_invoice_state(component), "Reserved")
+		with patch.object(component_mapping.frappe.db, "get_value", return_value=1):
+			self.assertEqual(component_mapping._component_invoice_state(component), "Invoiced")
+
+	def test_selected_invoice_components_must_be_billable_and_belong_to_job(self):
+		service = frappe._dict(name="RJS-1", docstatus=0)
+		component = frappe._dict(doctype="Repair Job Service Part", name="PART-1", billable=0)
+		with patch.object(
+			component_mapping,
+			"iter_repair_job_components",
+			return_value=[(service, ServiceComponent(service, component, "parts", "Part"))],
+		):
+			with self.assertRaises(frappe.ValidationError):
+				component_mapping._validate_requested_component_refs(
+					"RJ-1",
+					{("Repair Job Service Part", "PART-1")},
+					None,
+				)
+
+	def test_repair_job_is_non_submittable_and_uses_business_status(self):
+		path = Path(__file__).resolve().parents[1] / "doctype" / "repair_job" / "repair_job.json"
+		meta = json.loads(path.read_text(encoding="utf-8"))
+		self.assertEqual(meta["is_submittable"], 0)
+		self.assertNotIn("before_submit", inspect.getsource(__import__(
+			"auto_service_management.auto_service_management.doctype.repair_job.repair_job",
+			fromlist=["RepairJob"],
+		)))
+
 	def test_sales_invoice_draft_validation_skips_service_status_gate(self):
 		services = [frappe._dict(name="RJS-1", repair_job="RJ-1", status="Draft", service_name="Job service")]
 
 		with patch.object(component_mapping.frappe, "get_all", return_value=services):
 			component_mapping._validate_service_scope("RJ-1", {"RJS-1"}, None, document_label="Sales Invoice")
 
-	def test_sales_invoice_submission_requires_submitted_services(self):
+	def test_sales_invoice_submission_does_not_require_submitted_services(self):
 		with (
 			patch.object(
 				document_sync,
@@ -29,8 +63,7 @@ class TestPhase10MappingUnits(UnitTestCase):
 			),
 			patch.object(document_sync.frappe.db, "get_value", return_value=0),
 		):
-			with self.assertRaises(frappe.ValidationError):
-				document_sync._validate_invoice_service_submission(frappe._dict())
+			document_sync._validate_invoice_service_submission(frappe._dict())
 
 	def test_repair_job_sales_invoices_returns_multiple_rows(self):
 		class _Job:
@@ -121,7 +154,8 @@ class TestPhase10MappingUnits(UnitTestCase):
 		)
 		component = ServiceComponent(service, row, "labour", "Labour")
 
-		item = component_mapping._sales_invoice_item(job, service, component)
+		with patch.object(component_mapping.frappe.db, "exists", return_value=True):
+			item = component_mapping._sales_invoice_item(job, service, component)
 
 		self.assertIsNone(item["item_code"])
 		self.assertEqual(item["item_name"], "Brake labour")

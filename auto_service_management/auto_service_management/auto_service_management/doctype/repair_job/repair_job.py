@@ -34,12 +34,21 @@ VALID_TRANSITIONS = {
 
 
 @frappe.whitelist(methods=["POST"])
-def make_sales_invoice(source_name: str, target_doc: str | None = None):
+def make_sales_invoice(
+	source_name: str,
+	target_doc: str | None = None,
+	component_refs=None,
+):
 	from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
 		map_sales_invoice,
 	)
 
-	return map_sales_invoice(source_name, target_doc=target_doc)
+	args = getattr(frappe.flags, "args", None) or {}
+	return map_sales_invoice(
+		source_name,
+		target_doc=target_doc,
+		component_refs=component_refs or args.get("component_refs"),
+	)
 
 
 @frappe.whitelist(methods=["POST"])
@@ -64,10 +73,6 @@ class RepairJob(Document):
 		self.calculate_totals()
 		self.set_currency_from_settings()
 		self.fetch_vehicle_details()
-
-	def before_submit(self):
-		if self.job_status != "Closed":
-			frappe.throw(_("Only a Closed Repair Job can be submitted."))
 
 	def validate_intake_requirements(self):
 		if self.odometer_in is None:
@@ -788,8 +793,6 @@ class RepairJob(Document):
 		self.flags.ignore_links = True
 		self.flags.skip_status_validation = True
 		self.save(ignore_permissions=ignore_permissions)
-		if self.docstatus == 0:
-			self.submit()
 		self._update_vehicle_after_closure()
 		self._create_service_history()
 

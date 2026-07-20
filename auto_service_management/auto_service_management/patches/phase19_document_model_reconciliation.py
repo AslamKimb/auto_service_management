@@ -6,6 +6,7 @@ import frappe
 
 
 def execute():
+	_reconcile_repair_job_docstatus()
 	_reconcile_diagnosis_status()
 	_reconcile_service_docstatus()
 	_backfill_service_bays()
@@ -30,6 +31,12 @@ def _reconcile_diagnosis_status():
 	frappe.db.sql("UPDATE `tabDiagnosis Report` SET docstatus = 0 WHERE status IS NULL OR status = 'Draft'")
 	frappe.db.sql("UPDATE `tabDiagnosis Report` SET docstatus = 1 WHERE status = 'Submitted'")
 	frappe.db.sql("UPDATE `tabDiagnosis Report` SET docstatus = 2 WHERE status = 'Cancelled'")
+
+
+def _reconcile_repair_job_docstatus():
+	if not frappe.db.table_exists("Repair Job") or not _has_column("Repair Job", "docstatus"):
+		return
+	frappe.db.sql("UPDATE `tabRepair Job` SET docstatus = 0 WHERE docstatus IN (1, 2)")
 
 
 def _reconcile_service_docstatus():
@@ -66,4 +73,3 @@ def _backfill_service_bays():
 		WHERE COALESCE(service.workshop_bay, '') = ''
 		AND COALESCE(job.workshop_bay, '') <> ''"""
 	)
-
