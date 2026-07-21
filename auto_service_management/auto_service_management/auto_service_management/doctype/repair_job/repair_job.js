@@ -5,6 +5,19 @@ frappe.ui.form.on("Repair Job", {
 				frm.reload_doc();
 			}
 		});
+		frappe.realtime.on("repair_job_related_tables_updated", (data) => {
+			if (frm.is_new() || data?.repair_job !== frm.doc.name) {
+				return;
+			}
+			if (!frm.is_dirty()) {
+				frm.reload_doc();
+				return;
+			}
+			frappe.show_alert({
+				message: __("Linked invoices, payments, or services changed. Save or reload to refresh the tables."),
+				indicator: "orange",
+			});
+		});
 		frm.set_query("customer_vehicle", () => {
 			if (!frm.doc.customer) {
 				return {};
@@ -135,16 +148,25 @@ frappe.ui.form.on("Repair Job", {
 			add_related_document_button(frm, {
 				fieldname: "gate_pass",
 				doctype: "Gate Pass",
-				create_label: "Create Gate Pass",
-				open_label: "Open Gate Pass",
+				create_label: "Create Final Release Gate Pass",
+				open_label: "Open Final Release Gate Pass",
 				route_options: {
 					repair_job: frm.doc.name,
+					purpose: "Final Release",
 					customer_vehicle: frm.doc.customer_vehicle,
 					sales_invoice: frm.doc.sales_invoices?.[0]?.sales_invoice || "",
 					recipient_name: frm.doc.customer,
 				},
 			});
 		}
+		frm.add_custom_button(__("Create Road Test Gate Pass"), () => {
+			new_doc_with_values("Gate Pass", {
+				repair_job: frm.doc.name,
+				purpose: "Road Test",
+				customer_vehicle: frm.doc.customer_vehicle,
+				recipient_name: frm.doc.customer,
+			});
+		}, __("Related Documents"));
 	},
 
 	before_save(frm) {
@@ -196,6 +218,9 @@ function add_workflow_action_buttons(frm) {
 			frm.call(method).then(() => frm.reload_doc());
 		}, __("Workflow"));
 	}
+	if (can_override_status()) {
+		frm.add_custom_button(__("Set Status"), () => show_status_override_dialog(frm), __("Workflow"));
+	}
 }
 
 function add_related_document_button(frm, options) {
@@ -225,6 +250,51 @@ function new_doc_with_values(doctype, values) {
 
 function can_create_gate_pass(frm) {
 	return (frm.doc.sales_invoices || []).some((row) => row.sales_invoice);
+}
+
+function can_override_status() {
+	return frappe.user.has_role("Workshop Manager")
+		|| frappe.user.has_role("Auto Service Admin")
+		|| frappe.user.has_role("System Manager");
+}
+
+function show_status_override_dialog(frm) {
+	const statuses = [
+		"Draft",
+		"Assessment",
+		"Awaiting Approval",
+		"In Repair",
+		"Quality Check",
+		"Billing",
+		"Ready for Release",
+	];
+	const dialog = new frappe.ui.Dialog({
+		title: __("Manual Status Override"),
+		fields: [
+			{
+				fieldname: "target_status",
+				fieldtype: "Select",
+				label: __("Target Status"),
+				options: statuses.join("\n"),
+				default: frm.doc.job_status,
+				reqd: 1,
+			},
+			{
+				fieldname: "reason",
+				fieldtype: "Small Text",
+				label: __("Reason"),
+				reqd: 1,
+			},
+		],
+		primary_action_label: __("Apply"),
+		primary_action(values) {
+			frm.call("override_status", values).then(() => {
+				dialog.hide();
+				frm.reload_doc();
+			});
+		},
+	});
+	dialog.show();
 }
 
 function set_business_status_indicator(frm) {

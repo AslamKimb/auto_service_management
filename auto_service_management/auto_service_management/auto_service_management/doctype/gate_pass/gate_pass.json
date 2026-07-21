@@ -20,6 +20,14 @@
       "reqd": 1
     },
     {
+      "fieldname": "purpose",
+      "fieldtype": "Select",
+      "label": "Purpose",
+      "options": "\nFinal Release\nRoad Test",
+      "default": "Final Release",
+      "reqd": 1
+    },
+    {
       "fieldname": "customer_vehicle",
       "fieldtype": "Link",
       "label": "Vehicle",
@@ -89,8 +97,19 @@
       "fieldname": "status",
       "fieldtype": "Select",
       "label": "Status",
-      "options": "\nPending\nIssued\nUsed\nCancelled",
+      "options": "\nPending\nIssued\nUsed\nReturned\nCancelled",
       "default": "Pending"
+    },
+    {
+      "fieldname": "returned_by",
+      "fieldtype": "Link",
+      "label": "Returned By",
+      "options": "User"
+    },
+    {
+      "fieldname": "returned_on",
+      "fieldtype": "Datetime",
+      "label": "Returned On"
     },
     {
       "fieldname": "notes_section",
@@ -110,7 +129,8 @@
       "read": 1,
       "write": 1,
       "create": 1,
-      "delete": 1
+      "delete": 1,
+      "report": 1
     },
     {
       "role": "Security Gate Officer",

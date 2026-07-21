@@ -83,7 +83,7 @@ class TestPhase10MappingUnits(UnitTestCase):
 				["SI-1", "SI-2"],
 			)
 
-	def test_payment_entry_sync_is_deferred_until_after_commit(self):
+	def test_payment_entry_sync_is_immediate_and_notification_is_after_commit(self):
 		class _AfterCommit:
 			def __init__(self):
 				self.callbacks = []
@@ -100,12 +100,15 @@ class TestPhase10MappingUnits(UnitTestCase):
 			patch.object(document_sync.frappe, "db", fake_db),
 			patch.object(document_sync, "_sync_payment_jobs") as sync_jobs,
 			patch.object(document_sync.frappe.db, "get_value", return_value="RJ-1"),
+			patch.object(document_sync.frappe, "publish_realtime") as publish_realtime,
 		):
 			document_sync.sync_payment_entry(doc)
+			sync_jobs.assert_called_once_with(("RJ-1",))
 			self.assertEqual(len(fake_db.after_commit.callbacks), 1)
+			publish_realtime.assert_not_called()
 			fake_db.after_commit.callbacks[0]()
 
-		sync_jobs.assert_called_once_with(("RJ-1",))
+		publish_realtime.assert_called_once()
 
 	def test_payment_rows_skip_unsubmitted_payment_entries(self):
 		with (
@@ -115,6 +118,42 @@ class TestPhase10MappingUnits(UnitTestCase):
 			patch.object(document_sync.frappe.db, "get_value", return_value=0),
 		):
 			self.assertEqual(document_sync._service_payment_total(frappe._dict(), []), 0)
+
+	def test_gate_pass_full_payment_uses_invoice_outstanding_amount(self):
+		def get_value(doctype, name, fields=None, as_dict=False):
+			if fields == "docstatus":
+				return 1
+			if as_dict:
+				return frappe._dict(grand_total=220000, rounded_total=220000, outstanding_amount=0)
+			return None
+
+		with (
+			patch.object(document_sync, "get_repair_job_sales_invoices", return_value=["SI-1"]),
+			patch.object(
+				document_sync.frappe,
+				"get_single",
+				return_value=frappe._dict(gate_pass_payment_policy="Full Payment Required"),
+			),
+			patch.object(document_sync.frappe.db, "get_value", side_effect=get_value),
+		):
+			self.assertEqual(document_sync.validate_job_invoices_for_gate_pass("RJ-1"), ["SI-1"])
+
+	def test_gate_pass_full_payment_rejects_outstanding_invoice(self):
+		with (
+			patch.object(document_sync, "get_repair_job_sales_invoices", return_value=["SI-1"]),
+			patch.object(
+				document_sync.frappe,
+				"get_single",
+				return_value=frappe._dict(gate_pass_payment_policy="Full Payment Required"),
+			),
+			patch.object(
+				document_sync.frappe.db,
+				"get_value",
+				return_value=frappe._dict(grand_total=220000, rounded_total=220000, outstanding_amount=1),
+			),
+		):
+			with self.assertRaises(frappe.ValidationError):
+				document_sync.validate_job_invoices_for_gate_pass("RJ-1")
 
 	def test_labour_invoice_item_uses_billing_fields(self):
 		job = frappe._dict(name="RJ-1", customer_vehicle="VEH-1", project="PROJ-1")

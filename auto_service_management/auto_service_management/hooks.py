@@ -26,6 +26,7 @@ fixtures = [
 					"Cashier",
 					"Security Gate Officer",
 					"Workshop Technician",
+					"Auto Service Admin",
 				],
 			],
 		],

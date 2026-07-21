@@ -11,6 +11,7 @@ from auto_service_management.auto_service_management.doctype.repair_job_service.
 	INVOICEABLE_SERVICE_STATUSES,
 	STOCK_COMPONENT_TYPES,
 	ServiceComponent,
+	get_service_components,
 	iter_repair_job_components,
 )
 

@@ -5,13 +5,14 @@
   "document_type": "Document",
   "engine": "InnoDB",
   "autoname": "format:RJO-{YYYY}-{#####}",
+  "is_submittable": 1,
   "track_changes": 1,
   "fields": [
     {
       "fieldname": "override_type",
       "fieldtype": "Select",
       "label": "Override Type",
-      "options": "\nAuthorization Override\nQC Release Override\nParts Shortage Override\nCredit Release Override",
+      "options": "\nAuthorization Override\nQC Release Override\nParts Shortage Override\nCredit Release Override\nStatus Override",
       "reqd": 1
     },
     {
@@ -24,6 +25,18 @@
     {
       "fieldname": "column_break_override",
       "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "previous_status",
+      "fieldtype": "Select",
+      "label": "Previous Status",
+      "options": "\nDraft\nAssessment\nAwaiting Approval\nIn Repair\nQuality Check\nBilling\nReady for Release\nClosed\nCancelled"
+    },
+    {
+      "fieldname": "target_status",
+      "fieldtype": "Select",
+      "label": "Target Status",
+      "options": "\nDraft\nAssessment\nAwaiting Approval\nIn Repair\nQuality Check\nBilling\nReady for Release\nClosed\nCancelled"
     },
     {
       "fieldname": "reason",
@@ -63,7 +76,24 @@
       "read": 1,
       "write": 1,
       "create": 1,
-      "delete": 1
+      "delete": 1,
+      "submit": 1
+    },
+    {
+      "role": "Auto Service Admin",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "submit": 1
+    },
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "submit": 1
     },
     {
       "role": "Accounts Manager",

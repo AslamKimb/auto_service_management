@@ -98,7 +98,7 @@ class RepairJob(Document):
 			)
 
 	def resolve_primary_related_documents(self):
-		if self.is_new():
+		if self.is_new() or getattr(self.flags, "skip_primary_related_resolution", False):
 			return
 		for fieldname, doctype in (
 			("walkaround_inspection", "Walkaround Inspection"),
@@ -109,7 +109,10 @@ class RepairJob(Document):
 		):
 			if getattr(self, fieldname, None):
 				continue
-			linked_name = frappe.db.get_value(doctype, {"repair_job": self.name}, "name")
+			filters = {"repair_job": self.name}
+			if doctype == "Gate Pass" and _db_has_column("Gate Pass", "purpose"):
+				filters["purpose"] = "Final Release"
+			linked_name = frappe.db.get_value(doctype, filters, "name")
 			if linked_name:
 				setattr(self, fieldname, linked_name)
 
@@ -470,6 +473,11 @@ class RepairJob(Document):
 	def _require_write_permission(self):
 		self.check_permission("write")
 
+	def _require_manager_override_permission(self):
+		roles = set(frappe.get_roles(frappe.session.user))
+		if not roles.intersection({"Workshop Manager", "Auto Service Admin", "System Manager"}):
+			frappe.throw(_("Only a Workshop Manager can manually override Repair Job status."))
+
 	@frappe.whitelist(methods=["POST"])
 	def check_in(self):
 		"""Check in the vehicle. Creates the ERPNext Project on first check-in."""
@@ -592,6 +600,34 @@ class RepairJob(Document):
 		self.save()
 		self._write_log("cancelled")
 
+	@frappe.whitelist(methods=["POST"])
+	def override_status(self, target_status, reason):
+		self._require_manager_override_permission()
+		target_status = str(target_status or "").strip()
+		reason = str(reason or "").strip()
+		if not reason:
+			frappe.throw(_("Reason is required for a manual status override."))
+		if target_status not in VALID_TRANSITIONS:
+			frappe.throw(_("Unknown Repair Job status {0}.").format(target_status))
+		if target_status in {"Closed", "Cancelled"}:
+			frappe.throw(_("Use the Close or Cancel action for terminal statuses."))
+		old_status = self.job_status or "Draft"
+		self.job_status = target_status
+		if self.meta.has_field("workflow_state"):
+			self.workflow_state = target_status
+		if old_status in {"Closed", "Cancelled"}:
+			self.closed_on = None
+			self.closed_by = None
+			self.closure_type = None
+			self.gate_pass = None
+		self.flags.skip_status_validation = True
+		self.flags.ignore_links = True
+		self.flags.skip_primary_related_resolution = True
+		self.save(ignore_permissions=True)
+		self._write_override_audit(old_status, target_status, reason)
+		self._write_log("manual_status_override", old_status, target_status)
+		return self.name
+
 	@frappe.whitelist()
 	def create_service(self, service_name=None):
 		self._require_write_permission()
@@ -674,15 +710,16 @@ class RepairJob(Document):
 		return si_name
 
 	@frappe.whitelist()
-	def create_gate_pass(self):
+	def create_gate_pass(self, purpose="Final Release"):
 		"""Issue a Gate Pass for this Repair Job."""
 		self._require_write_permission()
+		purpose = purpose or "Final Release"
 		from auto_service_management.auto_service_management.integration.erpnext.document_sync import (
 			validate_job_invoices_for_gate_pass,
 		)
 
-		invoices = validate_job_invoices_for_gate_pass(self.name)
-		primary_invoice = invoices[0]
+		invoices = [] if purpose == "Road Test" else validate_job_invoices_for_gate_pass(self.name)
+		primary_invoice = invoices[0] if invoices else None
 		for row in self.get("sales_invoices") or []:
 			if row.sales_invoice in invoices:
 				primary_invoice = row.sales_invoice
@@ -691,6 +728,7 @@ class RepairJob(Document):
 			{
 				"doctype": "Gate Pass",
 				"repair_job": self.name,
+				"purpose": purpose,
 				"customer_vehicle": self.customer_vehicle,
 				"sales_invoice": primary_invoice,
 				"recipient_name": frappe.db.get_value("Customer", self.customer, "customer_name") or "",
@@ -781,6 +819,8 @@ class RepairJob(Document):
 	def _require_issued_gate_pass(self):
 		self._require_primary_document("gate_pass", "Gate Pass")
 		gate_pass = frappe.get_doc("Gate Pass", self.gate_pass)
+		if getattr(gate_pass, "purpose", "Final Release") != "Final Release":
+			frappe.throw(_("Final Release Gate Pass is required before closing the Repair Job."))
 		if gate_pass.status != "Used":
 			frappe.throw(_("Gate Pass must be used before closing the Repair Job."))
 
@@ -858,6 +898,24 @@ class RepairJob(Document):
 			}
 		).insert(ignore_permissions=True)
 
+	def _write_override_audit(self, old_status, target_status, reason):
+		override = frappe.get_doc(
+			{
+				"doctype": "Repair Job Override",
+				"override_type": "Status Override",
+				"repair_job": self.name,
+				"previous_status": old_status,
+				"target_status": target_status,
+				"reason": reason,
+				"override_by": frappe.session.user,
+				"override_date": datetime.now(),
+				"status": "Approved",
+			}
+		)
+		override.insert(ignore_permissions=True)
+		if getattr(override.meta, "is_submittable", False):
+			override.submit()
+
 	def _update_vehicle_after_closure(self):
 		"""Update Customer Vehicle odometer and last service date on closure."""
 		if self.customer_vehicle:
@@ -870,7 +928,9 @@ class RepairJob(Document):
 		"""Create an idempotent Service History snapshot."""
 		existing = frappe.db.exists("Service History", {"repair_job": self.name})
 		if existing:
-			return
+			history = frappe.get_doc("Service History", existing)
+		else:
+			history = frappe.new_doc("Service History")
 
 		services = []
 		parts = []
@@ -880,9 +940,8 @@ class RepairJob(Document):
 			elif line.service_type in STOCK_COMPONENT_TYPES:
 				parts.append(line.service_description or "")
 
-		frappe.get_doc(
+		history.update(
 			{
-				"doctype": "Service History",
 				"repair_job": self.name,
 				"customer_vehicle": self.customer_vehicle,
 				"closure_date": frappe.utils.today(),
@@ -893,7 +952,11 @@ class RepairJob(Document):
 				"services_performed": "\n".join(services),
 				"parts_replaced": "\n".join(parts),
 			}
-		).insert(ignore_permissions=True)
+		)
+		if history.is_new():
+			history.insert(ignore_permissions=True)
+		else:
+			history.save(ignore_permissions=True)
 
 
 def _road_test_is_passed(road_test):
@@ -911,3 +974,8 @@ def _road_test_is_passed(road_test):
 		"no_warning_lights",
 	)
 	return all(bool(getattr(road_test, field, None)) for field in check_fields)
+
+
+def _db_has_column(doctype, fieldname):
+	has_column = getattr(frappe.db, "has_column", None)
+	return bool(has_column and has_column(doctype, fieldname))

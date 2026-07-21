@@ -56,6 +56,7 @@ def sync_sales_invoice(doc, method=None):
 	)
 	for job_name in job_names:
 		sync_repair_job_related_tables(job_name)
+	_notify_repair_job_related_tables(job_names)
 
 
 def submit_sales_invoice(doc, method=None):
@@ -72,6 +73,7 @@ def cancel_sales_invoice(doc, method=None):
 	_release_component_links(doc, "sales_invoice", "sales_invoice_item")
 	for job_name in job_names:
 		sync_repair_job_related_tables(job_name)
+	_notify_repair_job_related_tables(job_names)
 
 
 def trash_sales_invoice(doc, method=None):
@@ -79,17 +81,15 @@ def trash_sales_invoice(doc, method=None):
 	_release_component_links(doc, "sales_invoice", "sales_invoice_item")
 	for job_name in job_names:
 		sync_repair_job_related_tables(job_name)
+	_notify_repair_job_related_tables(job_names)
 
 
 def sync_payment_entry(doc, method=None):
 	job_names = _payment_entry_job_names(doc)
 	if not job_names:
 		return
-	after_commit = getattr(frappe.db, "after_commit", None)
-	if after_commit and hasattr(after_commit, "add"):
-		after_commit.add(lambda job_names=tuple(sorted(job_names)): _sync_payment_jobs(job_names))
-		return
 	_sync_payment_jobs(tuple(sorted(job_names)))
+	_notify_repair_job_related_tables(job_names)
 
 
 def _sync_payment_jobs(job_names):
@@ -140,16 +140,28 @@ def validate_job_invoices_for_gate_pass(repair_job_name: str) -> list[str]:
 		frappe.throw(_("A submitted Sales Invoice is required before issuing a Gate Pass."))
 	settings = frappe.get_single("Auto Service Settings")
 	policy = settings.get("gate_pass_payment_policy") or "Full Payment Required"
-	paid = sum(
-		flt(frappe.db.get_value("Sales Invoice", invoice, "paid_amount"))
+	if policy == "No Payment Required":
+		return invoices
+	rows = [
+		frappe.db.get_value(
+			"Sales Invoice",
+			invoice,
+			["grand_total", "rounded_total", "outstanding_amount"],
+			as_dict=True,
+		)
 		for invoice in invoices
-	)
-	total = sum(
-		flt(frappe.db.get_value("Sales Invoice", invoice, "grand_total"))
-		for invoice in invoices
-	)
-	if policy == "Full Payment Required" and paid + 0.0001 < total:
-		frappe.throw(_("Full payment is required before issuing a Gate Pass."))
+	]
+	unpaid = []
+	total = paid = 0
+	for invoice, row in zip(invoices, rows, strict=False):
+		payable = flt(row.rounded_total or row.grand_total)
+		outstanding = flt(row.outstanding_amount)
+		total += payable
+		paid += max(payable - outstanding, 0)
+		if outstanding > 0.0001:
+			unpaid.append(f"{invoice} ({outstanding:g} outstanding)")
+	if policy == "Full Payment Required" and unpaid:
+		frappe.throw(_("Full payment is required before issuing a Gate Pass: {0}.").format(", ".join(unpaid)))
 	if policy == "Partial Payment Allowed" and paid <= 0:
 		frappe.throw(_("At least partial payment is required before issuing a Gate Pass."))
 	return invoices
@@ -358,6 +370,7 @@ def _assert_invoice_cancellation_allowed(repair_job_name):
 		"Gate Pass",
 		{
 			"repair_job": repair_job_name,
+			"purpose": "Final Release",
 			"status": ["in", ["Issued", "Used"]],
 		},
 	)
@@ -385,7 +398,36 @@ def _payment_entry_job_names(doc):
 		job_name = frappe.db.get_value("Sales Invoice", invoice_name, "repair_job")
 		if job_name:
 			job_names.add(job_name)
+			continue
+		for row in frappe.get_all(
+			"Sales Invoice Item",
+			filters={"parent": invoice_name, "repair_job": ["is", "set"]},
+			pluck="repair_job",
+			limit_page_length=0,
+		):
+			job_names.add(row)
 	return job_names
+
+
+def _notify_repair_job_related_tables(job_names):
+	job_names = tuple(sorted(job_names or []))
+	if not job_names:
+		return
+
+	def publish():
+		for job_name in job_names:
+			frappe.publish_realtime(
+				"repair_job_related_tables_updated",
+				{"repair_job": job_name},
+				doctype="Repair Job",
+				docname=job_name,
+			)
+
+	after_commit = getattr(frappe.db, "after_commit", None)
+	if after_commit and hasattr(after_commit, "add"):
+		after_commit.add(publish)
+	else:
+		publish()
 
 
 def _trace_items(doc):

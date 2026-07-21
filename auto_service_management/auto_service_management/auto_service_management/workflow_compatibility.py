@@ -260,10 +260,13 @@ def build_repair_job_invoice_rows(repair_job_name: str) -> list[dict]:
 				"job_status": job.job_status,
 				"posting_date": invoice.posting_date,
 				"closed_on": job.closed_on,
-				"grand_total": invoice.grand_total,
-				"paid_amount": flt(getattr(invoice, "paid_amount", 0)),
+				"grand_total": flt(invoice.get("rounded_total") or invoice.grand_total),
+				"paid_amount": flt(max(flt(invoice.get("rounded_total") or invoice.grand_total) - flt(getattr(invoice, "outstanding_amount", 0)), 0)),
 				"outstanding_amount": flt(getattr(invoice, "outstanding_amount", 0)),
-				"payment_status": job.payment_status,
+				"payment_status": _derive_payment_status(
+					flt(invoice.get("rounded_total") or invoice.grand_total),
+					flt(max(flt(invoice.get("rounded_total") or invoice.grand_total) - flt(getattr(invoice, "outstanding_amount", 0)), 0)),
+				),
 			}
 		)
 	return rows
@@ -485,7 +488,10 @@ def _get_job_field(repair_job_name: str, fieldname: str):
 
 
 def _get_linked_doc(repair_job_name: str, doctype: str):
-	name = frappe.db.get_value(doctype, {"repair_job": repair_job_name}, "name")
+	filters = {"repair_job": repair_job_name}
+	if doctype == "Gate Pass" and _db_has_column("Gate Pass", "purpose"):
+		filters["purpose"] = "Final Release"
+	name = frappe.db.get_value(doctype, filters, "name")
 	if not name:
 		return None
 	return frappe.get_doc(doctype, name)
@@ -545,3 +551,8 @@ def _resolve_doc(doc_or_name, doctype: str):
 	if isinstance(doc_or_name, str):
 		return frappe.get_doc(doctype, doc_or_name)
 	return doc_or_name
+
+
+def _db_has_column(doctype, fieldname):
+	has_column = getattr(frappe.db, "has_column", None)
+	return bool(has_column and has_column(doctype, fieldname))
