@@ -32,6 +32,12 @@
    "default": "Available"
   },
   {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse"
+  },
+  {
    "fieldname": "capacity",
    "fieldtype": "Int",
    "label": "Capacity (simultaneous jobs)",

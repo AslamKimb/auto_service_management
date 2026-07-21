@@ -4,19 +4,25 @@ frappe.ui.form.on('Repair Job Service', {
             if (!frm.doc.repair_job) { return { filters: { name: ['=', ''] } }; }
             return { filters: { repair_job: frm.doc.repair_job } };
         });
+        frm.set_query('item_code', 'labour', function() {
+            return { filters: { disabled: 0, is_stock_item: 0, is_sales_item: 1, stock_uom: 'Hour' } };
+        });
         frm._default_labour_rate = 0;
+        frm._default_labour_item = '';
         frm._default_warehouse = '';
+        frm._workshop_bay_warehouse = '';
         frm._settings_loaded = false;
         frappe.call({
             method: 'frappe.client.get_value',
             args: {
                 doctype: 'Auto Service Settings',
                 filters: { name: 'Auto Service Settings' },
-                fieldname: ['default_labour_rate', 'default_warehouse'],
+                fieldname: ['default_labour_rate', 'default_labour_item', 'default_warehouse'],
             },
             callback: function(r) {
                 if (r.message) {
                     frm._default_labour_rate = r.message.default_labour_rate || 0;
+                    frm._default_labour_item = r.message.default_labour_item || '';
                     frm._default_warehouse = r.message.default_warehouse || '';
                 }
                 frm._settings_loaded = true;
@@ -25,6 +31,10 @@ frappe.ui.form.on('Repair Job Service', {
         });
     },
     refresh: function(frm) {
+        if (!frm.is_new() && frm.doc.is_completed) {
+            frm.page.set_indicator(__('Completed'), 'green');
+        }
+        load_workshop_bay_warehouse(frm);
         if (frm.doc.repair_job) {
             frm.add_custom_button('Open Repair Job', function() {
                 frappe.set_route('Form', 'Repair Job', frm.doc.repair_job);
@@ -49,9 +59,15 @@ frappe.ui.form.on('Repair Job Service', {
         sweep_labour_defaults(frm);
         calculate_service_totals(frm);
     },
+    workshop_bay: function(frm) {
+        load_workshop_bay_warehouse(frm);
+    },
     labour_add: function(frm, cdt, cdn) {
         var row = locals[cdt][cdn];
         if (!row) return;
+        if (!row.item_code && frm._default_labour_item) {
+            frappe.model.set_value(cdt, cdn, 'item_code', frm._default_labour_item);
+        }
         if (!row.billing_hours && row.hours) {
             frappe.model.set_value(cdt, cdn, 'billing_hours', row.hours);
         }
@@ -66,12 +82,15 @@ frappe.ui.form.on('Repair Job Service', {
 });
 
 function sweep_labour_defaults(frm) {
-    if (!frm._settings_loaded || !frm._default_labour_rate) return;
+    if (!frm._settings_loaded) return;
     var rows = frm.doc.labour || [];
     for (var i = 0; i < rows.length; i++) {
         var row = rows[i];
+        if (!row.item_code && frm._default_labour_item) {
+            frappe.model.set_value('Repair Job Service Labour', row.name, 'item_code', frm._default_labour_item);
+        }
         if (row.billable && !row.billing_rate) {
-            frappe.model.set_value('Repair Job Service Labour', row.name, 'billing_rate', frm._default_labour_rate);
+            apply_default_labour_rate(frm, 'Repair Job Service Labour', row.name);
             if (!row.billing_hours && row.hours) {
                 frappe.model.set_value('Repair Job Service Labour', row.name, 'billing_hours', row.hours);
             }
@@ -123,10 +142,25 @@ function auto_fill_rate(frm, cdt, cdn) {
 function auto_fill_warehouse(frm, cdt, cdn) {
     var row = locals[cdt][cdn];
     if (!row.item_code || row.warehouse) return;
-    var wh = frm._default_warehouse || frappe.defaults.get_default('stock_warehouse');
+    var wh = frm._workshop_bay_warehouse || frm._default_warehouse || frappe.defaults.get_default('stock_warehouse');
     if (wh) {
         frappe.model.set_value(cdt, cdn, 'warehouse', wh);
     }
+}
+
+function load_workshop_bay_warehouse(frm) {
+    if (!frm.doc.workshop_bay) {
+        frm._workshop_bay_warehouse = '';
+        return;
+    }
+    frappe.db.get_value('Workshop Bay', frm.doc.workshop_bay, 'warehouse').then(function(r) {
+        frm._workshop_bay_warehouse = r.message && r.message.warehouse || '';
+        (frm.doc.parts || []).concat(frm.doc.consumables || []).forEach(function(row) {
+            if (!row.warehouse) {
+                auto_fill_warehouse(frm, row.doctype, row.name);
+            }
+        });
+    });
 }
 
 function fetch_stock_qty(frm, cdt, cdn) {
@@ -170,6 +204,9 @@ function calculate_amount(frm, cdt, cdn) {
 }
 
 frappe.ui.form.on('Repair Job Service Labour', {
+    item_code: function(frm, cdt, cdn) {
+        auto_fill_labour_rate(frm, cdt, cdn);
+    },
     billable: function(frm, cdt, cdn) {
         var row = locals[cdt][cdn];
         if (row.billable) {
@@ -213,7 +250,7 @@ function apply_default_labour_rate(frm, cdt, cdn) {
         args: {
             doctype: 'Auto Service Settings',
             filters: { name: 'Auto Service Settings' },
-            fieldname: ['default_labour_rate', 'default_warehouse'],
+            fieldname: ['default_labour_rate', 'default_labour_item', 'default_warehouse'],
         },
         callback: function(r) {
             if (r.message) {
@@ -224,8 +261,30 @@ function apply_default_labour_rate(frm, cdt, cdn) {
                 if (r.message.default_warehouse) {
                     frm._default_warehouse = r.message.default_warehouse;
                 }
+                if (r.message.default_labour_item) {
+                    frm._default_labour_item = r.message.default_labour_item;
+                }
             }
             frm._settings_loaded = true;
+        },
+    });
+}
+
+function auto_fill_labour_rate(frm, cdt, cdn) {
+    var row = locals[cdt][cdn];
+    if (!row || !row.item_code) return;
+    var priceList = frappe.defaults.get_default('selling_price_list');
+    var filters = { item_code: row.item_code };
+    if (priceList) filters.price_list = priceList;
+    frappe.call({
+        method: 'frappe.client.get_value',
+        args: { doctype: 'Item Price', filters: filters, fieldname: ['price_list_rate', 'currency'] },
+        callback: function(r) {
+            if (r.message && r.message.price_list_rate) {
+                frappe.model.set_value(cdt, cdn, 'billing_rate', r.message.price_list_rate);
+            } else {
+                apply_default_labour_rate(frm, cdt, cdn);
+            }
         },
     });
 }

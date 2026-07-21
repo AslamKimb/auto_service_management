@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 sys.modules.setdefault("frappe", types.SimpleNamespace())
 
-from auto_service_management.auto_service_management.auto_service_management.workflow_setup import (
+from auto_service_management.auto_service_management.workflow_setup import (
 	WORKFLOW_NAME,
 	deactivate_repair_job_workflow,
 )
@@ -84,7 +84,7 @@ class TestPhase41WorkflowSetup(unittest.TestCase):
 		fake_frappe.db.existing.add(("Workflow", WORKFLOW_NAME))
 
 		with patch(
-			"auto_service_management.auto_service_management.auto_service_management.workflow_setup.frappe",
+			"auto_service_management.auto_service_management.workflow_setup.frappe",
 			fake_frappe,
 		):
 			deactivate_repair_job_workflow()

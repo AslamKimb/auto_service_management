@@ -10,7 +10,6 @@ from auto_service_management.auto_service_management.doctype.repair_job_service.
 	iter_repair_job_components,
 )
 from auto_service_management.auto_service_management.workflow_compatibility import (
-	recompute_repair_job_state,
 	sync_repair_job_related_tables,
 	_service_payment_total as _compat_service_payment_total,
 )
@@ -56,7 +55,6 @@ def sync_sales_invoice(doc, method=None):
 		linked_item_field="sales_invoice_item",
 	)
 	for job_name in job_names:
-		recompute_repair_job_state(job_name)
 		sync_repair_job_related_tables(job_name)
 
 
@@ -65,8 +63,6 @@ def submit_sales_invoice(doc, method=None):
 		return
 	_validate_invoice_service_submission(doc)
 	sync_sales_invoice(doc)
-	for job_name in _repair_job_names(doc):
-		recompute_repair_job_state(job_name)
 
 
 def cancel_sales_invoice(doc, method=None):
@@ -75,14 +71,13 @@ def cancel_sales_invoice(doc, method=None):
 		_assert_invoice_cancellation_allowed(job_name)
 	_release_component_links(doc, "sales_invoice", "sales_invoice_item")
 	for job_name in job_names:
-		recompute_repair_job_state(job_name)
+		sync_repair_job_related_tables(job_name)
 
 
 def trash_sales_invoice(doc, method=None):
 	job_names = _repair_job_names(doc)
 	_release_component_links(doc, "sales_invoice", "sales_invoice_item")
 	for job_name in job_names:
-		recompute_repair_job_state(job_name)
 		sync_repair_job_related_tables(job_name)
 
 
@@ -100,7 +95,6 @@ def sync_payment_entry(doc, method=None):
 def _sync_payment_jobs(job_names):
 	for job_name in job_names:
 		sync_repair_job_related_tables(job_name)
-		recompute_repair_job_state(job_name)
 
 
 def _service_payment_total(service, invoice_rows):
@@ -141,21 +135,37 @@ def trash_material_request(doc, method=None):
 
 
 def validate_job_invoices_for_gate_pass(repair_job_name: str) -> list[str]:
-	if not _all_billable_components_submitted(repair_job_name):
-		frappe.throw(
-			_(
-				"Every billable component in an Approved or Completed Repair Job Service must be covered by a submitted Sales Invoice before issuing a Gate Pass."
-			)
-		)
 	invoices = get_repair_job_sales_invoices(repair_job_name, submitted_only=True)
 	if not invoices:
 		frappe.throw(_("A submitted Sales Invoice is required before issuing a Gate Pass."))
+	settings = frappe.get_single("Auto Service Settings")
+	policy = settings.get("gate_pass_payment_policy") or "Full Payment Required"
+	paid = sum(
+		flt(frappe.db.get_value("Sales Invoice", invoice, "paid_amount"))
+		for invoice in invoices
+	)
+	total = sum(
+		flt(frappe.db.get_value("Sales Invoice", invoice, "grand_total"))
+		for invoice in invoices
+	)
+	if policy == "Full Payment Required" and paid + 0.0001 < total:
+		frappe.throw(_("Full payment is required before issuing a Gate Pass."))
+	if policy == "Partial Payment Allowed" and paid <= 0:
+		frappe.throw(_("At least partial payment is required before issuing a Gate Pass."))
 	return invoices
 
 
 def get_repair_job_sales_invoices(repair_job_name: str, *, submitted_only: bool = False) -> list[str]:
 	job = frappe.get_doc("Repair Job", repair_job_name)
 	invoices = {row.sales_invoice for row in (job.get("sales_invoices") or []) if row.sales_invoice}
+	invoices.update(
+		frappe.get_all(
+			"Sales Invoice",
+			filters={"repair_job": repair_job_name},
+			pluck="name",
+			limit_page_length=0,
+		)
+	)
 	if submitted_only:
 		invoices = {
 			invoice for invoice in invoices if frappe.db.get_value("Sales Invoice", invoice, "docstatus") == 1
@@ -163,8 +173,22 @@ def get_repair_job_sales_invoices(repair_job_name: str, *, submitted_only: bool 
 	return sorted(invoices)
 
 
+def has_active_repair_job_invoice(repair_job_name: str) -> bool:
+	return bool(
+		frappe.db.exists("Sales Invoice", {"repair_job": repair_job_name, "docstatus": ["<", 2]})
+		or frappe.db.sql(
+			"""
+			SELECT 1 FROM `tabSales Invoice Item`
+			WHERE repair_job = %s AND parenttype = 'Sales Invoice'
+			AND docstatus < 2 LIMIT 1
+			""",
+			repair_job_name,
+		)
+	)
+
+
 def sync_repair_job_invoice_state(repair_job_name: str):
-	recompute_repair_job_state(repair_job_name)
+	sync_repair_job_related_tables(repair_job_name)
 
 
 def _all_billable_components_submitted(repair_job_name: str) -> bool:

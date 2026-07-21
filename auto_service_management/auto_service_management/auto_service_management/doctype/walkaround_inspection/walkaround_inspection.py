@@ -18,6 +18,10 @@ class WalkaroundInspection(Document):
 	def on_update(self):
 		self.sync_primary_link()
 
+	def on_cancel(self):
+		if self.repair_job and frappe.db.get_value("Repair Job", self.repair_job, "walkaround_inspection") == self.name:
+			frappe.db.set_value("Repair Job", self.repair_job, "walkaround_inspection", None, update_modified=False)
+
 	def sync_with_repair_job(self):
 		if not self.repair_job:
 			return
@@ -42,7 +46,7 @@ class WalkaroundInspection(Document):
 			return
 		existing = frappe.db.exists(
 			"Walkaround Inspection",
-			{"repair_job": self.repair_job, "name": ["!=", self.name or ""]},
+			{"repair_job": self.repair_job, "docstatus": ["<", 2], "name": ["!=", self.name or ""]},
 		)
 		if existing:
 			frappe.throw("Only one Walkaround Inspection may be linked to a Repair Job.")

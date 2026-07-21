@@ -14,14 +14,6 @@ from auto_service_management.auto_service_management.doctype.repair_job_service.
 	iter_repair_job_components,
 )
 
-MATERIAL_REQUEST_JOB_STATUSES = {
-	"Approved",
-	"In Repair",
-	"Quality Check",
-	"Ready for Invoice",
-}
-
-
 def map_sales_invoice(
 	repair_job_name: str,
 	*,
@@ -136,21 +128,19 @@ def map_material_request(
 	service_names: Iterable[str] | None = None,
 ) -> Document:
 	repair_job = _get_repair_job(repair_job_name)
-	if repair_job.job_status not in MATERIAL_REQUEST_JOB_STATUSES:
-		frappe.throw(_("Repair Job must be Approved or in workshop execution before requesting materials."))
 
 	target = _get_target_doc("Material Request", target_doc)
 	_validate_target_job(target, repair_job)
 	_validate_service_scope(
 		repair_job.name,
 		service_names,
-		INVOICEABLE_SERVICE_STATUSES,
+		None,
 		document_label=_("Material Request"),
 	)
 	current_refs = _component_refs(target)
 	components, _reserved = _eligible_components(
 		repair_job,
-		service_statuses=INVOICEABLE_SERVICE_STATUSES,
+		service_statuses=None,
 		component_types=STOCK_COMPONENT_TYPES,
 		service_names=service_names,
 		current_refs=current_refs,
@@ -225,6 +215,11 @@ def _eligible_components(
 ):
 	eligible = []
 	reserved = {}
+	blocked_services = set()
+	if linked_doctype == "Material Request":
+		for service in _services_for_scope(repair_job.name, service_names):
+			if _service_has_active_material_request(service):
+				blocked_services.add(service.name)
 	for service, component in iter_repair_job_components(
 		repair_job.name,
 		service_statuses=service_statuses,
@@ -232,6 +227,12 @@ def _eligible_components(
 		billable_only=billable_only,
 		service_names=service_names,
 	):
+		if service.name in blocked_services:
+			reserved.setdefault(
+				_service_material_request_name(service),
+				[],
+			)
+			continue
 		ref = (component.row_doctype, component.name)
 		if component_refs is not None and ref not in component_refs:
 			continue
@@ -248,6 +249,38 @@ def _eligible_components(
 			continue
 		eligible.append((service, component))
 	return eligible, reserved
+
+
+def _services_for_scope(repair_job_name, service_names):
+	return [
+		service
+		for service in frappe.get_all(
+			"Repair Job Service",
+			filters={"repair_job": repair_job_name},
+			pluck="name",
+			order_by="creation asc",
+			limit_page_length=0,
+		)
+		for service in [frappe.get_doc("Repair Job Service", service)]
+		if not service_names or service.name in set(service_names)
+	]
+
+
+def _service_has_active_material_request(service):
+	return any(
+		getattr(component, "material_request", None)
+		and frappe.db.get_value("Material Request", component.material_request, "docstatus") in {0, 1}
+		for component in iter(get_service_components(service, component_types=STOCK_COMPONENT_TYPES))
+	)
+
+
+def _service_material_request_name(service):
+	for component in get_service_components(service, component_types=STOCK_COMPONENT_TYPES):
+		if getattr(component, "material_request", None) and frappe.db.get_value(
+			"Material Request", component.material_request, "docstatus"
+		) in {0, 1}:
+			return component.material_request
+	return service.name
 
 
 def _normalize_component_refs(component_refs):
@@ -336,6 +369,12 @@ def _sales_invoice_item(repair_job, service, component: ServiceComponent):
 		)
 	rate = flt(component.invoice_rate)
 	item_code = component.item_code
+	if component.component_type == "Labour" and not item_code:
+		frappe.throw(
+			_("Labour component {0} requires a Labour Service Item before invoicing.").format(
+				component.service_description
+			)
+		)
 	item_name = component.service_description or service.service_name or service.name
 	uom = getattr(component, "uom", None)
 	if not uom and item_code:
@@ -354,14 +393,6 @@ def _sales_invoice_item(repair_job, service, component: ServiceComponent):
 		"project": repair_job.project,
 		**_component_trace_fields(repair_job, service, component),
 	}
-	company_name = frappe.get_single("Auto Service Settings").company
-	income_account = frappe.db.get_value(
-		"Account",
-		{"company": company_name, "root_type": "Income", "is_group": 0},
-		"name",
-	)
-	if income_account:
-		item["income_account"] = income_account
 	if component.component_type in STOCK_COMPONENT_TYPES:
 		item["discount_percentage"] = flt(component.discount_percentage)
 	return item
@@ -381,7 +412,11 @@ def _material_request_item(repair_job, service, component: ServiceComponent, set
 				component.service_description
 			)
 		)
-	warehouse = component.warehouse or settings.default_warehouse
+	warehouse = (
+		component.warehouse
+		or frappe.db.get_value("Workshop Bay", service.workshop_bay, "warehouse")
+		or settings.default_warehouse
+	)
 	if not warehouse:
 		frappe.throw(_("Stock component {0} requires a Warehouse.").format(component.service_description))
 	return {

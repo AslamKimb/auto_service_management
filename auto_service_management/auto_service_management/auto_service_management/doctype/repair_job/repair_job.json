@@ -44,6 +44,11 @@
    "read_only": 1
   },
   {
+   "fieldname": "repair_job_id_html",
+   "fieldtype": "HTML",
+   "label": "Repair Job ID"
+  },
+  {
    "label": "Odometer In (km)",
    "fieldtype": "Float",
    "fieldname": "odometer_in",

@@ -27,14 +27,14 @@ The repository research file `Automotive DMS.md` explains legacy dealership work
 
 - **Auto Service Settings**: company, default price list, project template, default Parts/Consumables warehouse, default terms, payment tolerance, and other site-specific defaults. No accounting or tax value is hardcoded.
 - **Customer Vehicle**: registration number, customer, make, model, year, VIN/chassis, engine number, color, fuel type, transmission, current odometer, last service date, warranty, insurer, and notes. Registration and VIN are unique when supplied; search includes registration, VIN/chassis, engine, and customer.
-- **Workshop Bay**: bay code, bay name, enabled state, and notes.
+- **Workshop Bay**: bay code, bay name, enabled state, linked warehouse, and notes. Material Requests use the service bay warehouse before the global Parts/Consumables default.
 - **Fleet Service Campaign**: corporate customer, dates, description, status, and a child table linking independent Repair Jobs.
 
 ### Repair Job
 
 The garage-facing document uses naming series `JC-.YYYY.-.#####` and links Customer, Customer Vehicle, and Project. It records repair type, complaint, visit reason, odometer, fuel level, advisor, mechanic, bay, planned/promised dates, contact details, workflow state, approval, invoice, gate-pass state, terms, and service lines.
 
-Each `Repair Job Service` owns Parts, Labour, and Consumables child tables. Service eligibility is not controlled by a user-facing status field; billing, stock, and downstream automation derive from the submitted service content, workshop bay, and parent Repair Job state. Stock rows record optional Item, quantity, UOM, warehouse, selling and cost rates, discounts, amounts, and requested/issued quantities. Labour rows use hours and costing rate for cost, and billing hours, optional Billable Labour Item, and billing rate for selling. The service stores a live pre-tax total, cost total, gross margin, and margin percentage. Historical subcontract rows remain auditable only through hidden, read-only legacy tables.
+Each `Repair Job Service` owns Parts, Labour, and Consumables child tables. Service eligibility is not controlled by a user-facing status field; billing, stock, and downstream automation derive from the submitted service content, workshop bay, and parent Repair Job state. Stock rows record optional Item, quantity, UOM, warehouse, selling and cost rates, discounts, amounts, and requested/issued quantities. Labour rows require a non-stock sales Item with Hour UOM, and use hours, billing hours, costing rate, and editable billing rate for labour service billing. The service stores a live pre-tax total, cost total, gross margin, and margin percentage. Historical subcontract rows remain auditable only through hidden, read-only legacy tables.
 
 ### Workshop Transactions
 
@@ -84,7 +84,7 @@ Required gates:
 - `Repair Job` is non-submittable and closes through the app-owned workflow.
 - `Repair Job Service` is the service-level document used for billing, stock, and labour lines; it does not depend on a user-facing status field for eligibility.
 - `Customer Authorization`, `Diagnosis Report`, `Quality Check`, and `Gate Pass` are submittable workshop control documents.
-- `Walkaround Inspection`, `Road Test` evidence, `Repair Job Override`, `Quotation`, `Sales Order`, `Material Request`, `Stock Entry`, and `Timesheet` are optional or conditional records.
+- `Walkaround Inspection` is a submittable inspection record; `Road Test` evidence, `Repair Job Override`, `Quotation`, `Sales Order`, `Material Request`, `Stock Entry`, and `Timesheet` are optional or conditional records.
 - `Sales Invoice` may be created more than once per Repair Job; payment status is derived from submitted invoices and their Payment Entries, not from invoice creation alone.
 - `Service History` is generated automatically at closure and is not manually submitted.
 
@@ -94,8 +94,8 @@ Required gates:
 - **Task**: generated from Project Template and linked to Project, Repair Job, Customer Vehicle, stage, technician, and bay.
 - **Timesheet Detail**: linked to Repair Job and Customer Vehicle in addition to Project and Task. Timesheets supply actual hours and labour cost; invoice rows come only from submitted Repair Job Services to prevent double billing.
 - **Quotation / Sales Order**: created by typed POST-only Repair Job methods and linked bidirectionally.
-- **Sales Invoice**: mapped from a Repair Job or one submitted Repair Job Service, either from the source form or through the target form's native Get Items From menu. Every billable Part, Consumable, and Labour row in eligible services maps; Item links are optional for invoice rows, with description-based stock rows using `Nos` and Labour using `Hour`. Drafts reserve component rows; several service-level invoices may cover one job. The Repair Job reaches Ready for Release only after every eligible component is covered by submitted invoices and payment coverage is satisfied. ERPNext pricing and tax controllers remain authoritative, and mapped invoices never update stock.
-- **Material Request / Stock Entry**: Material Issue requests can be mapped from a Repair Job or one submitted Repair Job Service, either from the source form or through Get Items From. Parts and Consumables map from submitted parent services, require Items, and use full component quantities and configured warehouses. Drafts reserve component rows and cancellation, deletion, or item removal releases them. Stock Entry records Material Issue consumption.
+- **Sales Invoice**: mapped from any saved Repair Job or Repair Job Service, either from the source form or through the target form's native Get Items From menu. Every selected billable Part, Consumable, and Labour row maps with a complete component quantity; labour rows always map to their required Hour service Item. Drafts reserve component rows; several service-level invoices may cover one job. Invoice creation and payment synchronization do not change the Repair Job business status; release remains an explicit app-owned transition governed by invoice and payment policy. ERPNext pricing and tax controllers remain authoritative, and mapped invoices never update stock.
+- **Material Request / Stock Entry**: Material Issue requests can be mapped from any saved Repair Job or one saved Repair Job Service, either from the source form or through Get Items From. Parts and Consumables require Items and use full component quantities and the selected bay warehouse. One active Material Request is allowed per service; cancellation, deletion, or released traces allow a new request. Stock Entry records Material Issue consumption.
 - **Customer**: receives an explicit allow-credit-release control while existing payment terms and credit limits remain authoritative.
 
 All ERPNext internal calls live behind focused integration adapters with contract tests.

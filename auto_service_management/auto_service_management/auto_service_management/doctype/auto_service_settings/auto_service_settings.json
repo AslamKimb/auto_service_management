@@ -75,6 +75,12 @@
    "options": "currency"
   },
   {
+   "fieldname": "default_labour_item",
+   "fieldtype": "Link",
+   "label": "Default Labour Service Item",
+   "options": "Item"
+  },
+  {
    "fieldname": "column_break_labour_defaults",
    "fieldtype": "Column Break"
   },
@@ -114,6 +120,13 @@
    "fieldtype": "Check",
    "label": "Require QC Before Release",
    "default": 1
+  },
+  {
+   "fieldname": "gate_pass_payment_policy",
+   "fieldtype": "Select",
+   "label": "Gate Pass Payment Policy",
+   "options": "Full Payment Required\nPartial Payment Allowed\nPayment Not Required",
+   "default": "Full Payment Required"
   },
   {
    "fieldname": "require_road_test_for_certain_repairs",

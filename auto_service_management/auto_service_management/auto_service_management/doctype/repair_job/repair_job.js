@@ -1,5 +1,10 @@
 frappe.ui.form.on("Repair Job", {
 	setup(frm) {
+		frappe.realtime.on("repair_job_services_updated", (data) => {
+			if (!frm.is_new() && data?.repair_job === frm.doc.name && !frm.is_dirty()) {
+				frm.reload_doc();
+			}
+		});
 		frm.set_query("customer_vehicle", () => {
 			if (!frm.doc.customer) {
 				return {};
@@ -24,6 +29,7 @@ frappe.ui.form.on("Repair Job", {
 	},
 
 	refresh(frm) {
+		show_repair_job_id(frm);
 		sync_dom_field_value(frm, "odometer_in");
 		set_business_status_indicator(frm);
 		if (frm.is_new()) {
@@ -53,7 +59,7 @@ frappe.ui.form.on("Repair Job", {
 			method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_sales_invoice",
 		});
 
-		if (["In Repair", "Quality Check", "Billing", "Ready for Release"].includes(frm.doc.job_status)) {
+		if (!frm.is_new()) {
 			frm.add_custom_button(__("Material Request"), () => {
 				frappe.model.open_mapped_doc({
 					method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_material_request",
@@ -110,7 +116,7 @@ frappe.ui.form.on("Repair Job", {
 			},
 		});
 
-		if (["In Repair", "Quality Check", "Billing"].includes(frm.doc.job_status) || frm.doc.quality_check) {
+		if (frm.doc.quality_check || !frm.is_new()) {
 			add_related_document_button(frm, {
 				fieldname: "quality_check",
 				doctype: "Quality Check",
@@ -168,6 +174,16 @@ frappe.ui.form.on("Repair Job", {
 	},
 });
 
+function show_repair_job_id(frm) {
+		const field = frm.fields_dict.repair_job_id_html;
+		if (!field) {
+			return;
+		}
+		const label = frappe.utils.escape_html(__("Repair Job ID"));
+		const value = frappe.utils.escape_html(frm.doc.name || __("Assigned on save"));
+		field.$wrapper.html(`<div class="text-muted small">${label}</div><div class="font-weight-bold">${value}</div>`);
+}
+
 function add_workflow_action_buttons(frm) {
 	const actions = {
 		Draft: [["Check In", "check_in"]],
@@ -208,9 +224,6 @@ function new_doc_with_values(doctype, values) {
 }
 
 function can_create_gate_pass(frm) {
-	if (frm.doc.job_status !== "Ready for Release") {
-		return false;
-	}
 	return (frm.doc.sales_invoices || []).some((row) => row.sales_invoice);
 }
 

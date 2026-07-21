@@ -158,7 +158,7 @@ class TestWorkflowCompatibility(unittest.TestCase):
 			fake_frappe.db.values,
 		)
 
-	def test_derive_repair_job_status_prefers_ready_for_invoice_when_all_components_submitted(self):
+	def test_derive_repair_job_status_does_not_change_for_invoice_coverage(self):
 		job = SimpleNamespace(name="RJ-1", job_status="Billing")
 
 		with patch(
@@ -171,7 +171,7 @@ class TestWorkflowCompatibility(unittest.TestCase):
 			"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
 			return_value=None,
 		):
-			self.assertEqual("Ready for Invoice", _derive_repair_job_status(job))
+			self.assertEqual("Billing", _derive_repair_job_status(job))
 
 	def test_derive_repair_job_status_uses_authorization_and_work_started_signals(self):
 		job = SimpleNamespace(name="RJ-1", job_status="In Repair")
@@ -240,6 +240,7 @@ class TestWorkflowCompatibility(unittest.TestCase):
 				"workshop_bay": "BAY-1",
 				"total_amount": 125,
 				"payment_status": "Paid",
+				"is_completed": 0,
 			}
 		])
 

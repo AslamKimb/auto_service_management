@@ -37,6 +37,32 @@ class TestPhase10ServiceBillingContracts(UnitTestCase):
 		):
 			self.assertNotIn("status", _doctype_fields(folder))
 
+	def test_labour_requires_a_service_item(self):
+		labour = _doctype_fields("repair_job_service_labour")
+
+		self.assertEqual(labour["item_code"]["label"], "Labour Service Item")
+		self.assertEqual(labour["item_code"]["reqd"], 1)
+
+	def test_workshop_bay_routes_materials_to_warehouse(self):
+		warehouse = _doctype_fields("workshop_bay")["warehouse"]
+
+		self.assertEqual(warehouse["fieldtype"], "Link")
+		self.assertEqual(warehouse["options"], "Warehouse")
+
+	def test_repair_job_uses_business_status_and_displays_id(self):
+		doctype = json.loads(
+			(MODULE_ROOT / "doctype" / "repair_job" / "repair_job.json").read_text(encoding="utf-8")
+		)
+
+		self.assertEqual(doctype["is_submittable"], 0)
+		self.assertIn("repair_job_id_html", _doctype_fields("repair_job"))
+
+	def test_settings_expose_configurable_labour_item(self):
+		field = _doctype_fields("auto_service_settings")["default_labour_item"]
+
+		self.assertEqual(field["fieldtype"], "Link")
+		self.assertEqual(field["options"], "Item")
+
 	def test_server_totals_use_stock_discounts_and_labour_billing_fields(self):
 		service = frappe.get_doc(
 			{

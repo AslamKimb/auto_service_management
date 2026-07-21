@@ -149,3 +149,25 @@ This file is the live progress ledger. Work top to bottom, keep exactly one task
 - [!] Complete browser hard-refresh walkthrough and full app-suite rerun; local browser attachment is unavailable and the existing full-suite baseline has unrelated failures.
 
 **Evidence:** Implemented on 2026-07-20. The focused mapping/status suite passed 16/16 tests with `--skip-before-tests`; JSON validation, compileall, targeted Ruff, JavaScript syntax checks, and `git diff --check` passed. Development migration reached DocType/fixture synchronization and the app assets built successfully; cache was cleared and backend/frontend/websocket services restarted. Live metadata reports `Repair Job.is_submittable=0`, `Repair Job Service.is_submittable=0`, only visible `job_status` among Repair Job status fields, billing HTML fields on both doctypes, and all 15 Repair Jobs at `docstatus=0`. Live billing endpoint returned four Unbilled components totaling 220,000 for `RJ-2026-00045`; direct unsaved mapping of one selected component returned exactly one Sales Invoice item. No invoice was created or persisted during verification.
+
+## Phase 12 — Labour Service Items, Bay Warehouses, and Related-Table Consistency
+
+- [x] Require Labour service Items and repair legacy item-less labour invoice rows without mutating submitted history.
+- [x] Route Material Requests through the selected Workshop Bay warehouse before the global default.
+- [x] Rebuild Repair Job service/invoice/payment mirrors immediately after source and invoice updates.
+- [x] Display the assigned Repair Job ID and add focused regression coverage.
+- [!] Run focused/full tests, migration, asset build, cache clear, restart, and live invoice-save verification.
+
+**Evidence:** Implemented and verified on 2026-07-21. Focused service-billing contracts passed 13/13 and mapper contracts passed 16/16. Development migration applied `phase21_labour_items_and_related_views`, created/configured `ASM-WORKSHOP-LABOUR`, backfilled all 14 legacy Labour rows, rebuilt every Repair Job service mirror, built assets, cleared cache, and restarted backend/frontend/websocket services. Live mapping of `RJ-2026-00059` produced three complete invoice rows: the Part used ERPNext `Sales - G` and `Main - G`, and both Labour rows used `ASM-WORKSHOP-LABOUR`, `Hour`, `Sales - G`, and `Main - G`; a real draft Sales Invoice inserted successfully and was deleted as a controlled verification artifact. The test-site migration also applied the patch successfully after adding clean-site creation of the `Services` Item Group and `Hour` UOM. The full app run remains red on four pre-existing Phase 10/17/40 workflow-test contract failures unrelated to this phase; no new phase12 test failed.
+
+## Phase 13 — Workshop Operations, Release Policy, and Permissions
+
+- [-] Allow Material Requests from any saved Repair Job status, with one active request per Repair Job Service.
+- [-] Add technician-controlled Repair Job Service completion and realtime Repair Job service mirrors.
+- [-] Expand Daily Workshop Load into the Workshop Bay View with technicians and closed-today visuals.
+- [-] Keep invoice creation/payment synchronization neutral to the Repair Job business status.
+- [-] Require only an active invoice for QC and a submitted invoice plus configurable payment policy for Gate Pass.
+- [-] Make Walkaround Inspection submittable and add idempotent operational permissions.
+- [-] Run targeted/full tests, migration, asset build, cache clear, restart, and live verification.
+
+**Evidence:** Implementation is in the working tree. Test-site migration is in progress through Frappe DocType synchronization; final evidence will be recorded after the post-model-sync patch, focused tests, development migration, and live smoke checks complete.

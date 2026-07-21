@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.utils import flt, now_datetime
 
 INVOICEABLE_SERVICE_STATUSES = frozenset({"Approved", "Completed"})
 EXCLUDED_SERVICE_STATUSES = frozenset({"Rejected", "Cancelled", "Canceled"})
@@ -142,12 +142,29 @@ class RepairJobService(Document):
 		if not self.workshop_bay:
 			frappe.throw(_("Workshop Bay is required for a Repair Job Service."))
 		self.validate_diagnosis_report()
+		self.validate_completion_change()
 		self.calculate_totals()
 		from auto_service_management.auto_service_management.workflow_compatibility import (
 			sync_repair_job_service_summary,
 		)
 
 		sync_repair_job_service_summary(self)
+
+	def validate_completion_change(self):
+		was_completed = bool(self.get_db_value("is_completed")) if not self.is_new() else False
+		if bool(self.is_completed) == was_completed:
+			return
+		roles = set(frappe.get_roles())
+		if not roles.intersection({"Workshop Technician", "Workshop Manager"}):
+			frappe.throw(_("Only a Workshop Technician or Workshop Manager can change service completion."))
+		if self.is_completed:
+			self.completed_on = now_datetime()
+			self.completed_by = frappe.session.user
+		else:
+			if "Workshop Manager" not in roles:
+				frappe.throw(_("Only a Workshop Manager can reopen a completed service."))
+			self.completed_on = None
+			self.completed_by = None
 
 	def on_update(self):
 		from auto_service_management.auto_service_management.workflow_compatibility import (
@@ -160,6 +177,7 @@ class RepairJobService(Document):
 		sync_repair_job_related_tables(self.repair_job)
 		recompute_repair_job_state(self.repair_job)
 		sync_repair_job_total(self.repair_job)
+		frappe.publish_realtime("repair_job_services_updated", {"repair_job": self.repair_job})
 
 	def after_delete(self):
 		from auto_service_management.auto_service_management.workflow_compatibility import (
@@ -225,6 +243,10 @@ class RepairJobService(Document):
 			if row.billable is None:
 				row.billable = 1
 			if component.component_type == "Labour":
+				if not getattr(row, "item_code", None):
+					settings = frappe.get_single("Auto Service Settings")
+					if settings.default_labour_item:
+						row.item_code = settings.default_labour_item
 				if row.billable:
 					if not getattr(row, "billing_hours", None):
 						row.billing_hours = getattr(row, "hours", None) or 0
@@ -266,7 +288,29 @@ class RepairJobServiceComponent(Document):
 	def validate(self):
 		if self.billable is None:
 			self.billable = 1
+		if self.component_type == "Labour":
+			_validate_labour_item(self.item_code)
 		calculate_component_amount(self, self.component_type)
+
+
+def _validate_labour_item(item_code):
+	if not item_code:
+		frappe.throw(_("A Labour Service Item is required for every Labour component."))
+
+	item = frappe.db.get_value(
+		"Item",
+		item_code,
+		["disabled", "is_stock_item", "is_sales_item", "stock_uom"],
+		as_dict=True,
+	)
+	if not item:
+		frappe.throw(_("Labour Service Item {0} does not exist.").format(item_code))
+	if item.disabled or item.is_stock_item or not item.is_sales_item or item.stock_uom != "Hour":
+		frappe.throw(
+			_("Labour Service Item {0} must be an enabled, non-stock sales Item with Hour as its UOM.").format(
+				item_code
+			)
+		)
 
 
 def _component_quantity(row, component_type):

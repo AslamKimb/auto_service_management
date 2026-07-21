@@ -9,6 +9,15 @@ class WorkshopBay(Document):
 	def validate(self):
 		if self.status == "Under Maintenance" and self.occupied_count() > 0:
 			frappe.throw("Cannot set bay to Under Maintenance while jobs are assigned to it.")
+		if self.warehouse:
+			warehouse = frappe.db.get_value(
+				"Warehouse", self.warehouse, ["is_group", "company"], as_dict=True
+			)
+			company = frappe.db.get_single_value("Auto Service Settings", "company")
+			if not warehouse or warehouse.is_group:
+				frappe.throw("Workshop Bay warehouse must be a leaf warehouse.")
+			if company and warehouse.company != company:
+				frappe.throw("Workshop Bay warehouse must belong to the configured company.")
 
 	def occupied_count(self):
 		"""Count active repair jobs assigned to this bay."""

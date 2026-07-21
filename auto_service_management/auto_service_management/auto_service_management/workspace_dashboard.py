@@ -69,6 +69,7 @@ WORKSPACE_LINK_CARDS = (
 WORKSPACE_REPORT_LINKS = (
 	"Open Repair Jobs",
 	"Daily Workshop Load",
+	"Workshop Bay View",
 	"Jobs by Status",
 	"Jobs Waiting for Parts",
 	"Technician Productivity",

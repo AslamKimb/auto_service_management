@@ -53,6 +53,13 @@
    "options": "\nNot Invoiced\nUnpaid\nPartially Paid\nPaid",
    "read_only": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "is_completed",
+   "fieldtype": "Check",
+   "label": "Completed",
+   "read_only": 1,
+   "in_list_view": 1
   }
  ],
  "permissions": [],

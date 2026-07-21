@@ -85,6 +85,25 @@
    "in_list_view": 1
   },
   {
+   "fieldname": "is_completed",
+   "fieldtype": "Check",
+   "label": "Service Completed",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "completed_on",
+   "fieldtype": "Datetime",
+   "label": "Completed On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "completed_by",
+   "fieldtype": "Link",
+   "label": "Completed By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
    "fieldname": "description",
    "fieldtype": "Text Editor",
    "label": "Description"

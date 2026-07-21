@@ -19,6 +19,7 @@ REPAIR_JOB_SERVICE_FIELDS = (
 	"workshop_bay",
 	"total_amount",
 	"payment_status",
+	"is_completed",
 )
 REPAIR_JOB_INVOICE_FIELDS = (
 	"repair_job",
@@ -94,11 +95,6 @@ def sync_repair_job_compatibility_views(repair_job):
 		sum(flt(row.get("grand_total")) for row in repair_job.get("sales_invoices") or []),
 		repair_job.payment_total,
 	)
-	for row in repair_job.get("sales_invoices") or []:
-		row["customer"] = getattr(repair_job, "customer", None)
-		row["job_status"] = getattr(repair_job, "job_status", None)
-		row["closed_on"] = getattr(repair_job, "closed_on", None)
-		row["payment_status"] = getattr(repair_job, "payment_status", None)
 	return repair_job
 
 
@@ -106,9 +102,9 @@ def sync_repair_job_related_tables(repair_job_name: str):
 	if not repair_job_name or not frappe.db.exists("Repair Job", repair_job_name):
 		return
 	job = frappe.get_doc("Repair Job", repair_job_name)
+	sync_repair_job_compatibility_views(job)
 	job.flags.skip_compatibility_sync = True
 	job.flags.ignore_links = True
-	sync_repair_job_compatibility_views(job)
 	job.save(ignore_permissions=True)
 
 
@@ -127,7 +123,7 @@ def recompute_repair_job_state(repair_job_name: str):
 	if not target or target == job.job_status:
 		return job
 	job.job_status = target
-	if job.meta.has_field("workflow_state"):
+	if getattr(job, "meta", None) and job.meta.has_field("workflow_state"):
 		job.workflow_state = target
 	job.flags.skip_status_validation = True
 	job.flags.ignore_links = True
@@ -243,6 +239,7 @@ def build_repair_job_service_rows(repair_job_name: str) -> list[dict]:
 				"workshop_bay": getattr(service, "workshop_bay", None),
 				"total_amount": service.total_amount,
 				"payment_status": _service_payment_status(service),
+				"is_completed": int(bool(getattr(service, "is_completed", False))),
 			}
 		)
 	return service_rows
@@ -439,13 +436,6 @@ def _derive_repair_job_status(job):
 		return "Closed"
 	if gate_pass and getattr(gate_pass, "status", None) == "Issued":
 		return "Ready for Release"
-
-	if _all_billable_components_submitted(job.name):
-		if getattr(job, "payment_status", None) == "Paid":
-			return "Ready for Release"
-		return "Billing"
-	if _has_any_billable_invoice(job.name):
-		return "Billing"
 
 	quality_check = _get_linked_doc(job.name, "Quality Check")
 	if quality_check:

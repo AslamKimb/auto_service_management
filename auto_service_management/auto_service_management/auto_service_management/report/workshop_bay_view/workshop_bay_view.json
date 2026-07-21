@@ -1,0 +1,10 @@
+{
+ "doctype": "Report",
+ "name": "Workshop Bay View",
+ "report_name": "Workshop Bay View",
+ "ref_doctype": "Repair Job",
+ "report_type": "Script Report",
+ "is_standard": "Yes",
+ "module": "Auto Service Management",
+ "roles": [{"role": "Workshop Manager"}, {"role": "Service Advisor"}, {"role": "Accounts Manager"}]
+}

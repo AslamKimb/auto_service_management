@@ -139,7 +139,7 @@ class TestPhase10MappingUnits(UnitTestCase):
 		self.assertEqual(item["rate"], 60000)
 		self.assertEqual(item["uom"], "Hour")
 
-	def test_itemless_labour_maps_as_description_row(self):
+	def test_itemless_labour_is_rejected_before_invoice_mapping(self):
 		job = frappe._dict(name="RJ-1", customer_vehicle="VEH-1", project="PROJ-1")
 		service = frappe._dict(name="RJS-1", service_name="Brake service")
 		row = frappe._dict(
@@ -154,14 +154,8 @@ class TestPhase10MappingUnits(UnitTestCase):
 		)
 		component = ServiceComponent(service, row, "labour", "Labour")
 
-		with patch.object(component_mapping.frappe.db, "exists", return_value=True):
-			item = component_mapping._sales_invoice_item(job, service, component)
-
-		self.assertIsNone(item["item_code"])
-		self.assertEqual(item["item_name"], "Brake labour")
-		self.assertEqual(item["qty"], 2.5)
-		self.assertEqual(item["uom"], "Hour")
-		self.assertEqual(item["rate"], 60000)
+		with self.assertRaises(frappe.ValidationError):
+			component_mapping._sales_invoice_item(job, service, component)
 
 	def test_itemless_stock_component_uses_nos_uom(self):
 		job = frappe._dict(name="RJ-1", customer_vehicle="VEH-1", project="PROJ-1")

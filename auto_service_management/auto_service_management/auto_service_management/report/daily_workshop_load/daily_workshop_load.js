@@ -1,20 +1,23 @@
 frappe.query_reports["Daily Workshop Load"] = {
  "filters": [
-  {
-   "fieldname": "from_date",
-   "label": "From Date",
-   "fieldtype": "Date"
-  },
-  {
-   "fieldname": "to_date",
-   "label": "To Date",
-   "fieldtype": "Date"
-  },
+  {"fieldname": "report_date", "label": "Date", "fieldtype": "Date", "default": frappe.datetime.get_today()},
   {
    "fieldname": "workshop_bay",
    "label": "Workshop Bay",
    "fieldtype": "Link",
    "options": "Workshop Bay"
+  },
+  {
+   "fieldname": "technician",
+   "label": "Technician",
+   "fieldtype": "Link",
+   "options": "User"
+  },
+  {
+   "fieldname": "completion_state",
+   "label": "Completion",
+   "fieldtype": "Select",
+   "options": "\nOpen\nCompleted"
   }
  ]
 };
