@@ -70,25 +70,73 @@ services:
 
         cd frappe-bench
 
-        if grep -q "auto_service_management" sites/apps.txt 2>/dev/null; then
-          echo "App already installed, skipping setup"
-          exit 0
-        fi
+        ensure_apps_txt_entry() {
+          app_name="$$1"
+          grep -qx "$$app_name" sites/apps.txt 2>/dev/null || printf '%s\n' "$$app_name" >> sites/apps.txt
+        }
 
-        echo "=== Getting ERPNext ==="
-        if [ ! -d apps/erpnext ]; then
-          bench get-app erpnext --branch version-16
-        fi
+        get_remote_app() {
+          app_name="$$1"
+          app_url="$$2"
+          app_branch="$$3"
+          if [ -d "apps/$$app_name" ]; then
+            echo "=== $$app_name already present ==="
+          else
+            echo "=== Getting $$app_name ==="
+            bench get-app "$$app_url" --branch "$$app_branch"
+          fi
+          ensure_apps_txt_entry "$$app_name"
+        }
 
-        echo "=== Installing auto_service_management from local source ==="
-        rm -rf apps/auto_service_management
-        cp -r /app-source apps/auto_service_management
-        echo "=== Editable install for Python 3.14 compatibility ==="
-        env/bin/pip install -e apps/auto_service_management --no-deps
-        printf 'auto_service_management\n' >> sites/apps.txt
-        echo "App contents:"
-        ls apps/auto_service_management/
-        test -f apps/auto_service_management/auto_service_management/__init__.py
+        install_local_auto_service() {
+          if [ -d apps/auto_service_management ]; then
+            echo "=== auto_service_management already present ==="
+          else
+            echo "=== Installing auto_service_management from local source ==="
+            cp -r /app-source apps/auto_service_management
+            echo "=== Editable install for Python 3.14 compatibility ==="
+            env/bin/pip install -e apps/auto_service_management --no-deps
+          fi
+          ensure_apps_txt_entry auto_service_management
+          test -f apps/auto_service_management/auto_service_management/__init__.py
+        }
+
+        ensure_site() {
+          site_name="$$1"
+          if [ -d "sites/$$site_name" ]; then
+            echo "=== $$site_name already exists ==="
+          else
+            echo "=== Creating $$site_name ==="
+            if [ "$$site_name" = "auto-service.localhost" ]; then
+              bench new-site "$$site_name" \
+                --mariadb-root-password admin \
+                --mariadb-user-host-login-scope=% \
+                --admin-password admin \
+                --set-default
+            else
+              bench new-site "$$site_name" \
+                --mariadb-root-password admin \
+                --mariadb-user-host-login-scope=% \
+                --admin-password admin
+            fi
+          fi
+        }
+
+        ensure_site_app() {
+          site_name="$$1"
+          app_name="$$2"
+          if bench --site "$$site_name" list-apps | grep -qx "$$app_name"; then
+            echo "=== $$app_name already installed on $$site_name ==="
+          else
+            echo "=== Installing $$app_name on $$site_name ==="
+            bench --site "$$site_name" install-app "$$app_name"
+          fi
+        }
+
+        get_remote_app erpnext https://github.com/frappe/erpnext version-16
+        get_remote_app hrms https://github.com/frappe/hrms version-16
+        get_remote_app uganda_compliance https://github.com/erpchampions/uganda_compliance hotfix-v-16
+        install_local_auto_service
 
         echo "=== Configuring site ==="
         bench set-config -gp redis_cache '"redis://redis-cache:6379"'
@@ -98,34 +146,25 @@ services:
         bench set-config -gp db_port 3306
         bench set-config -gp socketio_port 9000
 
-        echo "=== Creating auto-service.localhost ==="
-        bench new-site auto-service.localhost \
-          --mariadb-root-password admin \
-          --mariadb-user-host-login-scope=% \
-          --admin-password admin \
-          --set-default
-
-        echo "=== Installing apps on auto-service.localhost ==="
-        bench --site auto-service.localhost install-app erpnext
-        bench --site auto-service.localhost install-app auto_service_management
-        bench --site auto-service.localhost migrate
-
         echo "=== Configuring Socket.IO CORS ==="
         bench set-config -gp allow_cors '["http://auto-service.localhost:8080", "http://auto-service.localhost"]'
 
-        echo "=== Creating auto-service-test.localhost ==="
-        bench new-site auto-service-test.localhost \
-          --mariadb-root-password admin \
-          --mariadb-user-host-login-scope=% \
-          --admin-password admin
+        ensure_site auto-service.localhost
+        ensure_site auto-service-test.localhost
 
-        echo "=== Installing apps on auto-service-test.localhost ==="
-        bench --site auto-service-test.localhost install-app erpnext
-        bench --site auto-service-test.localhost install-app auto_service_management
-        bench --site auto-service-test.localhost migrate
+        for site_name in auto-service.localhost auto-service-test.localhost; do
+          ensure_site_app "$$site_name" erpnext
+          ensure_site_app "$$site_name" auto_service_management
+          ensure_site_app "$$site_name" hrms
+          ensure_site_app "$$site_name" uganda_compliance
+          echo "=== Migrating $$site_name ==="
+          bench --site "$$site_name" migrate
+        done
 
         echo "=== Building assets ==="
         bench build --app auto_service_management
+        bench build --app hrms
+        bench build --app uganda_compliance
 
         echo "=== Setup complete ==="
     volumes:

@@ -16,8 +16,8 @@
     "hash": "2dc9f7dc8d0c6113c406e653e9b9e6a1"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\hooks.py": {
-    "mtime": 1784651864.5027359,
-    "hash": "706638f8b298ce4feb4816e3f25da7c3"
+    "mtime": 1784736323.19593,
+    "hash": "1eb54036e56c1f8ea16ba3a410bc278d"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\__init__.py": {
     "mtime": 1782769121.0,
@@ -624,8 +624,8 @@
     "hash": "30780b94b88e7b0c7f73c65c8692da7a"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\patches\\phase6_permission_matrix_repair.py": {
-    "mtime": 1783335134.2230554,
-    "hash": "f933cdb4b8dd06f0dd8288b13c78ba68"
+    "mtime": 1784735842.84626,
+    "hash": "85eb0b8030a9ba5c7bdff4ef1fdb55ad"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\patches\\phase8_service_operations.py": {
     "mtime": 1783853022.8746364,
@@ -712,16 +712,16 @@
     "hash": "e4f1a347bc6c6336f7bb5f04c77a3e38"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docker-compose.dev.yml": {
-    "mtime": 1783370217.0795324,
-    "hash": "0c691980fc83449015221cc46663fd8e"
+    "mtime": 1784730756.4945188,
+    "hash": "62a2fc6482ee5e3f83f16b253c2dcee6"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\IMPLEMENTATION_PLAN.md": {
-    "mtime": 1784702744.7372727,
-    "hash": "bc200045166886cd340a17ce1ac7c690"
+    "mtime": 1784738887.9836707,
+    "hash": "3ae143fc30a48a34bac3b96088b1a45e"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\README.md": {
-    "mtime": 1783320360.505751,
-    "hash": "f388b2d6dbb83485b973ad9f0c3288ec"
+    "mtime": 1784728065.059927,
+    "hash": "b60d41115871380c3107a2787dd16e8a"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\REPAIR_WORKFLOW_IMPLEMENTATION_PLAN.md": {
     "mtime": 1784410841.178532,
