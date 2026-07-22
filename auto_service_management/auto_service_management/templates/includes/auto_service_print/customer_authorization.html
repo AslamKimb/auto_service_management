@@ -1,0 +1,17 @@
+{% set print_title = "Customer Authorization" %}
+{% set print_status = doc.status %}
+<div class="asm-print">
+{% include "templates/includes/auto_service_print/common.html" %}
+<table class="asm-grid">
+  <tr><th>Repair Job</th><td>{{ doc.repair_job or "" }}</td><th>Customer</th><td>{{ doc.customer or "" }}</td></tr>
+  <tr><th>Approved Amount</th><td>{{ frappe.utils.fmt_money(doc.approved_amount, currency=doc.currency) }}</td><th>Scope Total</th><td>{{ frappe.utils.fmt_money(doc.scope_total_amount, currency=doc.currency) }}</td></tr>
+  <tr><th>Method</th><td>{{ doc.authorization_method or "" }}</td><th>Authorized On</th><td>{{ frappe.utils.format_datetime(doc.authorization_date) if doc.authorization_date else "" }}</td></tr>
+  <tr><th>Authorized By</th><td>{{ doc.authorized_by_user or "" }}</td><th>Expiry</th><td>{{ frappe.utils.formatdate(doc.expiry_date) if doc.expiry_date else "" }}</td></tr>
+</table>
+<div class="asm-section-title">Authorized Scope Notes</div>
+<div class="asm-note">{{ doc.authorization_notes or "" }}</div>
+<div class="asm-control"><strong>Authorization gate:</strong> the workshop may perform only the approved work up to the approved amount. New findings, partial approvals, and changed scope must be recorded before repair continues.</div>
+{% if doc.signature_or_evidence %}<div class="asm-section-title">Evidence</div><img src="{{ doc.signature_or_evidence }}" style="max-height:90px;max-width:220px">{% endif %}
+<div class="asm-signatures"><div class="asm-signature"><div class="asm-signature-line">Customer / Representative</div></div><div class="asm-signature"><div class="asm-signature-line">Service Advisor</div></div><div class="asm-signature"><div class="asm-signature-line">Date</div></div></div>
+<div class="asm-footer">Authorization evidence is part of the Repair Job audit trail.</div>
+</div>

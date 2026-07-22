@@ -1,0 +1,28 @@
+{% set print_title = "Job Card" %}
+{% set print_status = doc.job_status %}
+<div class="asm-print">
+{% include "templates/includes/auto_service_print/common.html" %}
+<table class="asm-grid">
+  <tr><th>Customer</th><td>{{ doc.customer or "" }}</td><th>Vehicle</th><td>{{ doc.customer_vehicle or "" }}</td></tr>
+  <tr><th>Registration</th><td>{{ doc.registration_number or "" }}</td><th>Promised</th><td>{{ frappe.utils.format_datetime(doc.promised_date) if doc.promised_date else "" }}</td></tr>
+  <tr><th>Odometer In</th><td>{{ doc.odometer_in or "" }}</td><th>Fuel Level</th><td>{{ doc.fuel_level or "" }}</td></tr>
+  <tr><th>Project</th><td>{{ doc.project or "" }}</td><th>Advisor Control</th><td>Authorization before work · QC before billing release</td></tr>
+</table>
+<div class="asm-section-title">Customer Concern</div>
+<div class="asm-note">{{ doc.customer_concern or "" }}</div>
+<div class="asm-section-title">Workshop Work Instructions</div>
+<table class="asm-lines">
+  <thead><tr><th>Type</th><th>Description</th><th>Qty / Hours</th><th>Technician</th></tr></thead>
+  <tbody>
+  {% for service in doc.get_service_groups() %}
+    <tr class="asm-service-row"><td colspan="4">{{ service.service_name }} · {{ service.status }}</td></tr>
+    {% for row in service.components %}
+    <tr><td>{{ row.service_type }}</td><td>{{ row.service_description }}</td><td>{{ row.quantity }}</td><td>{{ row.assigned_to or "" }}</td></tr>
+    {% endfor %}
+  {% endfor %}
+  </tbody>
+</table>
+<div class="asm-control"><strong>Control:</strong> technicians must record labour, parts, consumables, blockers, and rework evidence on the Repair Job before Quality Check.</div>
+<div class="asm-signatures"><div class="asm-signature"><div class="asm-signature-line">Technician</div></div><div class="asm-signature"><div class="asm-signature-line">Workshop Manager</div></div><div class="asm-signature"><div class="asm-signature-line">Quality Check</div></div></div>
+<div class="asm-footer">Generated from Repair Job {{ doc.name }}. ERPNext remains authoritative for stock, pricing, invoicing, payments, taxes, and accounting.</div>
+</div>

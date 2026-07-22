@@ -7,7 +7,7 @@
  "docstatus": 0,
  "doctype": "Print Format",
  "font": "Default",
- "html": "<style>\n.print-heading { border-bottom: 2px solid #1f2937; margin-bottom: 14px; padding-bottom: 8px; }\n.meta { width: 100%; margin-bottom: 12px; }\n.meta td { padding: 4px 6px; vertical-align: top; }\n.lines { width: 100%; border-collapse: collapse; }\n.lines th, .lines td { border: 1px solid #d1d5db; padding: 5px; }\n.signature { margin-top: 28px; border-top: 1px solid #111827; padding-top: 4px; width: 42%; }\n</style>\n<div class=\"print-heading\"><h2>Customer Authorization {{ doc.name }}</h2></div>\n<table class=\"meta\"><tr><td><b>Repair Job:</b> {{ doc.repair_job }}</td><td><b>Customer:</b> {{ doc.customer }}</td></tr><tr><td><b>Approved amount:</b> {{ frappe.utils.fmt_money(doc.approved_amount, currency=doc.currency) }}</td><td><b>Status:</b> {{ doc.status }}</td></tr><tr><td><b>Method:</b> {{ doc.authorization_method or \"\" }}</td><td><b>Date:</b> {{ frappe.utils.format_datetime(doc.authorization_date) }}</td></tr></table>\n<div>{{ doc.authorization_notes or \"\" }}</div>\n<p><small>I authorize the workshop to perform the approved work up to the amount stated above, subject to the recorded terms.</small></p>\n{% if doc.signature_or_evidence %}<img src=\"{{ doc.signature_or_evidence }}\" style=\"max-height:90px\">{% endif %}<div class=\"signature\">Customer / authorized representative</div>",
+ "html": "{% set _doc = doc %}{% include \"templates/includes/auto_service_print/customer_authorization.html\" %}",
  "line_breaks": 0,
  "module": "Auto Service Management",
  "name": "Customer Authorization",

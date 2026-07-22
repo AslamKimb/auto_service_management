@@ -1,0 +1,24 @@
+{% set print_title = "Gate Pass" %}
+{% set print_status = doc.status %}
+<div class="asm-print">
+{% include "templates/includes/auto_service_print/common.html" %}
+<table class="asm-grid">
+  <tr><th>Repair Job</th><td>{{ doc.repair_job or "" }}</td><th>Vehicle</th><td>{{ doc.customer_vehicle or "" }}</td></tr>
+  <tr><th>Purpose</th><td>{{ doc.purpose or "" }}</td><th>Sales Invoice</th><td>{{ doc.sales_invoice or "" }}</td></tr>
+  <tr><th>Recipient</th><td>{{ doc.recipient_name or "" }}</td><th>ID</th><td>{{ doc.recipient_id_type or "" }} {{ doc.recipient_id_number or "" }}</td></tr>
+  <tr><th>Issued By</th><td>{{ doc.issued_by or "" }}</td><th>Issued On</th><td>{{ frappe.utils.format_datetime(doc.issue_date) if doc.issue_date else "" }}</td></tr>
+</table>
+<div class="asm-section-title">Release Gates</div>
+<table class="asm-lines">
+  <tbody>
+    <tr><th>Authorization</th><td>Approved customer or corporate credit authorization recorded on the Repair Job.</td></tr>
+    <tr><th>Quality Check</th><td>QC passed, including road-test evidence when required.</td></tr>
+    <tr><th>Invoice Coverage</th><td>Invoice or approved credit release covers released work.</td></tr>
+    <tr><th>Gate Control</th><td>Security confirms recipient identity before releasing the vehicle.</td></tr>
+  </tbody>
+</table>
+<div class="asm-section-title">Notes</div>
+<div class="asm-note">{{ doc.notes or "" }}</div>
+<div class="asm-signatures"><div class="asm-signature"><div class="asm-signature-line">Issued By</div></div><div class="asm-signature"><div class="asm-signature-line">Recipient</div></div><div class="asm-signature"><div class="asm-signature-line">Security Gate Officer</div></div></div>
+<div class="asm-footer">This gate pass authorizes release only for the vehicle and recipient shown above.</div>
+</div>

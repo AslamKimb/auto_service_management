@@ -1,0 +1,30 @@
+{% set print_title = "Walkaround Inspection" %}
+{% set print_status = doc.overall_condition %}
+<div class="asm-print">
+{% include "templates/includes/auto_service_print/common.html" %}
+<table class="asm-grid">
+  <tr><th>Repair Job</th><td>{{ doc.repair_job or "" }}</td><th>Vehicle</th><td>{{ doc.customer_vehicle or "" }}</td></tr>
+  <tr><th>Inspected By</th><td>{{ doc.inspected_by or "" }}</td><th>Inspection Date</th><td>{{ frappe.utils.format_datetime(doc.inspection_date) if doc.inspection_date else "" }}</td></tr>
+  <tr><th>Odometer</th><td>{{ doc.odometer_reading or "" }}</td><th>Fuel Level</th><td>{{ doc.fuel_level or "" }}</td></tr>
+  <tr><th>Customer Present</th><td>{{ "Yes" if doc.customer_present else "No" }}</td><th>Condition</th><td>{{ doc.overall_condition or "" }}</td></tr>
+</table>
+<div class="vehicle-silhouette" aria-label="Vehicle silhouette"><div class="vehicle-cabin"></div><div class="vehicle-window left"></div><div class="vehicle-window right"></div><div class="vehicle-body"></div><div class="vehicle-wheel front"></div><div class="vehicle-wheel rear"></div></div>
+<div class="asm-section-title">Damage Marks</div>
+<table class="asm-lines">
+  <thead><tr><th>#</th><th>Area</th><th>Damage</th><th>Severity</th><th>Notes</th></tr></thead>
+  <tbody>
+  {% for mark in doc.damage_marks %}
+    <tr><td>{{ loop.index }}</td><td>{{ mark.vehicle_area or "" }}</td><td>{{ mark.damage_type or "" }}</td><td>{{ mark.severity or "" }}</td><td>{{ mark.notes or "" }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<div class="asm-section-title">Condition Notes</div>
+<div class="asm-note">{{ doc.condition_notes or "" }}</div>
+{% if doc.inspection_photo_1 or doc.inspection_photo_2 or doc.inspection_photo_3 %}
+<div class="asm-section-title">Photo Evidence</div>
+{% for photo in [doc.inspection_photo_1, doc.inspection_photo_2, doc.inspection_photo_3] if photo %}<img src="{{ photo }}" style="border:1px solid #d7d0c1;margin:1%;max-height:110px;max-width:30%">{% endfor %}
+{% endif %}
+<div class="asm-control"><strong>Intake control:</strong> this record protects the customer and workshop by documenting the vehicle condition before assessment or repair.</div>
+{% if doc.customer_signature %}<img src="{{ doc.customer_signature }}" style="max-height:80px;max-width:220px">{% endif %}
+<div class="asm-signatures"><div class="asm-signature"><div class="asm-signature-line">Customer</div></div><div class="asm-signature"><div class="asm-signature-line">Service Advisor</div></div><div class="asm-signature"><div class="asm-signature-line">Date</div></div></div>
+</div>

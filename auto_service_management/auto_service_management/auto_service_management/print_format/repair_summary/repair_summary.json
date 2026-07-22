@@ -7,7 +7,7 @@
  "docstatus": 0,
  "doctype": "Print Format",
  "font": "Default",
- "html": "{{ doc.render_repair_summary() }}",
+ "html": "{% set _doc = doc %}{% include \"templates/includes/auto_service_print/repair_summary.html\" %}",
  "line_breaks": 0,
  "module": "Auto Service Management",
  "name": "Repair Summary",

@@ -7,7 +7,7 @@
  "docstatus": 0,
  "doctype": "Print Format",
  "font": "Default",
- "html": "<style>\n.print-heading { border-bottom: 2px solid #1f2937; margin-bottom: 14px; padding-bottom: 8px; }\n.meta { width: 100%; margin-bottom: 12px; }\n.meta td { padding: 4px 6px; vertical-align: top; }\n.lines { width: 100%; border-collapse: collapse; }\n.lines th, .lines td { border: 1px solid #d1d5db; padding: 5px; }\n.signature { margin-top: 28px; border-top: 1px solid #111827; padding-top: 4px; width: 42%; }\n</style>\n<div class=\"print-heading\"><h2>Gate Pass {{ doc.name }}</h2></div>\n<table class=\"meta\"><tr><td><b>Repair Job:</b> {{ doc.repair_job }}</td><td><b>Vehicle:</b> {{ doc.customer_vehicle }}</td></tr><tr><td><b>Invoice:</b> {{ doc.sales_invoice or \"\" }}</td><td><b>Status:</b> {{ doc.status }}</td></tr><tr><td><b>Recipient:</b> {{ doc.recipient_name }}</td><td><b>Issued:</b> {{ frappe.utils.format_datetime(doc.issue_date) if doc.issue_date else \"\" }}</td></tr></table>\n<p>{{ doc.notes or \"\" }}</p><div class=\"signature\">Security verification</div>",
+ "html": "{% set _doc = doc %}{% include \"templates/includes/auto_service_print/gate_pass.html\" %}",
  "line_breaks": 0,
  "module": "Auto Service Management",
  "name": "Gate Pass",

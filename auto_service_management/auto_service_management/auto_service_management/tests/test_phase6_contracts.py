@@ -30,6 +30,8 @@ PRINT_FORMATS = {
 	"walkaround_inspection": ("Walkaround Inspection", "Walkaround Inspection"),
 }
 
+PRINT_TEMPLATE_ROOT = Path(__file__).parents[2] / "templates" / "includes" / "auto_service_print"
+
 WORKSPACE_SHORTCUTS = {
 	"Vehicle Search",
 	"New Repair Job",
@@ -93,20 +95,26 @@ class TestPhase6Contracts(UnitTestCase):
 				self.assertEqual(data["doc_type"], doc_type)
 				self.assertEqual(data["module"], "Auto Service Management")
 				self.assertEqual(data["standard"], "Yes")
-				self.assertIn("{{ doc", data["html"])
+				self.assertIn(f'templates/includes/auto_service_print/{folder}.html', data["html"])
+				self.assertTrue((PRINT_TEMPLATE_ROOT / f"{folder}.html").is_file())
+
+	def test_print_formats_share_company_branded_header(self):
+		common = (PRINT_TEMPLATE_ROOT / "common.html").read_text(encoding="utf-8")
+
+		self.assertIn("Auto Service Settings", common)
+		self.assertIn("Company", common)
+		self.assertIn("company_logo", common)
+		self.assertIn("asm-brand", common)
+		self.assertIn("asm-logo-fallback", common)
 
 	def test_walkaround_print_uses_silhouette_and_damage_markers(self):
-		module_root = Path(__file__).parents[1]
-		path = module_root / "print_format" / "walkaround_inspection" / "walkaround_inspection.json"
-		html = json.loads(path.read_text(encoding="utf-8"))["html"]
+		html = (PRINT_TEMPLATE_ROOT / "walkaround_inspection.html").read_text(encoding="utf-8")
 
 		self.assertIn("vehicle-silhouette", html)
 		self.assertIn("damage_marks", html)
 
 	def test_job_card_print_includes_intake_fuel_level(self):
-		module_root = Path(__file__).parents[1]
-		path = module_root / "print_format" / "job_card" / "job_card.json"
-		html = json.loads(path.read_text(encoding="utf-8"))["html"]
+		html = (PRINT_TEMPLATE_ROOT / "job_card.html").read_text(encoding="utf-8")
 
 		self.assertIn("doc.fuel_level", html)
 
@@ -275,11 +283,21 @@ class TestPhase6Contracts(UnitTestCase):
 				self.assertIn(f"{child_doctype}-{fieldname}", names)
 
 	def test_repair_summary_print_uses_linked_quality_check_status(self):
-		module_root = Path(__file__).parents[1]
-		path = module_root / "print_format" / "repair_summary" / "repair_summary.json"
-		html = json.loads(path.read_text(encoding="utf-8"))["html"]
+		html = (PRINT_TEMPLATE_ROOT / "repair_summary.html").read_text(encoding="utf-8")
 
-		self.assertIn("render_repair_summary", html)
+		self.assertIn("Closure gate", html)
+		self.assertIn("Service History", html)
+
+	def test_customer_and_release_prints_show_control_gates(self):
+		for template, marker in {
+			"customer_authorization.html": "Authorization gate",
+			"estimate_summary.html": "Authorization gate",
+			"gate_pass.html": "Release Gates",
+			"repair_summary.html": "Closure gate",
+		}.items():
+			with self.subTest(template=template):
+				html = (PRINT_TEMPLATE_ROOT / template).read_text(encoding="utf-8")
+				self.assertIn(marker, html)
 
 	def test_workspace_content_references_declared_shortcuts(self):
 		module_root = Path(__file__).parents[1]

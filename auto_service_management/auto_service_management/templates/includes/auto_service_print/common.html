@@ -1,0 +1,66 @@
+{% set print_company = frappe.db.get_single_value("Auto Service Settings", "company") or doc.get("company") or frappe.defaults.get_global_default("company") %}
+{% set company = frappe.db.get_value("Company", print_company, ["company_name", "company_logo", "phone_no", "email", "website"], as_dict=True) if print_company else {} %}
+{% set company_name = company.company_name or print_company or "Auto Service Workshop" %}
+{% set logo = company.company_logo %}
+{% set contact = [company.phone_no, company.email, company.website] | select | join(" · ") %}
+<style>
+.asm-print { color: #18212f; font-family: Inter, Arial, sans-serif; font-size: 11px; line-height: 1.42; }
+.asm-brand { border: 1px solid #d7d0c1; border-top: 6px solid #e66f2a; display: table; margin-bottom: 14px; padding: 12px; width: 100%; }
+.asm-logo, .asm-brand-copy, .asm-doc-chip { display: table-cell; vertical-align: middle; }
+.asm-logo { width: 74px; }
+.asm-logo img { max-height: 52px; max-width: 64px; }
+.asm-logo-fallback { align-items: center; background: #183c43; border-radius: 8px; color: #fff7ed; display: inline-flex; font-size: 18px; font-weight: 800; height: 52px; justify-content: center; width: 64px; }
+.asm-brand-copy h1 { color: #111827; font-size: 18px; letter-spacing: .04em; margin: 0 0 3px; text-transform: uppercase; }
+.asm-brand-copy p { color: #5b6472; margin: 0; }
+.asm-doc-chip { text-align: right; width: 34%; }
+.asm-doc-chip .title { color: #183c43; font-size: 19px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
+.asm-doc-chip .ref { color: #5b6472; margin-top: 2px; }
+.asm-badge { background: #fff4e8; border: 1px solid #f2b179; border-radius: 999px; color: #9a4314; display: inline-block; font-size: 10px; font-weight: 700; margin-top: 6px; padding: 3px 8px; text-transform: uppercase; }
+.asm-grid { border-collapse: collapse; margin: 0 0 12px; width: 100%; }
+.asm-grid th, .asm-grid td { border: 1px solid #d7d0c1; padding: 6px 7px; text-align: left; vertical-align: top; }
+.asm-grid th { background: #f7f1e6; color: #374151; font-size: 10px; text-transform: uppercase; width: 18%; }
+.asm-lines { border-collapse: collapse; margin: 8px 0 12px; width: 100%; }
+.asm-lines th, .asm-lines td { border: 1px solid #d7d0c1; padding: 6px 7px; vertical-align: top; }
+.asm-lines th { background: #183c43; color: #fff; font-size: 10px; text-align: left; text-transform: uppercase; }
+.asm-section-title { border-left: 4px solid #e66f2a; color: #111827; font-size: 13px; font-weight: 800; margin: 14px 0 7px; padding-left: 7px; text-transform: uppercase; }
+.asm-service-row td { background: #f7f1e6; color: #111827; font-weight: 800; }
+.asm-note { background: #fbf7ef; border: 1px solid #d7d0c1; margin: 6px 0 12px; min-height: 38px; padding: 8px; }
+.asm-control { background: #fff4e8; border: 1px solid #f2b179; margin: 8px 0 12px; padding: 8px 10px; }
+.asm-control strong { color: #9a4314; }
+.asm-signatures { display: table; margin-top: 22px; width: 100%; }
+.asm-signature { display: table-cell; padding-right: 20px; width: 33%; }
+.asm-signature-line { border-top: 1px solid #18212f; padding-top: 5px; }
+.asm-muted { color: #6b7280; }
+.asm-footer { border-top: 1px solid #d7d0c1; color: #6b7280; font-size: 10px; margin-top: 18px; padding-top: 6px; }
+.asm-money { text-align: right; white-space: nowrap; }
+.vehicle-silhouette { background: linear-gradient(90deg, rgba(24,60,67,.08) 1px, transparent 1px), linear-gradient(rgba(24,60,67,.08) 1px, transparent 1px), #fbf7ef; background-size: 18px 18px; border: 1px solid #d7d0c1; border-radius: 12px; height: 170px; margin: 8px auto 12px; overflow: hidden; position: relative; width: 92%; }
+.vehicle-body { background: #183c43; border-radius: 48px 52px 20px 20px; height: 24%; left: 16%; position: absolute; right: 16%; top: 42%; }
+.vehicle-cabin { background: #2f5960; border-radius: 40px 40px 10px 10px; height: 22%; left: 31%; position: absolute; right: 31%; top: 25%; }
+.vehicle-window { background: #f7f1e6; border-radius: 10px; height: 12%; position: absolute; top: 30%; width: 14%; }
+.vehicle-window.left { left: 37%; }
+.vehicle-window.right { right: 37%; }
+.vehicle-wheel { background: #111827; border-radius: 999px; bottom: 12%; height: 13%; position: absolute; width: 13%; }
+.vehicle-wheel:after { background: #d7d0c1; border-radius: 999px; content: ""; inset: 24%; position: absolute; }
+.vehicle-wheel.front { left: 23%; }
+.vehicle-wheel.rear { right: 23%; }
+@media print { .asm-print { font-size: 10.5px; } .asm-brand { break-inside: avoid; } .asm-lines tr { break-inside: avoid; } }
+</style>
+<div class="asm-brand">
+  <div class="asm-logo">
+    {% if logo %}
+    <img src="{{ logo }}" alt="{{ company_name }}">
+    {% else %}
+    <span class="asm-logo-fallback">CW</span>
+    {% endif %}
+  </div>
+  <div class="asm-brand-copy">
+    <h1>{{ company_name }}</h1>
+    <p>Auto Service Management · Workshop operations record</p>
+    {% if contact %}<p>{{ contact }}</p>{% endif %}
+  </div>
+  <div class="asm-doc-chip">
+    <div class="title">{{ print_title }}</div>
+    <div class="ref">{{ doc.name }}</div>
+    {% if print_status %}<div class="asm-badge">{{ print_status }}</div>{% endif %}
+  </div>
+</div>
