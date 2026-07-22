@@ -24,14 +24,9 @@ class QualityCheck(Document):
 
 	def validate_repair_job_state(self):
 		if self.repair_job:
-			from auto_service_management.auto_service_management.integration.erpnext.document_sync import (
-				has_active_repair_job_invoice,
-			)
-
-			if not has_active_repair_job_invoice(self.repair_job):
-				frappe.throw(
-					"A Sales Invoice is required before creating or editing a Quality Check."
-				)
+			job_status = frappe.db.get_value("Repair Job", self.repair_job, "job_status")
+			if job_status not in {"In Repair", "Quality Check", "Billing"}:
+				frappe.throw("Quality Check requires the Repair Job to be in repair or billing review.")
 
 	def sync_with_repair_job(self):
 		if not self.repair_job:

@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#1d2525">
+  <title>Auto Service Management — New User Field Guide</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%231d2525'/%3E%3Cpath d='M12 41h6l5-13h25l6 13h-5a7 7 0 0 0-14 0H27a7 7 0 0 0-14 0h-1Z' fill='%23e65f2b'/%3E%3C/svg%3E">
+  <script>document.documentElement.classList.add('js');</script>
+  <style>
+    :root {
+      --ink: #1d2525;
+      --ink-soft: #364240;
+      --paper: #f3eddf;
+      --paper-deep: #e8dfcc;
+      --white: #fffdf6;
+      --orange: #e65f2b;
+      --orange-dark: #a83b17;
+      --teal: #176d68;
+      --teal-pale: #d4e3dd;
+      --yellow: #f0bf43;
+      --line: #9b9383;
+      --danger: #9e3025;
+      --shadow: 0 18px 55px rgba(29, 37, 37, .14);
+      --display: "Bahnschrift Condensed", "DIN Condensed", "Franklin Gothic Condensed", sans-serif;
+      --body: "Aptos", "Trebuchet MS", sans-serif;
+      --serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      --radius: 4px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(29,37,37,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(29,37,37,.035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 28px 28px;
+      font-family: var(--body);
+      font-size: 1rem;
+      line-height: 1.58;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .28;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.08'/%3E%3C/svg%3E");
+      z-index: 20;
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    a { color: inherit; text-underline-offset: .2em; }
+    a:hover { color: var(--orange-dark); }
+    :focus-visible { outline: 3px solid var(--yellow); outline-offset: 4px; }
+    [hidden] { display: none !important; }
+
+    .skip-link {
+      position: fixed;
+      left: 1rem;
+      top: -5rem;
+      z-index: 100;
+      padding: .65rem 1rem;
+      background: var(--yellow);
+      color: var(--ink);
+      font-weight: 800;
+    }
+    .skip-link:focus { top: 1rem; }
+    .progress-rail { position: fixed; inset: 0 0 auto; height: 4px; z-index: 50; background: rgba(255,255,255,.16); }
+    .progress-rail span { display: block; width: 0; height: 100%; background: var(--orange); }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      min-height: 4.4rem;
+      padding: .75rem clamp(1rem, 4vw, 4rem);
+      color: var(--white);
+      background: rgba(29, 37, 37, .96);
+      border-bottom: 1px solid rgba(255,255,255,.16);
+      backdrop-filter: blur(12px);
+    }
+    .brand { display: flex; align-items: center; gap: .75rem; text-decoration: none; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 2.3rem;
+      height: 2.3rem;
+      color: var(--ink);
+      background: var(--orange);
+      clip-path: polygon(12% 0, 100% 0, 88% 100%, 0 100%);
+      font-family: var(--display);
+      font-size: 1.25rem;
+      font-weight: 900;
+    }
+    .brand-text { font-family: var(--display); font-size: 1.08rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .site-nav { display: flex; gap: 1.25rem; font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .site-nav a { text-decoration: none; }
+
+    main { overflow: clip; }
+    .wrap { width: min(1180px, calc(100% - 2rem)); margin-inline: auto; }
+    .section { padding: clamp(4rem, 8vw, 7.5rem) 0; }
+    .section--ink { color: var(--white); background: var(--ink); }
+    .section--teal { color: var(--white); background: var(--teal); }
+    .section--paper-deep { background: var(--paper-deep); }
+    .section-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: .6rem;
+      margin: 0 0 1rem;
+      color: var(--orange-dark);
+      font-family: var(--display);
+      font-size: .86rem;
+      font-weight: 900;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .section-kicker::before { content: ""; width: 2.6rem; height: 3px; background: currentColor; }
+    .section--ink .section-kicker, .section--teal .section-kicker { color: var(--yellow); }
+    h1, h2, h3 { font-family: var(--display); line-height: .98; text-wrap: balance; }
+    h1 { margin: 0; font-size: clamp(4rem, 11vw, 9.2rem); letter-spacing: -.035em; text-transform: uppercase; }
+    h2 { margin: 0; font-size: clamp(2.7rem, 6vw, 5.6rem); letter-spacing: -.025em; text-transform: uppercase; }
+    h3 { margin: 0 0 .55rem; font-size: 1.65rem; letter-spacing: -.01em; }
+    p { margin: 0 0 1rem; }
+    .lede { max-width: 760px; margin-top: 1.25rem; font-family: var(--serif); font-size: clamp(1.15rem, 2vw, 1.45rem); }
+    .muted { color: #655f55; }
+    .section--ink .muted, .section--teal .muted { color: rgba(255,255,255,.7); }
+
+    .hero {
+      position: relative;
+      min-height: min(860px, calc(100vh - 4.4rem));
+      display: grid;
+      align-items: center;
+      color: var(--white);
+      background:
+        radial-gradient(circle at 76% 30%, rgba(23,109,104,.46), transparent 33%),
+        linear-gradient(118deg, #1d2525 0 64%, #26312f 64%);
+    }
+    .hero-grid { position: relative; z-index: 2; display: grid; grid-template-columns: 1.25fr .75fr; gap: 3rem; align-items: end; padding-block: clamp(4rem, 10vw, 8rem); }
+    .hero h1 span { display: block; color: var(--orange); }
+    .hero-copy { max-width: 690px; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: .8rem; margin-top: 2rem; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 3rem;
+      padding: .72rem 1.15rem;
+      border: 2px solid currentColor;
+      border-radius: 2px;
+      background: transparent;
+      font-family: var(--display);
+      font-size: .9rem;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-decoration: none;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform .2s ease, background .2s ease, color .2s ease;
+    }
+    .button:hover { transform: translateY(-2px); }
+    .button--primary { border-color: var(--orange); background: var(--orange); color: var(--ink); }
+    .button--ghost { color: var(--white); }
+    .button--small { min-height: 2.45rem; padding: .45rem .8rem; font-size: .76rem; }
+    .hero-stats { display: grid; gap: 1px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.15); box-shadow: var(--shadow); }
+    .hero-stat { padding: 1.2rem; background: rgba(29,37,37,.78); }
+    .hero-stat strong { display: block; color: var(--yellow); font-family: var(--display); font-size: 2.4rem; line-height: 1; }
+    .hero-stat span { display: block; margin-top: .35rem; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; }
+    .car-line { position: absolute; right: -4%; bottom: 4%; width: min(49vw, 720px); opacity: .12; }
+    .hero-tag { position: absolute; right: 2.5rem; top: 2.5rem; padding: .45rem .65rem; border: 1px solid rgba(255,255,255,.35); font-family: var(--display); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; transform: rotate(90deg) translateX(100%); transform-origin: right top; }
+
+    .manifesto { display: grid; grid-template-columns: .8fr 1.2fr; gap: clamp(2rem, 7vw, 7rem); align-items: start; }
+    .manifesto-number { color: var(--orange); font-family: var(--display); font-size: clamp(7rem, 18vw, 16rem); font-weight: 900; line-height: .72; letter-spacing: -.08em; }
+    .truth-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 2.5rem; }
+    .truth { padding: 1.25rem 0 0; border-top: 4px solid var(--ink); }
+    .truth b { display: block; margin-bottom: .3rem; font-family: var(--display); font-size: 1.15rem; text-transform: uppercase; }
+
+    .role-selector { display: flex; flex-wrap: wrap; gap: .55rem; margin: 2rem 0 2.4rem; }
+    .role-button {
+      padding: .72rem .9rem;
+      border: 1px solid rgba(255,255,255,.32);
+      background: transparent;
+      color: var(--white);
+      font-size: .82rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .role-button[aria-pressed="true"] { border-color: var(--yellow); background: var(--yellow); color: var(--ink); }
+    .role-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .role-card { min-height: 230px; padding: 1.4rem; border: 1px solid rgba(255,255,255,.23); background: rgba(255,255,255,.055); }
+    .role-card .code { color: var(--yellow); font-family: var(--display); font-size: .72rem; letter-spacing: .13em; text-transform: uppercase; }
+    .role-card h3 { margin-top: 1.6rem; }
+    .role-card ul { margin: .8rem 0 0; padding-left: 1.15rem; }
+
+    .journey-layout { display: grid; grid-template-columns: minmax(250px, .7fr) 1.3fr; gap: clamp(1.5rem, 5vw, 5rem); margin-top: 3rem; }
+    .stage-list { display: grid; align-content: start; border-left: 3px solid var(--line); }
+    .stage-button {
+      position: relative;
+      display: grid;
+      grid-template-columns: 2.5rem 1fr;
+      gap: .7rem;
+      align-items: center;
+      width: 100%;
+      padding: .85rem 1rem;
+      border: 0;
+      border-bottom: 1px solid #c9c0ae;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+    .stage-button::before { content: ""; position: absolute; left: -8px; width: 13px; height: 13px; border: 2px solid var(--paper); border-radius: 50%; background: var(--line); }
+    .stage-button[aria-selected="true"] { background: var(--ink); color: var(--white); }
+    .stage-button[aria-selected="true"]::before { background: var(--orange); }
+    .stage-no { color: var(--orange-dark); font-family: var(--display); font-size: 1.35rem; font-weight: 900; }
+    .stage-button[aria-selected="true"] .stage-no { color: var(--yellow); }
+    .stage-name { font-family: var(--display); font-size: 1.05rem; font-weight: 900; text-transform: uppercase; }
+    .stage-panel { padding: clamp(1.4rem, 4vw, 2.8rem); border: 1px solid var(--line); background: var(--white); box-shadow: var(--shadow); }
+    .js .stage-panel:not(.is-active) { display: none; }
+    .stage-panel header { display: flex; justify-content: space-between; gap: 1rem; align-items: start; padding-bottom: 1.2rem; border-bottom: 1px solid var(--line); }
+    .status-stamp { padding: .35rem .55rem; border: 2px solid var(--orange-dark); color: var(--orange-dark); font-family: var(--display); font-size: .73rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; transform: rotate(2deg); }
+    .stage-facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem 2rem; margin-top: 1.5rem; }
+    .fact h4 { margin: 0 0 .35rem; color: var(--teal); font-family: var(--display); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; }
+    .fact p, .fact ul { margin: 0; }
+    .fact ul { padding-left: 1.15rem; }
+    .cancel-lane { margin-top: 1rem; padding: 1rem 1.2rem; border-left: 5px solid var(--danger); background: #f2ded7; }
+
+    .map-shell { position: relative; margin-top: 3rem; padding: clamp(1.2rem, 4vw, 3rem); border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.045); }
+    .record-map { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 1.2rem; align-items: center; }
+    .map-column { display: grid; gap: .75rem; }
+    .map-node { position: relative; padding: .8rem 1rem; border: 1px solid rgba(255,255,255,.28); background: #27302f; }
+    .map-node b { display: block; color: var(--yellow); font-family: var(--display); text-transform: uppercase; }
+    .map-node small { color: rgba(255,255,255,.68); }
+    .map-core { padding: 2.5rem 1.2rem; border: 3px solid var(--orange); background: var(--white); color: var(--ink); text-align: center; box-shadow: 12px 12px 0 rgba(230,95,43,.25); }
+    .map-core strong { display: block; font-family: var(--display); font-size: clamp(2rem, 4vw, 3.5rem); text-transform: uppercase; }
+    .map-core span { font-family: var(--serif); }
+
+    .playbook-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 2.5rem; }
+    details { border: 1px solid var(--line); background: var(--white); }
+    summary { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.2rem; font-family: var(--display); font-size: 1.15rem; font-weight: 900; text-transform: uppercase; cursor: pointer; }
+    summary::marker { color: var(--orange); }
+    details[open] summary { color: var(--orange-dark); border-bottom: 1px solid var(--line); }
+    .detail-body { padding: 1.15rem 1.25rem 1.35rem; }
+    .path { display: flex; flex-wrap: wrap; gap: .3rem; margin: .9rem 0 1rem; }
+    .path span { padding: .28rem .45rem; background: var(--teal-pale); font-family: var(--display); font-size: .72rem; font-weight: 800; text-transform: uppercase; }
+    .path span + span::before { content: "→"; margin-right: .5rem; color: var(--teal); }
+
+    .workspace-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: .75rem; margin-top: 2.5rem; }
+    .workspace-card { position: relative; padding: 1.2rem; border-top: 6px solid var(--orange); background: var(--white); box-shadow: 0 8px 0 rgba(29,37,37,.09); }
+    .workspace-card:nth-child(even) { border-top-color: var(--teal); }
+    .workspace-card .num { position: absolute; right: .8rem; top: .55rem; color: var(--paper-deep); font-family: var(--display); font-size: 3rem; font-weight: 900; }
+    .workspace-card h3 { position: relative; min-height: 3.1rem; font-size: 1.28rem; }
+    .workspace-card ul { padding-left: 1.1rem; margin: 1rem 0 0; font-size: .88rem; }
+
+    .filter-row { display: flex; flex-wrap: wrap; gap: .65rem; align-items: center; margin: 2rem 0 1.2rem; }
+    .filter-row label { font-family: var(--display); font-weight: 900; text-transform: uppercase; }
+    .search-field {
+      flex: 1 1 280px;
+      min-height: 3rem;
+      padding: .7rem .9rem;
+      border: 2px solid var(--ink);
+      border-radius: 0;
+      background: var(--white);
+      color: var(--ink);
+    }
+    .report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; }
+    .report-card { padding: 1rem; border: 1px solid var(--line); background: rgba(255,253,246,.75); }
+    .report-card h3 { font-size: 1.18rem; }
+    .report-card p { margin: 0; font-size: .88rem; }
+    .report-tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .75rem; }
+    .tag { padding: .18rem .38rem; background: var(--ink); color: var(--white); font-size: .65rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+
+    .controls-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 2.5rem; }
+    .control-card { position: relative; min-height: 210px; padding: 1.35rem; border: 1px solid rgba(255,255,255,.24); background: rgba(255,255,255,.06); }
+    .control-card::before { content: "STOP"; position: absolute; right: .8rem; top: .8rem; color: var(--orange); font-family: var(--display); font-size: .7rem; letter-spacing: .12em; }
+    .control-card h3 { margin-top: 2.2rem; color: var(--yellow); }
+
+    .finish-grid { display: grid; grid-template-columns: .95fr 1.05fr; gap: clamp(2rem, 6vw, 6rem); }
+    .checklist { display: grid; gap: .65rem; margin-top: 1.5rem; }
+    .check-row { display: grid; grid-template-columns: 1.5rem 1fr; gap: .7rem; align-items: start; padding: .9rem; border: 1px solid var(--line); background: var(--white); cursor: pointer; }
+    .check-row input { width: 1.15rem; height: 1.15rem; margin-top: .15rem; accent-color: var(--teal); }
+    .check-row b { display: block; font-family: var(--display); text-transform: uppercase; }
+    .check-row small { color: #655f55; }
+    .completion { margin: 1rem 0; }
+    .completion-track { height: .7rem; background: #d3c8b4; }
+    .completion-track span { display: block; width: 0; height: 100%; background: var(--teal); transition: width .3s ease; }
+    .completion-copy { display: flex; justify-content: space-between; margin-top: .35rem; font-size: .8rem; font-weight: 800; text-transform: uppercase; }
+    .glossary-list { display: grid; gap: .55rem; margin-top: 1rem; }
+    .glossary-list details { background: rgba(255,253,246,.65); }
+    .glossary-list summary { padding: .75rem 1rem; font-size: 1rem; text-transform: none; }
+    .glossary-list .detail-body { padding-top: .8rem; }
+    .empty-state { padding: 1rem; border: 1px dashed var(--line); color: #655f55; }
+
+    footer { padding: 2rem 0; background: #111817; color: rgba(255,255,255,.72); }
+    .footer-grid { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+    .footer-grid strong { color: var(--white); font-family: var(--display); text-transform: uppercase; }
+
+    .reveal { opacity: 0; transform: translateY(18px); animation: reveal .7s ease forwards; }
+    .reveal:nth-child(2) { animation-delay: .08s; }
+    .reveal:nth-child(3) { animation-delay: .16s; }
+    @keyframes reveal { to { opacity: 1; transform: none; } }
+
+    @media (max-width: 900px) {
+      .site-nav a:nth-child(-n+2) { display: none; }
+      .hero-grid, .manifesto, .journey-layout, .finish-grid { grid-template-columns: 1fr; }
+      .hero { min-height: auto; }
+      .hero-stats { grid-template-columns: repeat(3, 1fr); }
+      .role-grid, .report-grid, .controls-grid { grid-template-columns: repeat(2, 1fr); }
+      .workspace-grid { grid-template-columns: repeat(2, 1fr); }
+      .record-map { grid-template-columns: 1fr; }
+      .map-core { order: -1; }
+      .car-line { width: 80vw; }
+    }
+
+    @media (max-width: 620px) {
+      body { font-size: .95rem; }
+      .site-header { min-height: 3.8rem; }
+      .hero-tag { display: none; }
+      .brand-text { font-size: .9rem; }
+      .site-nav { gap: .7rem; }
+      .site-nav a { display: none; }
+      .site-nav a:last-child { display: inline; }
+      .hero-grid { padding-block: 3.7rem; }
+      h1 { font-size: clamp(3.4rem, 20vw, 5.2rem); }
+      .hero-stats { grid-template-columns: 1fr; }
+      .truth-grid, .role-grid, .stage-facts, .playbook-grid, .workspace-grid, .report-grid, .controls-grid { grid-template-columns: 1fr; }
+      .section { padding-block: 3.8rem; }
+      .manifesto-number { font-size: 8rem; }
+      .stage-list { border-left: 0; grid-template-columns: repeat(2, 1fr); }
+      .stage-button { grid-template-columns: 1.7rem 1fr; padding: .75rem .6rem; border-left: 1px solid #c9c0ae; }
+      .stage-button::before { display: none; }
+      .stage-name { font-size: .87rem; }
+      .stage-panel header { display: block; }
+      .status-stamp { display: inline-block; margin-top: .8rem; }
+      .footer-grid { display: block; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    @media print {
+      @page { margin: 14mm; }
+      body { background: #fff; color: #000; font-size: 10pt; }
+      body::before, .progress-rail, .site-header, .hero-actions, .role-selector, .filter-row, #reset-progress { display: none !important; }
+      .hero, .section--ink, .section--teal { color: #000; background: #fff; }
+      .hero { min-height: auto; border-bottom: 4px solid #000; }
+      .hero-grid, .manifesto, .journey-layout, .finish-grid { display: block; }
+      .hero h1 span, .section-kicker, .section--ink .section-kicker, .section--teal .section-kicker { color: #000; }
+      .hero-stats { display: flex; margin-top: 1rem; border: 1px solid #000; }
+      .hero-stat { flex: 1; color: #000; background: #fff; }
+      .hero-stat strong { color: #000; }
+      .car-line { display: none; }
+      .role-grid, .report-grid, .controls-grid, .workspace-grid, .playbook-grid { grid-template-columns: repeat(2, 1fr); }
+      .role-card, .control-card, .map-node { color: #000; background: #fff; border-color: #777; }
+      .role-card .code, .control-card h3, .map-node b { color: #000; }
+      .journey-layout { margin-top: 1rem; }
+      .stage-list { display: none; }
+      .js .stage-panel:not(.is-active) { display: block; }
+      .stage-panel, details, .workspace-card, .report-card, .check-row { box-shadow: none; break-inside: avoid; }
+      .stage-panel { margin-bottom: 1rem; }
+      details .detail-body { display: block; }
+      section { break-before: auto; }
+      footer { background: #fff; color: #000; border-top: 1px solid #000; }
+      .tag { color: #000; background: #ddd; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the guide</a>
+  <div class="progress-rail" aria-hidden="true"><span id="reading-progress"></span></div>
+
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Auto Service Management onboarding home">
+      <span class="brand-mark">ASM</span>
+      <span class="brand-text">Workshop Field Guide</span>
+    </a>
+    <nav class="site-nav" aria-label="Onboarding sections">
+      <a href="#roles">Roles</a>
+      <a href="#journey">Journey</a>
+      <a href="#workspace">Workspace</a>
+      <a href="#finish">Checklist</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="wrap hero-grid">
+        <div class="hero-copy reveal">
+          <p class="section-kicker">New user onboarding · field guide 01</p>
+          <h1 id="hero-title">From keys in <span>to keys out.</span></h1>
+          <p class="lede">Learn how one Repair Job carries a vehicle from reception through workshop work, financial control, release, and service history—without losing who owns the next action.</p>
+          <div class="hero-actions">
+            <a class="button button--primary" href="#roles">Choose your role</a>
+            <a class="button button--ghost" href="#journey">See the full journey</a>
+          </div>
+        </div>
+        <aside class="hero-stats reveal" aria-label="Guide summary">
+          <div class="hero-stat"><strong>7</strong><span>workshop roles</span></div>
+          <div class="hero-stat"><strong>8</strong><span>controlled stages</span></div>
+          <div class="hero-stat"><strong>20 min</strong><span>first read</span></div>
+        </aside>
+      </div>
+      <svg class="car-line" viewBox="0 0 900 290" role="img" aria-label="Outline of a workshop vehicle">
+        <g fill="none" stroke="currentColor" stroke-width="5">
+          <path d="M65 204h62l37-75c10-20 31-33 54-35l298-27c39-4 78 8 108 33l88 73 91 14c19 3 33 19 33 38v20H65z"/>
+          <path d="M213 125l75-8 41-2h156l82 56H188z"/>
+          <path d="M348 114l-7 58m173-58l33 58M65 204h771"/>
+          <circle cx="218" cy="224" r="49"/><circle cx="695" cy="224" r="49"/>
+          <circle cx="218" cy="224" r="22"/><circle cx="695" cy="224" r="22"/>
+          <path d="M771 190l32 5M95 181l36-5"/>
+        </g>
+      </svg>
+      <span class="hero-tag" aria-hidden="true">ERPNext v16 · Workshop operations</span>
+    </section>
+
+    <section class="section" aria-labelledby="one-job-title">
+      <div class="wrap manifesto">
+        <div class="manifesto-number" aria-hidden="true">01</div>
+        <div>
+          <p class="section-kicker">The operating idea</p>
+          <h2 id="one-job-title">One visit. One Repair Job. One complete story.</h2>
+          <p class="lede">The Repair Job is the workshop’s operational spine. It connects the customer and vehicle to people, evidence, services, ERPNext transactions, release controls, and final history.</p>
+          <div class="truth-grid">
+            <div class="truth"><b>The app controls the journey</b><span>Stages, responsibilities, evidence, exceptions, and release gates.</span></div>
+            <div class="truth"><b>ERPNext controls the books</b><span>Projects, stock, prices, taxes, invoices, payments, credit, and ledgers.</span></div>
+            <div class="truth"><b>Services hold the work</b><span>Each saved service contains Parts, Labour, and Consumables—without a user-facing status.</span></div>
+            <div class="truth"><b>Evidence follows the vehicle</b><span>Intake, authorization, QC, road-test rows, Gate Pass, and Service History stay linked.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--ink" id="roles" aria-labelledby="roles-title">
+      <div class="wrap">
+        <p class="section-kicker">Start where you work</p>
+        <h2 id="roles-title">Choose your role.</h2>
+        <p class="lede muted">Filter the guide to the records, queues, reports, and controls you own. “All roles” restores the complete workshop view.</p>
+        <div class="role-selector" role="group" aria-label="Filter content by workshop role">
+          <button class="role-button" type="button" data-role-filter="all" aria-pressed="true">All roles</button>
+          <button class="role-button" type="button" data-role-filter="advisor" aria-pressed="false">Service Advisor</button>
+          <button class="role-button" type="button" data-role-filter="technician" aria-pressed="false">Workshop Technician</button>
+          <button class="role-button" type="button" data-role-filter="parts" aria-pressed="false">Parts Interpreter</button>
+          <button class="role-button" type="button" data-role-filter="manager" aria-pressed="false">Workshop Manager</button>
+          <button class="role-button" type="button" data-role-filter="cashier" aria-pressed="false">Cashier</button>
+          <button class="role-button" type="button" data-role-filter="security" aria-pressed="false">Security Gate Officer</button>
+          <button class="role-button" type="button" data-role-filter="admin" aria-pressed="false">Auto Service Admin</button>
+        </div>
+        <div class="role-grid" id="role-cards">
+          <article class="role-card" data-roles="advisor"><span class="code">Front desk · intake</span><h3>Service Advisor</h3><p>Find or create the vehicle, open the Repair Job, capture the complaint, coordinate diagnosis, prepare scope, obtain authorization, and keep the customer informed.</p><ul><li>Start: Vehicle Search</li><li>Own: Assessment and approval</li><li>Watch: Open Repair Jobs</li></ul></article>
+          <article class="role-card" data-roles="technician"><span class="code">Workshop · execution</span><h3>Workshop Technician</h3><p>Inspect, diagnose, complete assigned Tasks, record service components and actual hours, and provide the technical evidence needed for QC.</p><ul><li>Start: Repair Queue</li><li>Own: Work completion</li><li>Watch: Assigned tasks</li></ul></article>
+          <article class="role-card" data-roles="parts"><span class="code">Workshop · materials</span><h3>Parts Interpreter</h3><p>Turn required Parts and Consumables into Material Requests and Material Issue Stock Entries, using the service bay warehouse first.</p><ul><li>Start: Parts Queue</li><li>Own: Requested and issued quantities</li><li>Watch: Jobs Waiting for Parts</li></ul></article>
+          <article class="role-card" data-roles="manager"><span class="code">Control · quality</span><h3>Workshop Manager</h3><p>Balance bays and technicians, review exceptions, oversee QC and road-test evidence, and send failed work back for rework.</p><ul><li>Start: Workshop Bay View</li><li>Own: QC and overrides</li><li>Watch: Delayed Jobs</li></ul></article>
+          <article class="role-card" data-roles="cashier"><span class="code">Commercial · billing</span><h3>Cashier</h3><p>Create and submit Sales Invoices from billable components, receive payment, and confirm that the financial clearance required for release is real.</p><ul><li>Start: Invoice Queue</li><li>Own: Invoice and payment</li><li>Watch: Billing-stage jobs</li></ul></article>
+          <article class="role-card" data-roles="security"><span class="code">Control · release</span><h3>Security Gate Officer</h3><p>Verify the vehicle, recipient, and issued Gate Pass. Mark the pass used only when the vehicle physically leaves.</p><ul><li>Start: Gate Passes</li><li>Own: Exit confirmation</li><li>Watch: Gate Pass Register</li></ul></article>
+          <article class="role-card" data-roles="admin"><span class="code">System · governance</span><h3>Auto Service Admin</h3><p>Configure company defaults, price lists, warehouse policy, payment tolerance, roles, templates, and controlled override access.</p><ul><li>Start: Auto Service Settings</li><li>Own: Configuration</li><li>Watch: Audit reports</li></ul></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="journey" aria-labelledby="journey-title">
+      <div class="wrap">
+        <p class="section-kicker">The automatic lifecycle</p>
+        <h2 id="journey-title">The Repair Job journey.</h2>
+        <p class="lede">Select a stage to see who owns it, what must already be true, and what moves the vehicle forward. Users perform the work; the server derives the business status.</p>
+        <div class="journey-layout">
+          <div class="stage-list" role="tablist" aria-label="Repair Job stages" aria-orientation="vertical">
+            <button class="stage-button" id="tab-draft" role="tab" aria-selected="true" aria-controls="stage-draft" data-stage="stage-draft"><span class="stage-no">01</span><span class="stage-name">Draft</span></button>
+            <button class="stage-button" id="tab-assessment" role="tab" aria-selected="false" aria-controls="stage-assessment" data-stage="stage-assessment" tabindex="-1"><span class="stage-no">02</span><span class="stage-name">Assessment</span></button>
+            <button class="stage-button" id="tab-approval" role="tab" aria-selected="false" aria-controls="stage-approval" data-stage="stage-approval" tabindex="-1"><span class="stage-no">03</span><span class="stage-name">Awaiting Approval</span></button>
+            <button class="stage-button" id="tab-repair" role="tab" aria-selected="false" aria-controls="stage-repair" data-stage="stage-repair" tabindex="-1"><span class="stage-no">04</span><span class="stage-name">In Repair</span></button>
+            <button class="stage-button" id="tab-qc" role="tab" aria-selected="false" aria-controls="stage-qc" data-stage="stage-qc" tabindex="-1"><span class="stage-no">05</span><span class="stage-name">Quality Check</span></button>
+            <button class="stage-button" id="tab-billing" role="tab" aria-selected="false" aria-controls="stage-billing" data-stage="stage-billing" tabindex="-1"><span class="stage-no">06</span><span class="stage-name">Billing</span></button>
+            <button class="stage-button" id="tab-release" role="tab" aria-selected="false" aria-controls="stage-release" data-stage="stage-release" tabindex="-1"><span class="stage-no">07</span><span class="stage-name">Ready for Release</span></button>
+            <button class="stage-button" id="tab-closed" role="tab" aria-selected="false" aria-controls="stage-closed" data-stage="stage-closed" tabindex="-1"><span class="stage-no">08</span><span class="stage-name">Closed</span></button>
+          </div>
+          <div>
+            <article class="stage-panel is-active" id="stage-draft" role="tabpanel" aria-labelledby="tab-draft" tabindex="0">
+              <header><div><p class="section-kicker">Reception opens the visit</p><h3>Draft</h3></div><span class="status-stamp">Keys received</span></header>
+              <div class="stage-facts"><div class="fact"><h4>Responsible</h4><p>Service Advisor</p></div><div class="fact"><h4>Required records</h4><p>Customer and Customer Vehicle</p></div><div class="fact"><h4>Do this</h4><ul><li>Search registration or VIN first.</li><li>Capture complaint, odometer, visit reason, fuel, dates, advisor, and bay.</li><li>Check in the vehicle.</li></ul></div><div class="fact"><h4>Output</h4><p>A numbered Repair Job and one linked ERPNext Project.</p></div><div class="fact"><h4>Common blocker</h4><p>Missing customer, vehicle, odometer, or customer concern.</p></div><div class="fact"><h4>Next signal</h4><p>Check-in creates the Project once and moves the job into Assessment.</p></div></div>
+            </article>
+            <article class="stage-panel" id="stage-assessment" role="tabpanel" aria-labelledby="tab-assessment" tabindex="0">
+              <header><div><p class="section-kicker">Understand the vehicle</p><h3>Assessment</h3></div><span class="status-stamp">Evidence building</span></header>
+              <div class="stage-facts"><div class="fact"><h4>Responsible</h4><p>Service Advisor + Workshop Technician</p></div><div class="fact"><h4>Records</h4><p>Optional Walkaround Inspection; Diagnosis Report when diagnosis is needed; Repair Job Services.</p></div><div class="fact"><h4>Do this</h4><ul><li>Record intake condition and damage.</li><li>Diagnose the complaint after check-in.</li><li>Create saved services with Parts, Labour, and Consumables.</li><li>Prepare the complete commercial scope.</li></ul></div><div class="fact"><h4>Output</h4><p>A complete, priced service scope ready for customer approval—or diagnosis-only billing.</p></div><div class="fact"><h4>Common blocker</h4><p>Informal work that exists in conversation but not in the service tables.</p></div><div class="fact"><h4>Branch</h4><p>A submitted diagnosis-only visit can move directly to Billing.</p></div></div>
+            </article>
+            <article class="stage-panel" id="stage-approval" role="tabpanel" aria-labelledby="tab-approval" tabindex="0">
+              <header><div><p class="section-kicker">Lock the agreed scope</p><h3>Awaiting Approval</h3></div><span class="status-stamp">Customer gate</span></header>
+              <div class="stage-facts"><div class="fact"><h4>Responsible</h4><p>Service Advisor; Workshop Manager for approved exceptions.</p></div><div class="fact"><h4>Required record</h4><p>A current Customer Authorization covering the full active scope, or an approved authorization override.</p></div><div class="fact"><h4>Do this</h4><ul><li>Explain findings and estimate.</li><li>Record method, amount, evidence, and notes.</li><li>Submit the authorization.</li></ul></div><div class="fact"><h4>Output</h4><p>Authorized scope that workshop execution may begin.</p></div><div class="fact"><h4>Common blocker</h4><p>Partial approval, expired evidence, or a scope revision after approval.</p></div><div class="fact"><h4>Important</h4><p>A changed scope invalidates stale authorization and returns the job here.</p></div></div>
+            </article>
+            <article class="stage-panel" id="stage-repair" role="tabpanel" aria-labelledby="tab-repair" tabindex="0">
+              <header><div><p class="section-kicker">Execute the approved work</p><h3>In Repair</h3></div><span class="status-stamp">Workshop active</span></header>
+              <div class="stage-facts"><div class="fact"><h4>Responsible</h4><p>Technician, Parts Interpreter, Service Advisor</p></div><div class="fact"><h4>Records</h4><p>Repair Job Services, Project Tasks, Timesheets, Material Requests, Stock Entries.</p></div><div class="fact"><h4>Do this</h4><ul><li>Assign work by bay and technician.</li><li>Request and issue Parts/Consumables.</li><li>Record actual labour time.</li><li>Mark services completed.</li></ul></div><div class="fact"><h4>Output</h4><p>Completed, traceable work ready for independent QC.</p></div><div class="fact"><h4>Common blocker</h4><p>Missing labour service Item, missing bay warehouse, parts shortage, or incomplete Tasks.</p></div><div class="fact"><h4>Rule</h4><p>ERPNext owns stock movement; the app never invents ledger effects.</p></div></div>
+            </article>
+            <article class="stage-panel" id="stage-qc" role="tabpanel" aria-labelledby="tab-qc" tabindex="0">
+              <header><div><p class="section-kicker">Prove the repair</p><h3>Quality Check</h3></div><span class="status-stamp">Quality gate</span></header>
+              <div class="stage-facts"><div class="fact"><h4>Responsible</h4><p>Workshop Manager</p></div><div class="fact"><h4>Required record</h4><p>Submitted Quality Check; at least one Task or an approved exception.</p></div><div class="fact"><h4>Do this</h4><ul><li>Verify completion, fitment, fluids, warning lights, and cleanliness.</li><li>Add road-test evidence inside QC when required.</li><li>Pass, fail, or require rework.</li></ul></div><div class="fact"><h4>Output</h4><p>Passed QC moves the job toward Billing.</p></div><div class="fact"><h4>Common blocker</h4><p>Required road test has no route, odometer, observation, or outcome.</p></div><div class="fact"><h4>Rework</h4><p>Failed QC sends the job back to In Repair with evidence intact.</p></div></div>
+            </article>
+            <article class="stage-panel" id="stage-billing" role="tabpanel" aria-labelledby="tab-billing" tabindex="0">
+              <header><div><p class="section-kicker">Cover every billable component</p><h3>Billing</h3></div><span class="status-stamp">Financial gate</span></header>
+              <div class="stage-facts"><div class="fact"><h4>Responsible</h4><p>Cashier + Service Advisor</p></div><div class="fact"><h4>Records</h4><p>One or more submitted Sales Invoices and submitted payment records, or approved credit release.</p></div><div class="fact"><h4>Do this</h4><ul><li>Select all billable Parts, Labour, and Consumables.</li><li>Submit invoices.</li><li>Receive payment or validate credit policy.</li></ul></div><div class="fact"><h4>Output</h4><p>Complete invoice coverage and financial clearance.</p></div><div class="fact"><h4>Common blocker</h4><p>Draft invoice, omitted component, outstanding amount beyond tolerance, or breached credit limit.</p></div><div class="fact"><h4>Rule</h4><p>Invoice creation and payment sync do not silently move the business status.</p></div></div>
+            </article>
+            <article class="stage-panel" id="stage-release" role="tabpanel" aria-labelledby="tab-release" tabindex="0">
+              <header><div><p class="section-kicker">Control physical exit</p><h3>Ready for Release</h3></div><span class="status-stamp">Release gate</span></header>
+              <div class="stage-facts"><div class="fact"><h4>Responsible</h4><p>Service Advisor + Security Gate Officer</p></div><div class="fact"><h4>Required record</h4><p>Issued Gate Pass linked to the job, vehicle, and qualifying invoice.</p></div><div class="fact"><h4>Do this</h4><ul><li>Revalidate invoice/payment coverage.</li><li>Record recipient and identity reference.</li><li>Issue the pass.</li><li>Security marks it used at physical exit.</li></ul></div><div class="fact"><h4>Output</h4><p>A controlled, timestamped vehicle release.</p></div><div class="fact"><h4>Common blocker</h4><p>Unsubmitted invoice, incomplete component coverage, or unresolved payment/credit.</p></div><div class="fact"><h4>Rule</h4><p>An invoice is not permission for the vehicle to leave. The Gate Pass is.</p></div></div>
+            </article>
+            <article class="stage-panel" id="stage-closed" role="tabpanel" aria-labelledby="tab-closed" tabindex="0">
+              <header><div><p class="section-kicker">Finish the record once</p><h3>Closed</h3></div><span class="status-stamp">Visit complete</span></header>
+              <div class="stage-facts"><div class="fact"><h4>Responsible</h4><p>Service Advisor / authorized closing user</p></div><div class="fact"><h4>Required evidence</h4><p>Gate Pass used and release controls satisfied.</p></div><div class="fact"><h4>System action</h4><ul><li>Closes the Repair Job.</li><li>Creates Service History exactly once.</li><li>Updates the vehicle’s odometer/service snapshot.</li></ul></div><div class="fact"><h4>Output</h4><p>A searchable, auditable visit history for the vehicle and customer.</p></div><div class="fact"><h4>Common blocker</h4><p>Gate Pass issued but not used.</p></div><div class="fact"><h4>Terminal rule</h4><p>Closed and Cancelled jobs cannot be reopened through ordinary workflow actions.</p></div></div>
+            </article>
+            <aside class="cancel-lane"><strong>Cancellation lane:</strong> a validated active job may be cancelled with a reason before closure. Cancellation stops the workflow; it does not erase stock, invoices, logs, or other downstream facts.</aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--teal" id="records" aria-labelledby="records-title">
+      <div class="wrap">
+        <p class="section-kicker">How the records connect</p>
+        <h2 id="records-title">Repair Job at the centre.</h2>
+        <p class="lede muted">Every supporting document answers one operational question. Together they form the evidence chain from intake to history.</p>
+        <div class="map-shell">
+          <div class="record-map">
+            <div class="map-column">
+              <div class="map-node"><b>Customer Vehicle</b><small>Which vehicle and owner?</small></div>
+              <div class="map-node"><b>Walkaround Inspection</b><small>What condition arrived?</small></div>
+              <div class="map-node"><b>Diagnosis Report</b><small>What did the technician find?</small></div>
+              <div class="map-node"><b>Customer Authorization</b><small>What did the customer approve?</small></div>
+            </div>
+            <div class="map-core"><strong>Repair Job</strong><span>One vehicle · one visit · one Project</span></div>
+            <div class="map-column">
+              <div class="map-node"><b>Project + Tasks</b><small>Who does which work?</small></div>
+              <div class="map-node"><b>Services + Components</b><small>Parts, Labour, Consumables</small></div>
+              <div class="map-node"><b>ERPNext Documents</b><small>Stock, invoice, payment, credit</small></div>
+              <div class="map-node"><b>QC → Gate Pass → History</b><small>Was it proven, released, and closed?</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--paper-deep" id="playbooks" aria-labelledby="playbooks-title">
+      <div class="wrap">
+        <p class="section-kicker">Practical branch paths</p>
+        <h2 id="playbooks-title">Seven playbooks for real work.</h2>
+        <p class="lede">The happy path is only the beginning. Open a playbook when the visit takes a normal workshop turn.</p>
+        <div class="playbook-grid">
+          <details open><summary>Normal repair</summary><div class="detail-body"><div class="path"><span>Draft</span><span>Assessment</span><span>Approval</span><span>Repair</span><span>QC</span><span>Billing</span><span>Release</span><span>Closed</span></div><p>Capture the vehicle, create the scope, secure approval, execute and record work, pass QC, invoice every billable component, clear payment, use the Gate Pass, and close.</p></div></details>
+          <details><summary>Diagnosis-only visit</summary><div class="detail-body"><div class="path"><span>Assessment</span><span>Billing</span><span>Release</span><span>Closed</span></div><p>Submit the Diagnosis Report, bill only completed diagnostic work, complete release controls, then close. No repair authorization or repair QC is invented.</p></div></details>
+          <details><summary>QC failure and rework</summary><div class="detail-body"><div class="path"><span>Quality Check</span><span>In Repair</span><span>Quality Check</span></div><p>Record the failed observation and required correction. Return the job to repair, complete the rework, then submit fresh QC evidence. Do not edit a failure into a pass.</p></div></details>
+          <details><summary>Partial or changed authorization</summary><div class="detail-body"><div class="path"><span>Awaiting Approval</span><span>Scope change</span><span>Awaiting Approval</span></div><p>Authorization must cover the full current scope. If the scope changes, the revision makes stale approval invalid. Record a new authorization before repair continues.</p></div></details>
+          <details><summary>Corporate credit release</summary><div class="detail-body"><div class="path"><span>Billing</span><span>Credit checks</span><span>Ready for Release</span></div><p>Use configured payment terms, respect ERPNext credit limits, and record the approved release basis. An override is manager-controlled and evidence-backed.</p></div></details>
+          <details><summary>Fleet campaign</summary><div class="detail-body"><div class="path"><span>Campaign</span><span>Separate Repair Jobs</span><span>Individual closure</span></div><p>The campaign groups visits for one corporate customer. Each vehicle still receives its own Repair Job, invoices, Gate Pass, and Service History.</p></div></details>
+          <details><summary>Cancellation</summary><div class="detail-body"><div class="path"><span>Active stage</span><span>Validated reason</span><span>Cancelled</span></div><p>Cancel before terminal completion with a clear reason. Reconcile any ERPNext stock or commercial documents normally; cancellation is not a data eraser.</p></div></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="workspace" aria-labelledby="workspace-title">
+      <div class="wrap">
+        <p class="section-kicker">Your everyday front door</p>
+        <h2 id="workspace-title">Workshop Management.</h2>
+        <p class="lede">Start from the queue you own. The workspace groups the app by operational intent rather than presenting a pile of unrelated forms.</p>
+        <div class="workspace-grid">
+          <article class="workspace-card"><span class="num">01</span><h3>Intake &amp; Setup</h3><ul><li>Auto Service Settings</li><li>Customer Vehicle</li><li>Workshop Bay</li><li>Repair Job</li><li>Walkaround</li><li>Diagnosis</li><li>Authorization</li></ul></article>
+          <article class="workspace-card"><span class="num">02</span><h3>Workshop Execution</h3><ul><li>Repair Queue</li><li>Repair Job Service</li><li>Parts Queue</li><li>Quality Check</li><li>Repair Job Log</li><li>Overrides</li></ul></article>
+          <article class="workspace-card"><span class="num">03</span><h3>QC, Release &amp; History</h3><ul><li>QC Queue</li><li>Invoice Queue</li><li>Gate Pass</li><li>Gate Pass Register</li><li>Service History</li></ul></article>
+          <article class="workspace-card"><span class="num">04</span><h3>Fleet &amp; Exceptions</h3><ul><li>Fleet Campaigns</li><li>Repair Job Override</li><li>Credit Releases</li><li>Price-change audit</li></ul></article>
+          <article class="workspace-card"><span class="num">05</span><h3>Reports</h3><ul><li>Workload</li><li>Bottlenecks</li><li>Productivity</li><li>Revenue</li><li>History</li><li>Release audit</li></ul></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--paper-deep" id="reports" aria-labelledby="reports-title">
+      <div class="wrap">
+        <p class="section-kicker">Operational questions answered</p>
+        <h2 id="reports-title">Fourteen reports. No guesswork.</h2>
+        <div class="filter-row">
+          <label for="report-search">Find a report</label>
+          <input class="search-field" id="report-search" type="search" placeholder="Try: parts, delay, revenue, gate…" autocomplete="off">
+        </div>
+        <div class="report-grid" id="report-grid" aria-live="polite">
+          <article class="report-card" data-search="open repair jobs active queue service advisor manager"><h3>Open Repair Jobs</h3><p>Which visits are still active?</p><div class="report-tags"><span class="tag">Advisor</span><span class="tag">Manager</span></div></article>
+          <article class="report-card" data-search="daily workshop load workload capacity bay manager"><h3>Daily Workshop Load</h3><p>What work is scheduled today?</p><div class="report-tags"><span class="tag">Manager</span></div></article>
+          <article class="report-card" data-search="workshop bay view technicians capacity closed today manager"><h3>Workshop Bay View</h3><p>Which bays and technicians are loaded?</p><div class="report-tags"><span class="tag">Manager</span></div></article>
+          <article class="report-card" data-search="jobs by status bottleneck manager cashier"><h3>Jobs by Status</h3><p>Where is work accumulating?</p><div class="report-tags"><span class="tag">Manager</span><span class="tag">Cashier</span></div></article>
+          <article class="report-card" data-search="jobs waiting for parts shortage interpreter"><h3>Jobs Waiting for Parts</h3><p>Which jobs are blocked by materials?</p><div class="report-tags"><span class="tag">Parts</span></div></article>
+          <article class="report-card" data-search="technician productivity output workshop manager"><h3>Technician Productivity</h3><p>How effectively is workshop time used?</p><div class="report-tags"><span class="tag">Manager</span></div></article>
+          <article class="report-card" data-search="labour hours technician time timesheet"><h3>Labour Hours by Technician</h3><p>Who logged which labour hours?</p><div class="report-tags"><span class="tag">Technician</span><span class="tag">Manager</span></div></article>
+          <article class="report-card" data-search="parts used repair job stock traceability"><h3>Parts Used by Repair Job</h3><p>Which stock items went into each visit?</p><div class="report-tags"><span class="tag">Parts</span><span class="tag">Manager</span></div></article>
+          <article class="report-card" data-search="vehicle service history customer retention advisor"><h3>Vehicle Service History</h3><p>What work has this vehicle received?</p><div class="report-tags"><span class="tag">Advisor</span></div></article>
+          <article class="report-card" data-search="delayed jobs promised date overdue manager advisor"><h3>Delayed Jobs</h3><p>Which promised dates are at risk?</p><div class="report-tags"><span class="tag">Advisor</span><span class="tag">Manager</span></div></article>
+          <article class="report-card" data-search="repair revenue by period commercial income cashier manager"><h3>Repair Revenue by Period</h3><p>What workshop revenue closed in a period?</p><div class="report-tags"><span class="tag">Manager</span><span class="tag">Cashier</span></div></article>
+          <article class="report-card" data-search="gate pass register release security audit"><h3>Gate Pass Register</h3><p>Which vehicles were issued and released?</p><div class="report-tags"><span class="tag">Security</span><span class="tag">Manager</span></div></article>
+          <article class="report-card" data-search="corporate credit releases unpaid account customer limit"><h3>Corporate Credit Releases</h3><p>Which vehicles left under controlled credit?</p><div class="report-tags"><span class="tag">Manager</span><span class="tag">Cashier</span></div></article>
+          <article class="report-card" data-search="discount price change audit override control admin manager"><h3>Discount and Price Change Audit</h3><p>Who changed commercial values and why?</p><div class="report-tags"><span class="tag">Admin</span><span class="tag">Manager</span></div></article>
+        </div>
+        <p class="empty-state" id="report-empty" hidden>No report matches that search. Try a role or operational question.</p>
+      </div>
+    </section>
+
+    <section class="section section--ink" id="controls" aria-labelledby="controls-title">
+      <div class="wrap">
+        <p class="section-kicker">Non-negotiable controls</p>
+        <h2 id="controls-title">Never bypass these.</h2>
+        <div class="controls-grid">
+          <article class="control-card"><h3>No illegal jumps</h3><p>Use the app’s actions and evidence. Do not force `job_status` or use database writes to mimic a workflow transition.</p></article>
+          <article class="control-card"><h3>No unauthorized work</h3><p>Repair requires current full-scope authorization or a properly approved, evidence-backed override.</p></article>
+          <article class="control-card"><h3>No missing invoice lines</h3><p>Every billable Part, Labour, and Consumable must be covered by a submitted invoice before release.</p></article>
+          <article class="control-card"><h3>No invoice-only release</h3><p>A vehicle needs financial clearance and an issued Gate Pass. Security records actual exit by using the pass.</p></article>
+          <article class="control-card"><h3>No duplicate history</h3><p>Service History is created automatically and idempotently when the job closes. Do not recreate it manually.</p></article>
+          <article class="control-card"><h3>No casual overrides</h3><p>Only Workshop Manager or Auto Service Admin may approve controlled exceptions, with reason and evidence.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="finish" aria-labelledby="finish-title">
+      <div class="wrap finish-grid">
+        <div>
+          <p class="section-kicker">Make it operational</p>
+          <h2 id="finish-title">Your first-shift checklist.</h2>
+          <p class="lede">Tick these off as you explore the live app. Progress stays in this browser only.</p>
+          <div class="completion" aria-live="polite">
+            <div class="completion-track" aria-hidden="true"><span id="completion-bar"></span></div>
+            <div class="completion-copy"><span id="completion-text">0 of 7 complete</span><span id="completion-percent">0%</span></div>
+          </div>
+          <div class="checklist" id="checklist">
+            <label class="check-row" data-roles="advisor admin"><input type="checkbox" data-check="workspace"><span><b>Open Workshop Management</b><small>Identify the five workspace groups and your starting queue.</small></span></label>
+            <label class="check-row" data-roles="advisor"><input type="checkbox" data-check="vehicle"><span><b>Find a Customer Vehicle</b><small>Search by registration or VIN before creating a duplicate.</small></span></label>
+            <label class="check-row" data-roles="advisor technician"><input type="checkbox" data-check="job"><span><b>Follow one Repair Job</b><small>Read its complaint, status, services, related records, and audit trail.</small></span></label>
+            <label class="check-row" data-roles="technician parts manager"><input type="checkbox" data-check="service"><span><b>Inspect one service</b><small>Locate its Parts, Labour, Consumables, bay, Tasks, and actual work evidence.</small></span></label>
+            <label class="check-row" data-roles="manager"><input type="checkbox" data-check="qc"><span><b>Review a Quality Check</b><small>Find the road-test child rows and understand pass/rework behavior.</small></span></label>
+            <label class="check-row" data-roles="cashier security advisor"><input type="checkbox" data-check="release"><span><b>Trace the release gates</b><small>Invoice coverage → payment/credit → Gate Pass → physical exit.</small></span></label>
+            <label class="check-row" data-roles="all"><input type="checkbox" data-check="report"><span><b>Run one role-relevant report</b><small>Answer a real operational question using a report—not memory.</small></span></label>
+          </div>
+          <button class="button button--small" id="reset-progress" type="button">Reset checklist</button>
+        </div>
+        <div>
+          <p class="section-kicker">Plain-language reference</p>
+          <h2>Glossary.</h2>
+          <div class="filter-row"><label for="glossary-search">Search terms</label><input class="search-field" id="glossary-search" type="search" placeholder="Try: authorization, QC, Gate Pass…" autocomplete="off"></div>
+          <div class="glossary-list" id="glossary-list">
+            <details data-search="repair job visit main operational record"><summary>Repair Job</summary><div class="detail-body">The central record for one vehicle visit and its complete workshop story.</div></details>
+            <details data-search="service components parts labour consumables"><summary>Repair Job Service</summary><div class="detail-body">A saved unit of workshop work containing Parts, Labour, and Consumables. It has no user-facing eligibility status.</div></details>
+            <details data-search="authorization customer approval scope revision"><summary>Customer Authorization</summary><div class="detail-body">Submitted evidence that the customer approved the full current service scope and amount.</div></details>
+            <details data-search="quality check qc road test rework"><summary>Quality Check</summary><div class="detail-body">The manager’s verification record. Required road-test evidence is stored as child rows inside it.</div></details>
+            <details data-search="gate pass release security vehicle exit"><summary>Gate Pass</summary><div class="detail-body">The controlled release document. “Issued” permits collection; “Used” records physical exit.</div></details>
+            <details data-search="invoice coverage billing component"><summary>Invoice coverage</summary><div class="detail-body">Every billable component is linked to a submitted Sales Invoice; a draft reservation is not enough.</div></details>
+            <details data-search="credit release payment terms limit override"><summary>Credit release</summary><div class="detail-body">A controlled unpaid release allowed only by configured terms, available credit, and required approval evidence.</div></details>
+            <details data-search="service history closed snapshot vehicle"><summary>Service History</summary><div class="detail-body">The single closure snapshot automatically created for a Repair Job and linked to its vehicle.</div></details>
+            <details data-search="override exception manager admin approval"><summary>Repair Job Override</summary><div class="detail-body">A submitted, evidence-backed exception that only Workshop Manager or Auto Service Admin can approve.</div></details>
+            <details data-search="erpnext authority pricing tax stock payment accounting"><summary>ERPNext authority</summary><div class="detail-body">ERPNext—not the workshop app—is authoritative for Projects, stock, prices, taxes, invoices, payments, credit, and ledgers.</div></details>
+          </div>
+          <p class="empty-state" id="glossary-empty" hidden>No glossary term matches that search.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-grid"><strong>Auto Service Management · Workshop Field Guide</strong><span>One visit. One Repair Job. One auditable story.</span></div>
+  </footer>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const $ = (selector, root = document) => root.querySelector(selector);
+      const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+      const storageKey = 'asm-onboarding-checklist-v1';
+      let activeRole = 'all';
+
+      const roleButtons = $$('.role-button');
+      const roleAware = $$('[data-roles]');
+      const checklistInputs = $$('#checklist input[type="checkbox"]');
+
+      function roleMatches(element, role) {
+        const roles = (element.dataset.roles || '').split(/\s+/);
+        return role === 'all' || roles.includes('all') || roles.includes(role);
+      }
+
+      function applyRole(role) {
+        activeRole = role;
+        roleButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.roleFilter === role)));
+        roleAware.forEach(element => { element.hidden = !roleMatches(element, role); });
+        updateCompletion();
+      }
+
+      roleButtons.forEach(button => button.addEventListener('click', () => applyRole(button.dataset.roleFilter)));
+
+      const stageButtons = $$('.stage-button');
+      const stagePanels = $$('.stage-panel');
+      function activateStage(button, focusPanel = false) {
+        stageButtons.forEach(item => {
+          const selected = item === button;
+          item.setAttribute('aria-selected', String(selected));
+          item.tabIndex = selected ? 0 : -1;
+        });
+        stagePanels.forEach(panel => panel.classList.toggle('is-active', panel.id === button.dataset.stage));
+        if (focusPanel) $('#' + button.dataset.stage).focus();
+      }
+      stageButtons.forEach((button, index) => {
+        button.addEventListener('click', () => activateStage(button));
+        button.addEventListener('keydown', event => {
+          if (!['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          let next = index;
+          if (event.key === 'Home') next = 0;
+          else if (event.key === 'End') next = stageButtons.length - 1;
+          else if (event.key === 'ArrowDown' || event.key === 'ArrowRight') next = (index + 1) % stageButtons.length;
+          else next = (index - 1 + stageButtons.length) % stageButtons.length;
+          stageButtons[next].focus();
+          activateStage(stageButtons[next]);
+        });
+      });
+
+      function wireSearch(inputId, itemSelector, emptyId) {
+        const input = $('#' + inputId);
+        const items = $$(itemSelector);
+        const empty = $('#' + emptyId);
+        input.addEventListener('input', () => {
+          const query = input.value.trim().toLowerCase();
+          let visible = 0;
+          items.forEach(item => {
+            const match = !query || (item.dataset.search || item.textContent).toLowerCase().includes(query);
+            item.hidden = !match;
+            if (match) visible += 1;
+          });
+          empty.hidden = visible !== 0;
+        });
+      }
+      wireSearch('report-search', '#report-grid .report-card', 'report-empty');
+      wireSearch('glossary-search', '#glossary-list details', 'glossary-empty');
+
+      function loadChecklist() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+          checklistInputs.forEach(input => { input.checked = Boolean(saved[input.dataset.check]); });
+        } catch (_) { /* localStorage may be unavailable for file URLs in hardened browsers */ }
+      }
+
+      function saveChecklist() {
+        const state = Object.fromEntries(checklistInputs.map(input => [input.dataset.check, input.checked]));
+        try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch (_) { /* progress remains in memory */ }
+      }
+
+      function updateCompletion() {
+        const visible = checklistInputs.filter(input => !input.closest('.check-row').hidden);
+        const done = visible.filter(input => input.checked).length;
+        const total = visible.length;
+        const percent = total ? Math.round(done / total * 100) : 0;
+        $('#completion-bar').style.width = percent + '%';
+        $('#completion-text').textContent = `${done} of ${total} complete`;
+        $('#completion-percent').textContent = percent + '%';
+      }
+
+      checklistInputs.forEach(input => input.addEventListener('change', () => { saveChecklist(); updateCompletion(); }));
+      $('#reset-progress').addEventListener('click', () => {
+        checklistInputs.forEach(input => { input.checked = false; });
+        try { localStorage.removeItem(storageKey); } catch (_) { /* nothing else to reset */ }
+        updateCompletion();
+        checklistInputs.find(input => !input.closest('.check-row').hidden)?.focus();
+      });
+
+      function updateReadingProgress() {
+        const max = document.documentElement.scrollHeight - innerHeight;
+        $('#reading-progress').style.width = (max > 0 ? scrollY / max * 100 : 0) + '%';
+      }
+      addEventListener('scroll', updateReadingProgress, { passive: true });
+      addEventListener('resize', updateReadingProgress);
+
+      loadChecklist();
+      applyRole('all');
+      updateReadingProgress();
+    })();
+  </script>
+</body>
+</html>

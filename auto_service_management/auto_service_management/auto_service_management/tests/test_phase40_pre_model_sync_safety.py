@@ -12,7 +12,7 @@ from auto_service_management.patches.phase17_pre_model_sync_safety import (
 
 class _FakeFrappe:
 	def __init__(self, *, jobs=None, road_tests=None):
-		self.db = SimpleNamespace(table_exists=lambda doctype: True)
+		self.db = SimpleNamespace(table_exists=lambda doctype: True, exists=lambda doctype, name: True)
 		self.jobs = list(jobs or [])
 		self.road_tests = list(road_tests or [])
 
@@ -62,8 +62,8 @@ class TestPhase40PreModelSyncSafety(unittest.TestCase):
 				return_value=([], [{"repair_job": "RJ-1", "repair_job_service": "SVC-1", "reason": "Repair Job has no enabled Workshop Bay"}]),
 			),
 			patch(
-				"auto_service_management.patches.phase17_pre_model_sync_safety.build_repair_job_service_rows",
-				return_value=[{"total_amount": 80}],
+				"auto_service_management.patches.phase17_pre_model_sync_safety._active_service_total",
+				return_value=80,
 			),
 			patch(
 				"auto_service_management.patches.phase17_pre_model_sync_safety.build_repair_job_invoice_rows",
@@ -96,8 +96,8 @@ class TestPhase40PreModelSyncSafety(unittest.TestCase):
 				return_value=([], []),
 			),
 			patch(
-				"auto_service_management.patches.phase17_pre_model_sync_safety.build_repair_job_service_rows",
-				return_value=[{"total_amount": 100}],
+				"auto_service_management.patches.phase17_pre_model_sync_safety._active_service_total",
+				return_value=100,
 			),
 			patch(
 				"auto_service_management.patches.phase17_pre_model_sync_safety.build_repair_job_invoice_rows",

@@ -10,6 +10,7 @@ from frappe.tests import UnitTestCase
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
 	ServiceComponent,
 )
+from auto_service_management.auto_service_management.doctype.repair_job.repair_job import RepairJob
 from auto_service_management.auto_service_management.integration.erpnext import (
 	component_mapping,
 	document_sync,
@@ -17,6 +18,19 @@ from auto_service_management.auto_service_management.integration.erpnext import 
 
 
 class TestPhase10MappingUnits(UnitTestCase):
+	def test_repair_job_release_uses_gate_pass_invoice_validator(self):
+		job = RepairJob({"doctype": "Repair Job", "name": "RJ-1"})
+		with (
+			patch.object(job, "_require_write_permission"),
+			patch.object(job, "_sync_invoice_state"),
+			patch(
+				"auto_service_management.auto_service_management.integration.erpnext.document_sync.validate_job_invoices_for_gate_pass",
+				side_effect=frappe.ValidationError,
+			),
+		):
+			with self.assertRaises(frappe.ValidationError):
+				job.release()
+
 	def test_invoice_component_state_distinguishes_draft_and_submitted_invoice(self):
 		component = frappe._dict(billable=1, sales_invoice="SI-1")
 		with patch.object(component_mapping.frappe.db, "get_value", return_value=0):
@@ -129,6 +143,7 @@ class TestPhase10MappingUnits(UnitTestCase):
 
 		with (
 			patch.object(document_sync, "get_repair_job_sales_invoices", return_value=["SI-1"]),
+			patch.object(document_sync, "_all_billable_components_submitted", return_value=True),
 			patch.object(
 				document_sync.frappe,
 				"get_single",
@@ -141,6 +156,7 @@ class TestPhase10MappingUnits(UnitTestCase):
 	def test_gate_pass_full_payment_rejects_outstanding_invoice(self):
 		with (
 			patch.object(document_sync, "get_repair_job_sales_invoices", return_value=["SI-1"]),
+			patch.object(document_sync, "_all_billable_components_submitted", return_value=True),
 			patch.object(
 				document_sync.frappe,
 				"get_single",
@@ -150,6 +166,24 @@ class TestPhase10MappingUnits(UnitTestCase):
 				document_sync.frappe.db,
 				"get_value",
 				return_value=frappe._dict(grand_total=220000, rounded_total=220000, outstanding_amount=1),
+			),
+		):
+			with self.assertRaises(frappe.ValidationError):
+				document_sync.validate_job_invoices_for_gate_pass("RJ-1")
+
+	def test_gate_pass_rejects_partial_component_invoice_coverage(self):
+		with (
+			patch.object(document_sync, "get_repair_job_sales_invoices", return_value=["SI-1"]),
+			patch.object(document_sync, "_all_billable_components_submitted", return_value=False),
+			patch.object(
+				document_sync.frappe,
+				"get_single",
+				return_value=frappe._dict(gate_pass_payment_policy="Full Payment Required"),
+			),
+			patch.object(
+				document_sync.frappe.db,
+				"get_value",
+				return_value=frappe._dict(grand_total=220000, rounded_total=220000, outstanding_amount=0),
 			),
 		):
 			with self.assertRaises(frappe.ValidationError):

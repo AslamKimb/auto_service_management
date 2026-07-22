@@ -202,6 +202,7 @@ class TestRepairJobServiceTemplate(IntegrationTestCase):
 				"doctype": "Repair Job Service",
 				"repair_job": job.name,
 				"service_name": "Battery Replacement",
+				"workshop_bay": "Bay 1",
 			}
 		)
 		service.insert(ignore_permissions=True)
@@ -223,7 +224,6 @@ class TestDoubleBillingPrevention(IntegrationTestCase):
 		job_name = _create_repair_job(self.customer, self.vehicle)
 		job = frappe.get_doc("Repair Job", job_name)
 		frappe.db.set_value("Repair Job", job_name, "job_status", "Billing")
-		_set_parent_field(job_name, "sales_invoice", "SI-MOCK-001")
 		job.reload()
 		with patch(f"{ADAPTER_PATCH_BASE}.create_sales_invoice", return_value="SI-MOCK-002") as mapper:
 			job.create_sales_invoice()
@@ -264,7 +264,10 @@ class TestDoubleBillingPrevention(IntegrationTestCase):
 				billable_only=True,
 			)
 		)
-		self.assertEqual([line.name for _service, line in eligible], [pending_line.name, approved_line.name])
+		self.assertEqual(
+			[line.name for _service, line in eligible],
+			[pending_line.name, approved_line.name, in_progress_service.labour[-1].name],
+		)
 
 		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
 			create_sales_invoice,
@@ -333,7 +336,7 @@ class TestDoubleBillingPrevention(IntegrationTestCase):
 			row for row in job_invoice.items if row.repair_component_doctype == "Repair Job Service Labour"
 		]
 		self.assertEqual(len(labour_rows), 2)
-		self.assertTrue(all(row.item_code is None for row in labour_rows))
+		self.assertTrue(all(row.item_code for row in labour_rows))
 		self.assertTrue(all(row.uom == "Hour" for row in labour_rows))
 
 	def test_material_request_blocks_duplicate_for_active_line(self):

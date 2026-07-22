@@ -35,6 +35,7 @@ def _collect_release_a_safety_issues() -> list[dict]:
 
 	issues.extend(_road_test_issues())
 	issues.extend(_template_reference_issues())
+	issues.extend(_workshop_bay_issues())
 	issues.extend(_financial_issues())
 	return issues
 

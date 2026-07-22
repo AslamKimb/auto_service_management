@@ -239,10 +239,13 @@ def _get_job_components(job_name):
 	rows = []
 	for component_type, definition in COMPONENT_TABLE_BY_TYPE.items():
 		price_field = "billing_amount" if component_type == "Labour" else "amount"
+		fields = ["name", "description", price_field]
+		if frappe.get_meta(definition["doctype"]).has_field("status"):
+			fields.insert(2, "status")
 		component_rows = frappe.get_all(
 			definition["doctype"],
 			filters={"repair_job": job_name},
-			fields=["name", "description", "status", price_field],
+			fields=fields,
 			order_by="creation asc, idx asc",
 		)
 		for row in component_rows:
@@ -268,7 +271,7 @@ def _insert_walkaround(job_name, vehicle, fuel_level="1/2"):
 
 
 def _insert_diagnosis(job_name, vehicle, complaint="Battery warning and brake noise", road_test_required=0):
-	return frappe.get_doc(
+	report = frappe.get_doc(
 		{
 			"doctype": "Diagnosis Report",
 			"repair_job": job_name,

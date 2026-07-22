@@ -143,7 +143,7 @@ def create_app_desktop_icon():
 		frappe.db.set_value(
 			"Desktop Icon",
 			existing,
-			{"label": workspace_name, "link_to": workspace_name},
+			{"label": app_title, "link_to": workspace_name},
 			update_modified=False,
 		)
 		frappe.cache.delete_key("desktop_icons")
@@ -151,7 +151,7 @@ def create_app_desktop_icon():
 		return
 
 	icon = frappe.new_doc("Desktop Icon")
-	icon.label = workspace_name
+	icon.label = app_title
 	icon.icon_type = "App"
 	icon.link_type = "Workspace Sidebar"
 	icon.link_to = workspace_name

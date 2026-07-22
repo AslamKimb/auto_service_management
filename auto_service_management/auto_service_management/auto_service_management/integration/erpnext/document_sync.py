@@ -138,6 +138,8 @@ def validate_job_invoices_for_gate_pass(repair_job_name: str) -> list[str]:
 	invoices = get_repair_job_sales_invoices(repair_job_name, submitted_only=True)
 	if not invoices:
 		frappe.throw(_("A submitted Sales Invoice is required before issuing a Gate Pass."))
+	if not _all_billable_components_submitted(repair_job_name):
+		frappe.throw(_("Every billable component must be covered by a submitted Sales Invoice before issuing a Gate Pass."))
 	settings = frappe.get_single("Auto Service Settings")
 	policy = settings.get("gate_pass_payment_policy") or "Full Payment Required"
 	if policy == "No Payment Required":

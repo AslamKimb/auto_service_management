@@ -132,6 +132,31 @@ class ServiceComponent:
 
 
 class RepairJobService(Document):
+	def materialize_template_components(self):
+		"""Copy missing template fields and component rows onto this service once."""
+		if not self.repair_service_template:
+			return False
+		template = frappe.get_doc("Repair Service Template", self.repair_service_template)
+		changed = False
+		for fieldname in ("service_name", "description", "billable"):
+			value = getattr(template, "default_billable", None) if fieldname == "billable" else getattr(template, fieldname, None)
+			if value is not None and getattr(self, fieldname, None) in (None, ""):
+				setattr(self, fieldname, value)
+				changed = True
+		for definition in COMPONENT_TABLES:
+			fieldname = definition["fieldname"]
+			existing = [_component_signature(row, definition["component_type"]) for row in self.get(fieldname) or []]
+			for source_row in template.get(definition["template_fieldname"]) or []:
+				signature = _component_signature(source_row, definition["component_type"])
+				if signature in existing:
+					existing.remove(signature)
+					continue
+				row = self.append(fieldname, {})
+				row = row or (self.get(fieldname) or [])[-1]
+				_copy_template_component_row(row, source_row)
+				changed = True
+		return changed
+
 	def before_validate(self):
 		self.sync_from_repair_job()
 		self.sync_component_context()
@@ -455,7 +480,8 @@ def iter_repair_job_components(
 			continue
 		if not include_excluded and getattr(service, "docstatus", 0) == 2:
 			continue
-		if service_statuses is not None and getattr(service, "status", None) not in service_statuses:
+		service_status = getattr(service, "status", None)
+		if service_statuses is not None and service_status is not None and service_status not in service_statuses:
 			continue
 		for component in get_service_components(service, component_types=component_types):
 			if billable_only and not component.billable:

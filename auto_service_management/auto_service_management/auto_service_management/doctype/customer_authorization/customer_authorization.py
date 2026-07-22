@@ -77,7 +77,7 @@ class CustomerAuthorization(Document):
 			if getdate(self.expiry_date) < getdate(frappe.utils.today()):
 				frappe.throw(_("Approved authorization has expired."))
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def approve(self):
 		"""Approve the authorization and update linked Repair Job."""
 		self._require_write_permission()
@@ -94,7 +94,7 @@ class CustomerAuthorization(Document):
 			job.authorize()
 		recompute_repair_job_state(self.repair_job)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def reject(self):
 		"""Reject the authorization."""
 		self._require_write_permission()

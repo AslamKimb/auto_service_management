@@ -561,7 +561,7 @@ class RepairJob(Document):
 		self._sync_invoice_state()
 		self._write_log("pass_qc")
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def mark_ready_for_invoice(self):
 		self._require_write_permission()
 		if not self._get_services():
@@ -575,6 +575,11 @@ class RepairJob(Document):
 	def release(self):
 		self._require_write_permission()
 		self._sync_invoice_state()
+		from auto_service_management.auto_service_management.integration.erpnext.document_sync import (
+			validate_job_invoices_for_gate_pass,
+		)
+
+		validate_job_invoices_for_gate_pass(self.name)
 		self._transition_to("Ready for Release")
 		self.save()
 		self._write_log("released")
@@ -628,7 +633,7 @@ class RepairJob(Document):
 		self._write_log("manual_status_override", old_status, target_status)
 		return self.name
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def create_service(self, service_name=None):
 		self._require_write_permission()
 		service = frappe.get_doc(
@@ -650,7 +655,7 @@ class RepairJob(Document):
 	#  ERPNext integration triggers                                      #
 	# ------------------------------------------------------------------ #
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def create_quotation(self):
 		"""Generate a Quotation from approved service components."""
 		self._require_write_permission()
@@ -662,7 +667,7 @@ class RepairJob(Document):
 		self.reload()
 		return quote_name
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def create_sales_order(self):
 		self._require_write_permission()
 		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
@@ -684,7 +689,7 @@ class RepairJob(Document):
 
 		return create_material_request(self)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def create_stock_entry(self):
 		"""Create Stock Entry (Material Issue) for requested stock components."""
 		self._require_write_permission()
@@ -709,7 +714,7 @@ class RepairJob(Document):
 		self.reload()
 		return si_name
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def create_gate_pass(self, purpose="Final Release"):
 		"""Issue a Gate Pass for this Repair Job."""
 		self._require_write_permission()

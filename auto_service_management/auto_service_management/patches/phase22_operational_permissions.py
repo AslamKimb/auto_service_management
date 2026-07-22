@@ -4,14 +4,6 @@ import frappe
 
 
 def execute():
-	app_doctypes = frappe.get_all(
-		"DocType",
-		filters={"module": "Auto Service Management", "istable": 0},
-		pluck="name",
-		limit_page_length=0,
-	)
-	for doctype in app_doctypes:
-		_ensure_docperm(doctype, "System Manager", read=1, write=1, create=1, delete=1, report=1, export=1, print=1)
 	_ensure_custom_invoice_perm("Cashier", write=1, create=1, submit=1, cancel=1, amend=1, read=1, report=1, print=1)
 	_ensure_custom_invoice_perm("Service Advisor", write=1, create=1, submit=1, read=1, report=1, print=1)
 	frappe.clear_cache()

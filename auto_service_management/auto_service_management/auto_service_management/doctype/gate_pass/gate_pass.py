@@ -79,7 +79,7 @@ class GatePass(Document):
 				)
 			)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def issue(self):
 		"""Issue the gate pass — called by workshop staff."""
 		self._require_write_permission()
@@ -95,7 +95,7 @@ class GatePass(Document):
 			job.flags.ignore_links = True
 			job.save(ignore_permissions=True)
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def use_gate_pass(self):
 		"""Mark gate pass as used — called by security."""
 		self._require_write_permission()
@@ -106,7 +106,7 @@ class GatePass(Document):
 		self.use_date = datetime.now()
 		self.save()
 
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def mark_returned(self):
 		self._require_write_permission()
 		if self.purpose != "Road Test":
