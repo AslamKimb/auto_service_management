@@ -230,7 +230,9 @@ def _append_service_component(
 	service.reload()
 	desired_status = getattr(service, "_desired_status", None)
 	if desired_status and getattr(service, "status", None) != desired_status:
-		frappe.db.set_value("Repair Job Service", service.name, "status", desired_status, update_modified=False)
+		frappe.db.set_value(
+			"Repair Job Service", service.name, "status", desired_status, update_modified=False
+		)
 		service.reload()
 	return service.get(table)[-1]
 
@@ -605,12 +607,18 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		if not existing_company:
 			country_name = frappe.db.get_value("Country", {}, "name") or "Uganda"
 			if not frappe.db.exists("Country", country_name):
-				frappe.get_doc({"doctype": "Country", "country_name": country_name}).insert(ignore_permissions=True)
+				frappe.get_doc({"doctype": "Country", "country_name": country_name}).insert(
+					ignore_permissions=True
+				)
 			currency_name = frappe.db.get_value("Currency", {}, "name") or "USD"
 			if not frappe.db.exists("Currency", currency_name):
-				frappe.get_doc({"doctype": "Currency", "currency_name": currency_name}).insert(ignore_permissions=True)
+				frappe.get_doc({"doctype": "Currency", "currency_name": currency_name}).insert(
+					ignore_permissions=True
+				)
 			if not frappe.db.exists("UOM", "Hour"):
-				frappe.get_doc({"doctype": "UOM", "name": "Hour", "uom_name": "Hour", "enabled": 1}).insert(ignore_permissions=True)
+				frappe.get_doc({"doctype": "UOM", "name": "Hour", "uom_name": "Hour", "enabled": 1}).insert(
+					ignore_permissions=True
+				)
 			if not frappe.db.exists("Warehouse Type", "Transit"):
 				frappe.get_doc(
 					{
@@ -658,9 +666,13 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		if not settings.company:
 			companies = frappe.get_all("Company", pluck="name")
 			settings.company = companies[0] if companies else None
-		company_currency = frappe.db.get_value("Company", settings.company, "default_currency") if settings.company else None
+		company_currency = (
+			frappe.db.get_value("Company", settings.company, "default_currency") if settings.company else None
+		)
 		settings.company = settings.company or frappe.db.get_all("Company", pluck="name", limit=1)[0]
-		settings.default_currency = settings.default_currency or company_currency or frappe.db.get_default("currency") or "USD"
+		settings.default_currency = (
+			settings.default_currency or company_currency or frappe.db.get_default("currency") or "USD"
+		)
 		settings.price_list = price_list
 		settings.selling_price_list = price_list
 		settings.save(ignore_permissions=True)
@@ -851,30 +863,41 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 				authorization.approve()
 
 	def test_desktop_icon_exists_and_is_visible(self):
-		"""App-type Desktop Icon for Auto Service Management must exist and not be hidden."""
+		"""Car Workshop must be a directly routed top-level workspace icon."""
 		icon = frappe.db.get_value(
 			"Desktop Icon",
-			{"icon_type": "App", "app": "auto_service_management"},
-			["name", "hidden", "link_type", "link_to", "standard"],
+			{"label": "Car Workshop", "app": "auto_service_management"},
+			["name", "hidden", "icon", "icon_type", "link_type", "link_to", "parent_icon", "standard"],
 			as_dict=True,
 		)
 		self.assertTrue(icon, "Desktop Icon record must exist for auto_service_management")
-		self.assertEqual(icon.name, "Auto Service Management")
+		self.assertEqual(icon.name, "Car Workshop")
 		self.assertFalse(icon.hidden, "Desktop Icon must not be hidden")
+		self.assertEqual(icon.icon, "car-front")
+		self.assertEqual(icon.icon_type, "Link")
 		self.assertEqual(icon.link_type, "Workspace Sidebar")
-		self.assertEqual(icon.link_to, "Workshop Management")
+		self.assertEqual(icon.link_to, "Car Workshop")
+		self.assertFalse(icon.parent_icon)
 		self.assertTrue(icon.standard, "Desktop Icon must be standard")
+		self.assertFalse(
+			frappe.db.exists("Desktop Icon", {"icon_type": "App", "app": "auto_service_management"})
+		)
+		self.assertFalse(
+			frappe.db.exists(
+				"Desktop Icon", {"label": "Workshop Management", "app": "auto_service_management"}
+			)
+		)
 
 	def test_workspace_sidebar_is_grouped_for_auto_service_management(self):
 		from auto_service_management.auto_service_management.desktop import setup_desktop
 
-		for name in ("Auto Service Management", "Workshop Management"):
+		for name in ("Auto Service Management", "Workshop Management", "Car Workshop"):
 			if frappe.db.exists("Workspace Sidebar", name):
 				frappe.delete_doc("Workspace Sidebar", name, ignore_permissions=True)
 
 		setup_desktop()
 
-		sidebar = frappe.get_doc("Workspace Sidebar", "Workshop Management")
+		sidebar = frappe.get_doc("Workspace Sidebar", "Car Workshop")
 		self.assertGreater(len(sidebar.items), 6)
 
 		home_item = sidebar.items[0]

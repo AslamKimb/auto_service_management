@@ -28,8 +28,8 @@
     "hash": "6d513edcfdd1060fb83c8ad4aa65e3d1"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\desktop.py": {
-    "mtime": 1784702298.4543152,
-    "hash": "ae01136bba22ebae644ae067bae7da29"
+    "mtime": 1784750170.2648237,
+    "hash": "bc35c3e1f2fca9bdcd487afd93b506a5"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\hooks.py": {
     "mtime": 1782737459.0,
@@ -480,8 +480,8 @@
     "hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_controllers_integration.py": {
-    "mtime": 1784701596.268794,
-    "hash": "7c2ea0067d975d8039402a41a0e127cc"
+    "mtime": 1784749384.309903,
+    "hash": "22b5c8a40e0f203e2b68a074eb747e12"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_customer_vehicle.py": {
     "mtime": 1782737482.0,
@@ -524,8 +524,8 @@
     "hash": "a7122ee0389e903561872afb56eb8c6f"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_phase6_contracts.py": {
-    "mtime": 1784461176.3140318,
-    "hash": "942e0449c9b4935e528b1c72884a1027"
+    "mtime": 1784749384.3083868,
+    "hash": "920a4ae55de0f58647152cdd980c2879"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_phase7_hardening.py": {
     "mtime": 1782755427.0,
@@ -716,12 +716,12 @@
     "hash": "62a2fc6482ee5e3f83f16b253c2dcee6"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\IMPLEMENTATION_PLAN.md": {
-    "mtime": 1784738887.9836707,
-    "hash": "3ae143fc30a48a34bac3b96088b1a45e"
+    "mtime": 1784748831.405214,
+    "hash": "74a0cc526c89f2177d40f354609e979c"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\README.md": {
-    "mtime": 1784728065.059927,
-    "hash": "b60d41115871380c3107a2787dd16e8a"
+    "mtime": 1784739663.6552355,
+    "hash": "cab99d8a0762feb20d08304ace6525d4"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\REPAIR_WORKFLOW_IMPLEMENTATION_PLAN.md": {
     "mtime": 1784410841.178532,
@@ -786,6 +786,14 @@
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\public\\images\\vehicle_silhouette.svg": {
     "mtime": 1782729076.0,
     "hash": "fb5a4d7c4e18f389cc0a8dca3779fd6f"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\icons\\desktop_icons\\solid\\car_workshop.svg": {
+    "mtime": 1784749360.1068456,
+    "hash": "92deea601815b4085d6e943bfc12f97c"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\icons\\desktop_icons\\subtle\\car_workshop.svg": {
+    "mtime": 1784749360.1046398,
+    "hash": "a504122d9c195de313ad48dfa8e59fb3"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\images\\vehicle_silhouette.svg": {
     "mtime": 1782766169.0,

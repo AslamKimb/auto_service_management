@@ -353,12 +353,25 @@ class TestPhase6Contracts(UnitTestCase):
 		self.assertIn("desktop.setup_desktop", hooks_source)
 
 	def test_desktop_module_exists_with_required_functions(self):
-		"""desktop.py must create the app icon and the grouped workspace sidebar."""
+		"""desktop.py must create the workspace icon and grouped workspace sidebar."""
 		module_root = Path(__file__).parents[1]
 		desktop_path = module_root / "desktop.py"
 		self.assertTrue(desktop_path.is_file(), "desktop.py must exist")
 		source = desktop_path.read_text(encoding="utf-8")
-		self.assertIn("def create_app_desktop_icon", source)
+		self.assertIn("def create_workspace_desktop_icon", source)
+		self.assertIn('"car-front"', source)
+		self.assertIn('"Car Workshop"', source)
 		self.assertIn("def _ensure_workspace_sidebar", source)
 		self.assertIn("def remove_auto_generated_sidebar", source)
 		self.assertIn("Desktop Icon", source)
+
+	def test_all_app_owned_doctypes_with_permissions_include_system_manager(self):
+		"""System Manager must be present on every app-owned DocType permission matrix."""
+		doctype_root = Path(__file__).parents[1] / "doctype"
+		missing = []
+		for path in sorted(doctype_root.rglob("*.json")):
+			data = json.loads(path.read_text(encoding="utf-8"))
+			permissions = data.get("permissions") or []
+			if permissions and "System Manager" not in {row.get("role") for row in permissions}:
+				missing.append(path.stem)
+		self.assertEqual(missing, [])

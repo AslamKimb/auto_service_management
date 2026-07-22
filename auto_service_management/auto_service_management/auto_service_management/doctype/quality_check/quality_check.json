@@ -123,6 +123,13 @@
       "delete": 1
     },
     {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
       "role": "Workshop Technician",
       "read": 1,
       "write": 1,

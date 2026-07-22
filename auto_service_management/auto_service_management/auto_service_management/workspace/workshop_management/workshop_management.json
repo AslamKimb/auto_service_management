@@ -25,9 +25,9 @@
   "doctype": "Workspace",
   "for_user": "",
   "hide_custom": 0,
-  "icon": "toolbox",
+  "icon": "car-front",
   "is_hidden": 0,
-  "label": "Workshop Management",
+  "label": "Car Workshop",
   "links": [
     {
       "hidden": 0,

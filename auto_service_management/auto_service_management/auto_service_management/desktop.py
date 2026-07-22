@@ -1,10 +1,4 @@
-"""Desk desktop visibility for Auto Service Management.
-
-Ensures an App-type Desktop Icon exists so the module card appears on the
-Frappe Desk desktop alongside Accounting, Selling, etc.  The Workshop
-Management workspace is automatically linked as a child icon by Frappe's
-``create_desktop_icons_from_workspace`` logic.
-"""
+"""Desk desktop visibility for the Car Workshop entry."""
 
 import json
 
@@ -16,6 +10,11 @@ from auto_service_management.auto_service_management.workspace_dashboard import 
 	WORKSPACE_SIDEBAR_SECTIONS,
 )
 
+WORKSPACE_NAME = "Workshop Management"
+WORKSPACE_LABEL = "Car Workshop"
+APP_NAME = "auto_service_management"
+ICON_NAME = "car-front"
+
 
 def _ensure_workspace_app_field():
 	"""Set the ``app`` field on the Workspace if it is NULL.
@@ -25,9 +24,9 @@ def _ensure_workspace_app_field():
 	"""
 	frappe.db.set_value(
 		"Workspace",
-		"Workshop Management",
+		WORKSPACE_NAME,
 		"app",
-		"auto_service_management",
+		APP_NAME,
 		update_modified=False,
 	)
 
@@ -39,11 +38,20 @@ def _ensure_workspace_type_field():
 	"""
 	frappe.db.set_value(
 		"Workspace",
-		"Workshop Management",
+		WORKSPACE_NAME,
 		"type",
 		"Workspace",
 		update_modified=False,
 	)
+
+
+def _ensure_workspace_label():
+	"""Keep the underlying workspace doc stable but expose a shorter label."""
+	workspace = frappe.get_doc("Workspace", WORKSPACE_NAME)
+	workspace.title = WORKSPACE_LABEL
+	workspace.label = WORKSPACE_LABEL
+	workspace.icon = ICON_NAME
+	workspace.save(ignore_permissions=True)
 
 
 def _ensure_workspace_sidebar():
@@ -54,12 +62,17 @@ def _ensure_workspace_sidebar():
 	The app owns this sidebar explicitly so migrate/tests converge existing
 	sites to the approved grouped navigation.
 	"""
-	sidebar_name = "Workshop Management"
+	sidebar_name = WORKSPACE_LABEL
 	module_sidebar_name = "Auto Service Management"
+	legacy_sidebar_name = WORKSPACE_NAME
 	if not frappe.db.exists("Workspace Sidebar", sidebar_name) and frappe.db.exists(
 		"Workspace Sidebar", module_sidebar_name
 	):
 		frappe.rename_doc("Workspace Sidebar", module_sidebar_name, sidebar_name, force=True)
+	if not frappe.db.exists("Workspace Sidebar", sidebar_name) and frappe.db.exists(
+		"Workspace Sidebar", legacy_sidebar_name
+	):
+		frappe.rename_doc("Workspace Sidebar", legacy_sidebar_name, sidebar_name, force=True)
 	if frappe.db.exists("Workspace Sidebar", sidebar_name):
 		sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
 	else:
@@ -67,7 +80,7 @@ def _ensure_workspace_sidebar():
 		sidebar.name = sidebar_name
 
 	sidebar.title = sidebar_name
-	sidebar.app = "auto_service_management"
+	sidebar.app = APP_NAME
 	sidebar.standard = 1
 	sidebar.set("items", [])
 
@@ -112,54 +125,55 @@ def _get_workspace_sidebar_items():
 	return items
 
 
-def create_app_desktop_icon():
-	"""Create the App-type Desktop Icon if it does not already exist.
+def create_workspace_desktop_icon():
+	"""Expose Car Workshop as one directly routed Desk icon.
 
 	Called from ``after_install``, ``after_migrate``, and ``before_tests``
-	/hooks so fresh installs, existing deployments, and test runs all get
-	the icon automatically.
-
-	In Frappe v16, desk icons must use ``link_type = "Workspace Sidebar"``
-	with ``link_to`` set to the workspace name — NOT ``link_type = "External"``.
+	hooks so fresh installs and existing deployments converge automatically.
 	"""
-	app_name = "auto_service_management"
-	app_title = "Auto Service Management"
-	workspace_name = "Workshop Management"
-
-	# Clean up any stale External-type icon left from earlier code
-	stale = frappe.db.exists(
-		"Desktop Icon",
-		{"icon_type": "App", "app": app_name, "link_type": "External"},
-	)
-	if stale:
+	for stale in frappe.get_all("Desktop Icon", filters={"icon_type": "App", "app": APP_NAME}, pluck="name"):
 		frappe.delete_doc("Desktop Icon", stale, ignore_permissions=True)
+	for stale in frappe.get_all(
+		"Desktop Icon",
+		filters={"label": ["in", [WORKSPACE_NAME, WORKSPACE_LABEL]], "app": APP_NAME},
+		fields=["name", "icon_type"],
+	):
+		if stale.icon_type != "Link" or stale.name != WORKSPACE_LABEL:
+			frappe.delete_doc("Desktop Icon", stale.name, ignore_permissions=True)
 
-	# Skip if a correct Workspace-Sidebar-type icon already exists
 	existing = frappe.db.exists(
 		"Desktop Icon",
-		{"icon_type": "App", "app": app_name, "link_type": "Workspace Sidebar"},
+		{"label": WORKSPACE_LABEL, "icon_type": "Link"},
 	)
 	if existing:
 		frappe.db.set_value(
 			"Desktop Icon",
 			existing,
-			{"label": app_title, "link_to": workspace_name},
+			{
+				"app": APP_NAME,
+				"label": WORKSPACE_LABEL,
+				"hidden": 0,
+				"icon": ICON_NAME,
+				"link_type": "Workspace Sidebar",
+				"link_to": WORKSPACE_LABEL,
+				"parent_icon": None,
+				"standard": 1,
+			},
 			update_modified=False,
 		)
-		frappe.cache.delete_key("desktop_icons")
-		frappe.clear_cache()
-		return
+	else:
+		icon = frappe.new_doc("Desktop Icon")
+		icon.label = WORKSPACE_LABEL
+		icon.icon = ICON_NAME
+		icon.icon_type = "Link"
+		icon.link_type = "Workspace Sidebar"
+		icon.link_to = WORKSPACE_LABEL
+		icon.app = APP_NAME
+		icon.standard = 1
+		icon.idx = 0
+		icon.insert(ignore_if_duplicate=True, ignore_links=True)
 
-	icon = frappe.new_doc("Desktop Icon")
-	icon.label = app_title
-	icon.icon_type = "App"
-	icon.link_type = "Workspace Sidebar"
-	icon.link_to = workspace_name
-	icon.app = app_name
-	icon.standard = 1
-	icon.idx = 0
-	icon.insert(ignore_if_duplicate=True, ignore_links=True)
-
+	frappe.cache.delete_key("desktop_icons")
 	frappe.clear_cache()
 
 
@@ -170,13 +184,13 @@ def setup_desktop():
 	/hooks so fresh installs, existing deployments, and test runs all get
 	the full desk setup automatically.
 
-	Order matters: workspace fields and sidebar must exist before the
-	Desktop Icon (which validates its link_to against Workspace Sidebar).
+	Order matters: the workspace and sidebar must exist before their icon.
 	"""
 	_ensure_workspace_app_field()
 	_ensure_workspace_type_field()
+	_ensure_workspace_label()
 	_ensure_workspace_sidebar()
-	create_app_desktop_icon()
+	create_workspace_desktop_icon()
 
 
 def remove_auto_generated_sidebar(bootinfo):
