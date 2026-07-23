@@ -1,0 +1,14 @@
+[
+  {
+    "url": "/opt/vendor/erpnext",
+    "branch": "version-16"
+  },
+  {
+    "url": "/opt/vendor/hrms",
+    "branch": "version-16"
+  },
+  {
+    "url": "/opt/vendor/uganda_compliance",
+    "branch": "hotfix-v-16"
+  }
+]

@@ -32,8 +32,8 @@
     "hash": "6d513edcfdd1060fb83c8ad4aa65e3d1"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\desktop.py": {
-    "mtime": 1784800636.2210214,
-    "hash": "066afeefbf1e0f9bd9a29cce66ac5462"
+    "mtime": 1784839367.361298,
+    "hash": "1fd26d411290d84b809b8b0b4057399b"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\hooks.py": {
     "mtime": 1782737459.0,
@@ -720,8 +720,8 @@
     "hash": "68b329da9893e34099c7d8ad5cb9c940"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\AGENTS.md": {
-    "mtime": 1784228194.8202245,
-    "hash": "1ff43422aad9e5f928fc7bb01e233667"
+    "mtime": 1784843080.8151188,
+    "hash": "a2b86c5bab165a58fc757e229adbe667"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\Automotive DMS.md": {
     "mtime": 1784433677.5713444,
@@ -731,13 +731,17 @@
     "mtime": 1784730756.4945188,
     "hash": "62a2fc6482ee5e3f83f16b253c2dcee6"
   },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\docker-compose.image.yml": {
+    "mtime": 1784840194.8192058,
+    "hash": "58dc58c0a69cf201efeb5b3d78c0707a"
+  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\IMPLEMENTATION_PLAN.md": {
-    "mtime": 1784798820.4066255,
-    "hash": "09aff4e175230401cb14d72511ee705a"
+    "mtime": 1784840771.9007485,
+    "hash": "30a415fa2f054a054eca5336f4e7bf00"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\README.md": {
-    "mtime": 1784794718.6988423,
-    "hash": "4aed5c592a013c415963c26a96a32c86"
+    "mtime": 1784804868.772587,
+    "hash": "5520778f6bff1d5e033225b70b02c04b"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\REPAIR_WORKFLOW_IMPLEMENTATION_PLAN.md": {
     "mtime": 1784410841.178532,
@@ -802,6 +806,14 @@
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\www\\my_repairs.html": {
     "mtime": 1784794695.81418,
     "hash": "cd5aea7a869492e48e7fa58503a1973b"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\deployment\\docker-compose.dokploy.yml": {
+    "mtime": 1784840186.4746087,
+    "hash": "29d41db74e28d475fedd808ca4303081"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\deployment.md": {
+    "mtime": 1784834042.7021065,
+    "hash": "40604870a20e8c8317b3d0115d3c80c7"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\onboarding.html": {
     "mtime": 1784714149.6772773,

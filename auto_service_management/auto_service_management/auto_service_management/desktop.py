@@ -53,6 +53,7 @@ def _ensure_workspace_label():
 	workspace.title = WORKSPACE_LABEL
 	workspace.label = WORKSPACE_LABEL
 	workspace.icon = ICON_NAME
+	workspace.flags.ignore_links = True
 	workspace.save(ignore_permissions=True)
 
 

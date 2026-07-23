@@ -60,6 +60,16 @@ docker exec dms-backend-1 bench --site auto-service.localhost migrate
 | `nginx.conf` | Reverse proxy config. Root is `.../sites` â€” do not change to `.../sites/assets` or CSS/JS will 404. |
 | `bench-data/` | Ephemeral runtime data (DB, Redis, bench). Gitignored. |
 
+## Isolated Image Deployment Stack
+
+`docker-compose.dev.yml` is the editable local-development stack. Do not modify or use it for image/Dokploy deployment verification. Use the separate image stack instead:
+
+```bash
+docker compose --env-file deployment/image.env.example -f docker-compose.image.yml up -d
+```
+
+It creates independent `dms-image_*` volumes, serves on port `18080` by default, installs ERPNext, Auto Service Management, HRMS, and Uganda Compliance once, and enables `developer_mode`. The WebSocket container must invoke the image's absolute Node binary (`/home/frappe/.nvm/versions/node/v24.12.0/bin/node`) because its non-login shell does not resolve `node` from `PATH`.
+
 ## Development Commands
 
 Run bench commands inside the backend container. Always name the site.

@@ -164,3 +164,9 @@ Known current upstream boundaries as of July 22, 2026:
 - Baseline integrated smoke remains valid despite those upstream test boundaries: non-EFRIS Auto Service invoice submit/cancel works with Uganda Compliance installed, and HRMS Timesheet submit works with Auto Service trace-field synchronization.
 
 See `AGENTS.md` for repository rules and `IMPLEMENTATION_PLAN.md` for tracked delivery status.
+
+## Dokploy deployment
+
+Production-like developer-mode deployment files are owned by this repository
+under [`deployment/`](deployment/). See [Dokploy deployment](docs/deployment.md)
+for the manual image build gate and Dokploy setup.

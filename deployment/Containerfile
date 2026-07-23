@@ -1,0 +1,93 @@
+ARG FRAPPE_BUILD_IMAGE=frappe/build@sha256:d1713eab064036486c641d5f96ebd406a5cc0c2e4f5ecb2c71357d5aeabfca97
+ARG FRAPPE_BASE_IMAGE=frappe/base@sha256:9128ea687a6ffdc2abd85efe87fada8f73a5bcde92e77b2a5518e01d2227449f
+
+FROM ${FRAPPE_BUILD_IMAGE} AS sources
+
+ENV PIP_DEFAULT_TIMEOUT=300 \
+    PIP_RETRIES=10 \
+    YARN_NETWORK_TIMEOUT=600000
+
+# Reconstruct clean, pinned upstream sources from the local development bench.
+# Copying only Git data excludes local vendor edits and avoids network clones.
+COPY --chown=frappe:frappe bench-data/bench-home/frappe-bench/apps/frappe/.git /opt/vendor/frappe/.git
+COPY --chown=frappe:frappe bench-data/bench-home/frappe-bench/apps/erpnext/.git /opt/vendor/erpnext/.git
+COPY --chown=frappe:frappe bench-data/bench-home/frappe-bench/apps/hrms/.git /opt/vendor/hrms/.git
+COPY --chown=frappe:frappe bench-data/bench-home/frappe-bench/apps/uganda_compliance/.git /opt/vendor/uganda_compliance/.git
+COPY --chown=frappe:frappe auto_service_management /opt/auto_service_management
+COPY --chown=frappe:frappe deployment/apps.json /opt/frappe/apps.json
+
+ARG FRAPPE_COMMIT=9a8daf343db69a0127f470bad8be0af192cd80c8
+ARG ERPNEXT_COMMIT=d1d3b241ae7bc21d18cf830a4bacd568e21a2a19
+ARG HRMS_COMMIT=6aa125b976469cb1c342afa3ef07d381c88677e0
+ARG UGANDA_COMPLIANCE_COMMIT=33743cd596c6e8c079945478d0e5b52e461fe770
+RUN for app in frappe erpnext hrms uganda_compliance; do \
+      git -C "/opt/vendor/${app}" reset --hard HEAD; \
+    done \
+    && test "$(git -C /opt/vendor/frappe rev-parse HEAD)" = "${FRAPPE_COMMIT}" \
+    && test "$(git -C /opt/vendor/erpnext rev-parse HEAD)" = "${ERPNEXT_COMMIT}" \
+    && test "$(git -C /opt/vendor/hrms rev-parse HEAD)" = "${HRMS_COMMIT}" \
+    && test "$(git -C /opt/vendor/uganda_compliance rev-parse HEAD)" = "${UGANDA_COMPLIANCE_COMMIT}"
+
+FROM sources AS cache-check
+
+RUN --mount=type=cache,target=/home/frappe/.cache,uid=1000,gid=1000 \
+    test -w /home/frappe/.cache \
+    && mkdir -p /home/frappe/.cache/uv \
+    && test -w /home/frappe/.cache/uv
+
+FROM cache-check AS builder
+
+RUN --mount=type=cache,target=/home/frappe/.cache,uid=1000,gid=1000 \
+    --mount=type=cache,target=/home/frappe/.npm,uid=1000,gid=1000 \
+    bench init --apps_path=/opt/frappe/apps.json \
+      --frappe-branch=version-16 \
+      --frappe-path=/opt/vendor/frappe \
+      --no-procfile \
+      --no-backups \
+      --skip-redis-config-generation \
+      --verbose \
+      /home/frappe/frappe-bench \
+    && cd /home/frappe/frappe-bench \
+    && cp -a /opt/auto_service_management apps/auto_service_management \
+    && env/bin/pip install -e apps/auto_service_management --no-deps \
+    && python3 -c "from pathlib import Path; p=Path('sites/apps.txt'); apps=[*filter(None, p.read_text().splitlines()), 'auto_service_management']; p.write_text('\n'.join(dict.fromkeys(apps)) + '\n')" \
+    && bench build --app auto_service_management \
+    && echo "{}" > sites/common_site_config.json \
+    && find apps -mindepth 1 -path "*/.git" -exec rm -rf {} +
+
+FROM ${FRAPPE_BASE_IMAGE} AS backend
+
+USER root
+
+COPY deployment/resources/core/nginx/nginx-template.conf /templates/nginx/frappe.conf.template
+COPY deployment/resources/core/nginx/nginx-entrypoint.sh /usr/local/bin/nginx-entrypoint.sh
+COPY deployment/resources/core/nginx/security_headers.conf /etc/nginx/snippets/security_headers.conf
+RUN chmod 755 /usr/local/bin/nginx-entrypoint.sh \
+    && chmod 644 /templates/nginx/frappe.conf.template \
+    && chmod 644 /etc/nginx/snippets/security_headers.conf
+
+USER frappe
+
+COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench /home/frappe/frappe-bench
+COPY --from=builder --chown=frappe:frappe /home/frappe/.nvm /home/frappe/.nvm
+
+WORKDIR /home/frappe/frappe-bench
+
+VOLUME [ \
+  "/home/frappe/frappe-bench/sites", \
+  "/home/frappe/frappe-bench/sites/assets", \
+  "/home/frappe/frappe-bench/logs" \
+]
+
+CMD [ \
+  "/home/frappe/frappe-bench/env/bin/gunicorn", \
+  "--chdir=/home/frappe/frappe-bench/sites", \
+  "--bind=0.0.0.0:8000", \
+  "--threads=4", \
+  "--workers=2", \
+  "--worker-class=gthread", \
+  "--worker-tmp-dir=/dev/shm", \
+  "--timeout=120", \
+  "--preload", \
+  "frappe.app:application" \
+]

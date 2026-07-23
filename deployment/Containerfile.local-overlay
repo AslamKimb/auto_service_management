@@ -1,0 +1,8 @@
+ARG BASE_IMAGE=aslamkimb/frappe-dms-ug:dev-31f2cae
+FROM frappe/build@sha256:d1713eab064036486c641d5f96ebd406a5cc0c2e4f5ecb2c71357d5aeabfca97 AS node-runtime
+FROM ${BASE_IMAGE}
+
+COPY --from=node-runtime --chown=frappe:frappe /home/frappe/.nvm /home/frappe/.nvm
+COPY --chown=frappe:frappe \
+  auto_service_management/auto_service_management/auto_service_management/desktop.py \
+  /home/frappe/frappe-bench/apps/auto_service_management/auto_service_management/auto_service_management/desktop.py
