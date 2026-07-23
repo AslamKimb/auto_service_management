@@ -62,4 +62,3 @@ envsubst '${BACKEND}
   </templates/nginx/frappe.conf.template >/etc/nginx/conf.d/frappe.conf
 
 exec nginx -g 'daemon off;'
-
