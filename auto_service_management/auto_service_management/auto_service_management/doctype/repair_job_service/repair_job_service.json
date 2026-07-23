@@ -189,6 +189,11 @@
    "label": "Component Billing Status"
   },
   {
+   "fieldname": "material_requests_html",
+   "fieldtype": "HTML",
+   "label": "Material Request Status"
+  },
+  {
    "fieldname": "cost_total",
    "fieldtype": "Currency",
    "label": "Cost Total",

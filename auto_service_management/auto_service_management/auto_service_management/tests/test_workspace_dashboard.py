@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+import frappe
 from frappe.tests import UnitTestCase
 
 from auto_service_management.auto_service_management.workspace_dashboard import (
@@ -13,6 +14,7 @@ from auto_service_management.auto_service_management.workspace_dashboard import 
 	WORKSPACE_OPERATIONAL_NUMBER_CARDS,
 	WORKSPACE_REPORT_LINKS,
 	WORKSPACE_SIDEBAR_HOME,
+	WORKSPACE_SIDEBAR_SECTION_ICONS,
 	WORKSPACE_SIDEBAR_SECTIONS,
 	get_auto_service_settings_configured_card_data,
 	get_component_child_card_data,
@@ -92,9 +94,13 @@ class TestWorkspaceDashboardContracts(UnitTestCase):
 		self.assertEqual(WORKSPACE_SIDEBAR_HOME["label"], "Home")
 		self.assertEqual(WORKSPACE_SIDEBAR_HOME["link_to"], "Workshop Management")
 		self.assertEqual(tuple(WORKSPACE_SIDEBAR_SECTIONS), WORKSPACE_LINK_CARDS)
-		self.assertIn(
-			{"label": "Customer Vehicle", "link_type": "DocType", "link_to": "Customer Vehicle"},
-			WORKSPACE_SIDEBAR_SECTIONS["Intake & Setup"],
+		self.assertTrue(
+			any(
+				item["label"] == "Customer Vehicle"
+				and item["link_type"] == "DocType"
+				and item["link_to"] == "Customer Vehicle"
+				for item in WORKSPACE_SIDEBAR_SECTIONS["Intake & Setup"]
+			)
 		)
 		self.assertTrue(
 			any(item["label"] == "Repair Queue" for item in WORKSPACE_SIDEBAR_SECTIONS["Workshop Execution"])
@@ -110,6 +116,31 @@ class TestWorkspaceDashboardContracts(UnitTestCase):
 		)
 		report_labels = tuple(item["label"] for item in WORKSPACE_SIDEBAR_SECTIONS["Reports"])
 		self.assertEqual(report_labels, WORKSPACE_REPORT_LINKS)
+
+	def test_every_sidebar_section_and_link_declares_an_icon(self):
+		self.assertEqual(WORKSPACE_SIDEBAR_HOME["icon"], "house")
+		self.assertEqual(set(WORKSPACE_SIDEBAR_SECTION_ICONS), set(WORKSPACE_SIDEBAR_SECTIONS))
+		for section_label, items in WORKSPACE_SIDEBAR_SECTIONS.items():
+			with self.subTest(section=section_label):
+				self.assertTrue(WORKSPACE_SIDEBAR_SECTION_ICONS[section_label])
+			for item in items:
+				with self.subTest(section=section_label, item=item["label"]):
+					self.assertTrue(item["icon"])
+
+	def test_every_sidebar_icon_exists_in_frappe_lucide_sprite(self):
+		sprite = (
+			Path(frappe.get_app_path("frappe"))
+			/ "public"
+			/ "icons"
+			/ "lucide"
+			/ "icons.svg"
+		).read_text(encoding="utf-8")
+		icons = {WORKSPACE_SIDEBAR_HOME["icon"], *WORKSPACE_SIDEBAR_SECTION_ICONS.values()}
+		icons.update(item["icon"] for items in WORKSPACE_SIDEBAR_SECTIONS.values() for item in items)
+
+		for icon in icons:
+			with self.subTest(icon=icon):
+				self.assertIn(f'id="icon-{icon}"', sprite)
 
 	def test_singleton_settings_number_card_returns_one_when_configured(self):
 		with patch(

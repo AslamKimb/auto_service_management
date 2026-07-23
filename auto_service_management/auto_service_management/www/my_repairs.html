@@ -1,0 +1,155 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<style>
+	.repairs-shell { max-width: 1080px; margin: 0 auto; }
+	.repairs-header { display: flex; justify-content: space-between; gap: 1rem; align-items: end; margin-bottom: 1.5rem; }
+	.repairs-card { border: 1px solid var(--border-color, #d8d8d8); border-radius: .75rem; padding: 1rem; margin-bottom: 1rem; background: var(--card-bg, #fff); }
+	.repairs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem; }
+	.repairs-label { color: var(--text-muted, #6c757d); display: block; font-size: .8rem; }
+	.repairs-stage-list { display: grid; grid-template-columns: repeat(8, minmax(105px, 1fr)); gap: .35rem; overflow-x: auto; padding: .25rem 0 .75rem; }
+	.repairs-stage { border-top: 4px solid #d8d8d8; padding-top: .5rem; font-size: .82rem; }
+	.repairs-stage.complete { border-color: #2f855a; }
+	.repairs-stage.current { color: #b45309; border-color: #f59e0b; font-weight: 700; }
+	.repairs-cancelled { border-left: 5px solid #c53030; background: #fff5f5; }
+	.repairs-table { width: 100%; border-collapse: collapse; }
+	.repairs-table th, .repairs-table td { border-bottom: 1px solid var(--border-color, #e5e5e5); padding: .7rem .5rem; text-align: left; vertical-align: top; }
+	.repairs-table th { font-size: .8rem; color: var(--text-muted, #6c757d); }
+	.repairs-pill { display: inline-block; border-radius: 999px; background: #edf2f7; padding: .2rem .55rem; font-size: .78rem; }
+	.repairs-empty { text-align: center; padding: 3rem 1rem; color: var(--text-muted, #6c757d); }
+	.repairs-pagination { display: flex; justify-content: space-between; margin-top: 1rem; }
+	@media (max-width: 640px) {
+		.repairs-header { align-items: start; flex-direction: column; }
+		.repairs-table thead { display: none; }
+		.repairs-table tr, .repairs-table td { display: block; }
+		.repairs-table tr { border-bottom: 1px solid var(--border-color, #e5e5e5); padding: .6rem 0; }
+		.repairs-table td { border: 0; padding: .2rem 0; }
+	}
+</style>
+
+<main class="repairs-shell">
+	{% if is_detail %}
+	<header class="repairs-header">
+		<div>
+			<a href="/my-repairs">{{ _("← All repairs") }}</a>
+			<h1>{{ job.name | e }}</h1>
+			<p class="text-muted">{{ (job.vehicle_details or job.customer_vehicle or _("Vehicle")) | e }}{% if job.registration_number %} · {{ job.registration_number | e }}{% endif %}</p>
+		</div>
+		<span class="repairs-pill">{{ job.job_status | e }}</span>
+	</header>
+
+	{% if is_cancelled %}
+	<section class="repairs-card repairs-cancelled">
+		<h2>{{ _("Repair cancelled") }}</h2>
+		<p>{{ _("This repair is no longer progressing through the workshop lifecycle.") }}</p>
+	</section>
+	{% else %}
+	<section class="repairs-card" aria-labelledby="repair-progress-heading">
+		<h2 id="repair-progress-heading">{{ _("Repair progress") }}</h2>
+		<div class="repairs-stage-list">
+			{% for stage in lifecycle %}
+			<div class="repairs-stage{% if stage.complete %} complete{% endif %}{% if stage.current %} current{% endif %}"{% if stage.current %} aria-current="step"{% endif %}>{{ stage.label | e }}</div>
+			{% endfor %}
+		</div>
+	</section>
+	{% endif %}
+
+	<section class="repairs-card repairs-grid" aria-label="{{ _('Repair summary') }}">
+		<div><span class="repairs-label">{{ _("Intake date") }}</span>{{ frappe.utils.format_date(job.intake_date) }}</div>
+		<div><span class="repairs-label">{{ _("Total") }}</span>{{ frappe.utils.fmt_money(job.total_amount, currency=job.currency) }}</div>
+		<div><span class="repairs-label">{{ _("Payment status") }}</span>{{ (job.payment_status or _("Not recorded")) | e }}</div>
+	</section>
+
+	<section class="repairs-card">
+		<h2>{{ _("Services") }}</h2>
+		<table class="repairs-table">
+			<thead><tr><th>{{ _("Service") }}</th><th>{{ _("Progress") }}</th><th>{{ _("Total") }}</th></tr></thead>
+			<tbody>
+			{% for service in services %}
+			<tr>
+				<td>{{ (service.service_name or service.name) | e }}</td>
+				<td>{{ _("Completed") if service.is_completed else _("In progress") }}</td>
+				<td>{{ frappe.utils.fmt_money(service.total_amount, currency=service.currency or job.currency) }}</td>
+			</tr>
+			{% else %}
+			<tr><td colspan="3" class="text-muted">{{ _("No customer-visible services have been added yet.") }}</td></tr>
+			{% endfor %}
+			</tbody>
+		</table>
+	</section>
+
+	<section class="repairs-card">
+		<h2>{{ _("Submitted invoices") }}</h2>
+		<table class="repairs-table">
+			<thead><tr><th>{{ _("Invoice") }}</th><th>{{ _("Date") }}</th><th>{{ _("Status") }}</th><th>{{ _("Total") }}</th><th>{{ _("Outstanding") }}</th></tr></thead>
+			<tbody>
+			{% for invoice in invoices %}
+			<tr>
+				<td><a href="/invoices/{{ invoice.name | urlencode }}">{{ invoice.name | e }}</a></td>
+				<td>{{ frappe.utils.format_date(invoice.posting_date) }}</td>
+				<td>{{ invoice.status | e }}</td>
+				<td>{{ frappe.utils.fmt_money(invoice.grand_total, currency=invoice.currency) }}</td>
+				<td>{{ frappe.utils.fmt_money(invoice.outstanding_amount, currency=invoice.currency) }}</td>
+			</tr>
+			{% else %}
+			<tr><td colspan="5" class="text-muted">{{ _("No submitted invoices are available.") }}</td></tr>
+			{% endfor %}
+			</tbody>
+		</table>
+	</section>
+
+	<section class="repairs-card">
+		<h2>{{ _("Submitted payments") }}</h2>
+		<table class="repairs-table">
+			<thead><tr><th>{{ _("Receipt reference") }}</th><th>{{ _("Date") }}</th><th>{{ _("Invoice") }}</th><th>{{ _("Allocated amount") }}</th></tr></thead>
+			<tbody>
+			{% for payment in payments %}
+			<tr>
+				<td>{{ payment.payment_entry | e }}</td>
+				<td>{{ frappe.utils.format_date(payment.posting_date) }}</td>
+				<td>{{ payment.invoice | e }}</td>
+				<td>{{ frappe.utils.fmt_money(payment.allocated_amount, currency=job.currency) }}</td>
+			</tr>
+			{% else %}
+			<tr><td colspan="4" class="text-muted">{{ _("No submitted payment allocations are available.") }}</td></tr>
+			{% endfor %}
+			</tbody>
+		</table>
+	</section>
+	{% else %}
+	<header class="repairs-header">
+		<div>
+			<h1>{{ _("My Repairs") }}</h1>
+			<p class="text-muted">{{ _("Track your vehicles, workshop progress, invoices, and submitted payments.") }}</p>
+		</div>
+	</header>
+
+	{% if jobs %}
+	<table class="repairs-table">
+		<thead><tr><th>{{ _("Repair") }}</th><th>{{ _("Vehicle") }}</th><th>{{ _("Intake") }}</th><th>{{ _("Progress") }}</th><th>{{ _("Total") }}</th><th>{{ _("Payment") }}</th></tr></thead>
+		<tbody>
+		{% for repair in jobs %}
+		<tr>
+			<td><a href="/my-repairs/{{ repair.name | urlencode }}">{{ repair.name | e }}</a></td>
+			<td>{{ (repair.vehicle_details or repair.customer_vehicle or _("Vehicle")) | e }}{% if repair.registration_number %}<br><span class="text-muted">{{ repair.registration_number | e }}</span>{% endif %}</td>
+			<td>{{ frappe.utils.format_date(repair.intake_date) }}</td>
+			<td><span class="repairs-pill">{{ repair.job_status | e }}</span></td>
+			<td>{{ frappe.utils.fmt_money(repair.total_amount, currency=repair.currency) }}</td>
+			<td>{{ (repair.payment_status or _("Not recorded")) | e }}</td>
+		</tr>
+		{% endfor %}
+		</tbody>
+	</table>
+	<nav class="repairs-pagination" aria-label="{{ _('Repair list pages') }}">
+		{% if page > 1 %}<a href="/my-repairs?page={{ page - 1 }}">{{ _("← Previous") }}</a>{% else %}<span></span>{% endif %}
+		{% if has_next %}<a href="/my-repairs?page={{ page + 1 }}">{{ _("Next →") }}</a>{% endif %}
+	</nav>
+	{% else %}
+	<div class="repairs-card repairs-empty">
+		<h2>{{ _("No repairs found") }}</h2>
+		<p>{{ _("Ask your administrator to link this website user under Portal Users on your ERPNext Customer record.") }}</p>
+	</div>
+	{% endif %}
+	{% endif %}
+</main>
+{% endblock %}

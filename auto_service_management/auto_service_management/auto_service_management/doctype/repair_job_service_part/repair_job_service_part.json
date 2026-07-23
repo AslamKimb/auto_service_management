@@ -123,18 +123,20 @@
   {
    "fieldname": "stock_request_status",
    "fieldtype": "Select",
-   "label": "Stock Request Status",
-   "options": "\nNot Requested\nRequested\nFully Issued\nCancelled",
-   "default": "Not Requested",
-   "read_only": 1
-  },
+    "label": "Stock Request Status",
+    "options": "\nNot Requested\nRequested\nFully Issued\nCancelled",
+    "default": "Not Requested",
+    "in_list_view": 1,
+    "read_only": 1
+   },
   {
    "fieldname": "material_request",
    "fieldtype": "Link",
-   "label": "Material Request",
-   "options": "Material Request",
-   "read_only": 1
-  },
+    "label": "Material Request",
+    "options": "Material Request",
+    "in_list_view": 1,
+    "read_only": 1
+   },
   {
    "fieldname": "material_request_item",
    "fieldtype": "Data",

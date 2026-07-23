@@ -11,6 +11,15 @@ from auto_service_management.auto_service_management.custom_fields import TRACE_
 required_apps = ["erpnext"]
 app_include_js = ["/assets/auto_service_management/js/repair_job_billing.js"]
 
+portal_menu_items = [
+	{"title": "My Repairs", "route": "/my-repairs", "role": "Customer"},
+]
+
+website_route_rules = [
+	{"from_route": "/my-repairs", "to_route": "my_repairs"},
+	{"from_route": "/my-repairs/<path:name>", "to_route": "my_repairs"},
+]
+
 # Fixtures — filtered to app-owned roles only
 fixtures = [
 	{

@@ -72,14 +72,10 @@ frappe.ui.form.on("Repair Job", {
 			method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_sales_invoice",
 		});
 
-		if (!frm.is_new()) {
-			frm.add_custom_button(__("Material Request"), () => {
-				frappe.model.open_mapped_doc({
-					method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_material_request",
-					frm,
-				});
-			}, __("Create"));
-		}
+		auto_service_material_requests.setup(frm, {
+			fieldname: "material_requests_html",
+			method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_material_request",
+		});
 
 		frm.add_custom_button(__("Sales Invoices"), () => {
 			frappe.set_route("List", "Sales Invoice", { repair_job: frm.doc.name });

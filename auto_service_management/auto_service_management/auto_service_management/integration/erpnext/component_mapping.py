@@ -5,15 +5,54 @@ from collections.abc import Iterable
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, today
+from frappe.utils import cint, flt, today
 
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
 	INVOICEABLE_SERVICE_STATUSES,
 	STOCK_COMPONENT_TYPES,
 	ServiceComponent,
-	get_service_components,
 	iter_repair_job_components,
 )
+
+MATERIAL_REQUEST_TERMINAL_STATUS = {
+	"Purchase": "Received",
+	"Material Transfer": "Transferred",
+	"Material Issue": "Issued",
+	"Manufacture": "Ordered",
+	"Subcontracting": "Ordered",
+	"Customer Provided": "Received",
+}
+
+
+def get_material_request_types() -> list[str]:
+	field = frappe.get_meta("Material Request").get_field("material_request_type")
+	return [option.strip() for option in (field.options or "").splitlines() if option.strip()]
+
+
+def _material_request_values_are_active(docstatus, material_request_type, status) -> bool:
+	if cint(docstatus) not in {0, 1} or status in {"Stopped", "Cancelled"}:
+		return False
+	return status != MATERIAL_REQUEST_TERMINAL_STATUS.get(material_request_type)
+
+
+def is_material_request_active(material_request: str | None) -> bool:
+	if not material_request:
+		return False
+	values = frappe.db.get_value(
+		"Material Request",
+		material_request,
+		["docstatus", "material_request_type", "status"],
+		as_dict=True,
+	)
+	return bool(
+		values
+		and _material_request_values_are_active(
+			values.docstatus,
+			values.material_request_type,
+			values.status,
+		)
+	)
+
 
 def map_sales_invoice(
 	repair_job_name: str,
@@ -127,8 +166,11 @@ def map_material_request(
 	*,
 	target_doc: str | dict | None = None,
 	service_names: Iterable[str] | None = None,
+	component_refs: Iterable[dict] | str | None = None,
+	material_request_type: str | None = None,
 ) -> Document:
 	repair_job = _get_repair_job(repair_job_name)
+	requested_refs = _normalize_component_refs(component_refs)
 
 	target = _get_target_doc("Material Request", target_doc)
 	_validate_target_job(target, repair_job)
@@ -137,6 +179,13 @@ def map_material_request(
 		service_names,
 		None,
 		document_label=_("Material Request"),
+	)
+	_validate_requested_component_refs(
+		repair_job.name,
+		requested_refs,
+		service_names,
+		billable_only=False,
+		component_types=STOCK_COMPONENT_TYPES,
 	)
 	current_refs = _component_refs(target)
 	components, _reserved = _eligible_components(
@@ -148,6 +197,7 @@ def map_material_request(
 		current_target_name=target.name if not target.is_new() else None,
 		linked_doctype="Material Request",
 		linked_field="material_request",
+		component_refs=requested_refs,
 	)
 	if not components:
 		frappe.throw(_("No approved, unrequested Part or Consumable components are available."))
@@ -155,7 +205,12 @@ def map_material_request(
 	settings = frappe.get_single("Auto Service Settings")
 	_validate_company(target, settings.company)
 	_set_if_empty(target, "company", settings.company)
-	target.material_request_type = "Material Issue"
+	request_type = target.get("material_request_type") or material_request_type or "Material Issue"
+	if request_type not in get_material_request_types():
+		frappe.throw(_("Material Request purpose {0} is not available in ERPNext.").format(request_type))
+	target.material_request_type = request_type
+	if request_type == "Customer Provided":
+		_set_if_empty(target, "customer", repair_job.customer)
 	target.repair_job = repair_job.name
 
 	for service, component in components:
@@ -163,6 +218,143 @@ def map_material_request(
 
 	target.run_method("set_missing_values")
 	return target
+
+
+@frappe.whitelist(methods=["GET"])
+def get_material_request_components(
+	repair_job_name: str,
+	service_name: str | None = None,
+) -> dict:
+	repair_job = _get_repair_job(repair_job_name)
+	service_names = {service_name} if service_name else None
+	if service_name:
+		frappe.get_doc("Repair Job Service", service_name).check_permission("read")
+		_validate_service_scope(
+			repair_job.name,
+			service_names,
+			None,
+			document_label=_("Material Request"),
+		)
+
+	history = _material_request_history(repair_job.name, service_name)
+	settings = frappe.get_single("Auto Service Settings")
+	rows = []
+	counts = {"Not Requested": 0, "Active": 0, "Completed": 0}
+	for service, component in iter_repair_job_components(
+		repair_job.name,
+		component_types=STOCK_COMPONENT_TYPES,
+		include_excluded=False,
+		service_names=service_names,
+	):
+		component_history = history.get((component.row_doctype, component.name), [])
+		active = next((entry for entry in component_history if entry["is_active"]), None)
+		state = "Active" if active else "Completed" if component_history else "Not Requested"
+		counts[state] += 1
+		warehouse = (
+			component.warehouse
+			or frappe.db.get_value("Workshop Bay", service.workshop_bay, "warehouse")
+			or settings.default_warehouse
+		)
+		actual_qty = (
+			frappe.db.get_value(
+				"Bin",
+				{"item_code": component.item_code, "warehouse": warehouse},
+				"actual_qty",
+			)
+			if component.item_code and warehouse
+			else 0
+		)
+		rows.append(
+			{
+				"repair_job_service": service.name,
+				"service_name": service.service_name or service.name,
+				"component_doctype": component.row_doctype,
+				"component_name": component.name,
+				"component_type": component.component_type,
+				"description": component.service_description,
+				"item_code": component.item_code,
+				"quantity": flt(component.quantity),
+				"warehouse": warehouse,
+				"actual_qty": flt(actual_qty),
+				"request_state": state,
+				"selectable": not active,
+				"material_request": active["material_request"] if active else None,
+				"history": component_history,
+			}
+		)
+
+	return {
+		"repair_job": repair_job.name,
+		"material_request_types": get_material_request_types(),
+		"components": rows,
+		"counts": counts,
+	}
+
+
+def _material_request_history(repair_job_name: str, service_name: str | None = None):
+	filters = {
+		"repair_job": repair_job_name,
+		"repair_component_doctype": ["is", "set"],
+		"repair_component_row": ["is", "set"],
+	}
+	if service_name:
+		filters["repair_job_service"] = service_name
+	items = frappe.get_all(
+		"Material Request Item",
+		filters=filters,
+		fields=[
+			"name",
+			"parent",
+			"repair_component_doctype",
+			"repair_component_row",
+			"qty",
+			"creation",
+		],
+		order_by="creation desc",
+		limit_page_length=0,
+	)
+	request_names = sorted({item.parent for item in items})
+	requests = {
+		row.name: row
+		for row in (
+			frappe.get_all(
+				"Material Request",
+				filters={"name": ["in", request_names]},
+				fields=[
+					"name",
+					"material_request_type",
+					"status",
+					"docstatus",
+					"transaction_date",
+				],
+				limit_page_length=0,
+			)
+			if request_names
+			else []
+		)
+	}
+	history = {}
+	for item in items:
+		request = requests.get(item.parent)
+		if not request:
+			continue
+		history.setdefault((item.repair_component_doctype, item.repair_component_row), []).append(
+			{
+				"material_request": request.name,
+				"material_request_item": item.name,
+				"material_request_type": request.material_request_type,
+				"status": request.status or ("Cancelled" if request.docstatus == 2 else "Draft"),
+				"docstatus": request.docstatus,
+				"transaction_date": request.transaction_date,
+				"quantity": flt(item.qty),
+				"is_active": _material_request_values_are_active(
+					request.docstatus,
+					request.material_request_type,
+					request.status,
+				),
+			}
+		)
+	return history
 
 
 def _get_repair_job(name: str):
@@ -216,11 +408,6 @@ def _eligible_components(
 ):
 	eligible = []
 	reserved = {}
-	blocked_services = set()
-	if linked_doctype == "Material Request":
-		for service in _services_for_scope(repair_job.name, service_names):
-			if _service_has_active_material_request(service):
-				blocked_services.add(service.name)
 	for service, component in iter_repair_job_components(
 		repair_job.name,
 		service_statuses=service_statuses,
@@ -228,12 +415,6 @@ def _eligible_components(
 		billable_only=billable_only,
 		service_names=service_names,
 	):
-		if service.name in blocked_services:
-			reserved.setdefault(
-				_service_material_request_name(service),
-				[],
-			)
-			continue
 		ref = (component.row_doctype, component.name)
 		if component_refs is not None and ref not in component_refs:
 			continue
@@ -252,38 +433,6 @@ def _eligible_components(
 	return eligible, reserved
 
 
-def _services_for_scope(repair_job_name, service_names):
-	return [
-		service
-		for service in frappe.get_all(
-			"Repair Job Service",
-			filters={"repair_job": repair_job_name},
-			pluck="name",
-			order_by="creation asc",
-			limit_page_length=0,
-		)
-		for service in [frappe.get_doc("Repair Job Service", service)]
-		if not service_names or service.name in set(service_names)
-	]
-
-
-def _service_has_active_material_request(service):
-	return any(
-		getattr(component, "material_request", None)
-		and frappe.db.get_value("Material Request", component.material_request, "docstatus") in {0, 1}
-		for component in iter(get_service_components(service, component_types=STOCK_COMPONENT_TYPES))
-	)
-
-
-def _service_material_request_name(service):
-	for component in get_service_components(service, component_types=STOCK_COMPONENT_TYPES):
-		if getattr(component, "material_request", None) and frappe.db.get_value(
-			"Material Request", component.material_request, "docstatus"
-		) in {0, 1}:
-			return component.material_request
-	return service.name
-
-
 def _normalize_component_refs(component_refs):
 	if component_refs is None:
 		return None
@@ -299,7 +448,14 @@ def _normalize_component_refs(component_refs):
 	return refs
 
 
-def _validate_requested_component_refs(repair_job_name, component_refs, service_names):
+def _validate_requested_component_refs(
+	repair_job_name,
+	component_refs,
+	service_names,
+	*,
+	billable_only=True,
+	component_types=None,
+):
 	if component_refs is None:
 		return
 	available = {
@@ -317,7 +473,9 @@ def _validate_requested_component_refs(repair_job_name, component_refs, service_
 		service, component = available[ref]
 		if getattr(service, "docstatus", 0) == 2:
 			frappe.throw(_("Component {0} belongs to a cancelled Repair Job Service.").format(component.name))
-		if not component.billable:
+		if component_types and component.component_type not in set(component_types):
+			frappe.throw(_("Component {0} is not a stock component.").format(component.name))
+		if billable_only and not component.billable:
 			frappe.throw(_("Component {0} is not billable.").format(component.name))
 
 
@@ -347,6 +505,8 @@ def _active_link_name(component, linked_doctype, linked_field, *, current_target
 		return None
 	if current_target_name and linked_name == current_target_name:
 		return None
+	if linked_doctype == "Material Request":
+		return linked_name if is_material_request_active(linked_name) else None
 	docstatus = frappe.db.get_value(linked_doctype, linked_name, "docstatus")
 	return linked_name if docstatus in {0, 1} else None
 

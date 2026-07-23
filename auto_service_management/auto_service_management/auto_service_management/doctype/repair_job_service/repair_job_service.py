@@ -62,14 +62,26 @@ def make_sales_invoice(
 
 
 @frappe.whitelist(methods=["POST"])
-def make_material_request(source_name: str, target_doc: str | None = None):
+def make_material_request(
+	source_name: str,
+	target_doc: str | None = None,
+	component_refs=None,
+	material_request_type: str | None = None,
+):
 	service = frappe.get_doc("Repair Job Service", source_name)
 	service.check_permission("read")
 	from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
 		map_material_request,
 	)
 
-	return map_material_request(service.repair_job, target_doc=target_doc, service_names={service.name})
+	args = getattr(frappe.flags, "args", None) or {}
+	return map_material_request(
+		service.repair_job,
+		target_doc=target_doc,
+		service_names={service.name},
+		component_refs=component_refs or args.get("component_refs"),
+		material_request_type=material_request_type or args.get("material_request_type"),
+	)
 
 
 @dataclass(frozen=True)

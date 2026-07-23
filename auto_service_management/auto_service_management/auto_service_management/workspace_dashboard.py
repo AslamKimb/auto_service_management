@@ -83,37 +83,96 @@ WORKSPACE_REPORT_LINKS = (
 	"Discount and Price Change Audit",
 )
 
+WORKSPACE_REPORT_ICONS = {
+	"Open Repair Jobs": "clipboard-list",
+	"Daily Workshop Load": "calendar-clock",
+	"Workshop Bay View": "warehouse",
+	"Jobs by Status": "chart-gantt",
+	"Jobs Waiting for Parts": "package-search",
+	"Technician Productivity": "gauge",
+	"Labour Hours by Technician": "clock",
+	"Parts Used by Repair Job": "package-search",
+	"Vehicle Service History": "history",
+	"Delayed Jobs": "triangle-alert",
+	"Repair Revenue by Period": "circle-dollar-sign",
+	"Gate Pass Register": "shield-check",
+	"Corporate Credit Releases": "hand-coins",
+	"Discount and Price Change Audit": "badge-percent",
+}
+
+WORKSPACE_SIDEBAR_SECTION_ICONS = {
+	"Intake & Setup": "settings",
+	"Workshop Execution": "wrench",
+	"QC, Release & History": "shield-check",
+	"Fleet & Exceptions": "caravan",
+	"Reports": "file-chart-column",
+}
+
 WORKSPACE_SIDEBAR_HOME = {
 	"label": "Home",
 	"link_type": "Workspace",
 	"link_to": "Workshop Management",
+	"icon": "house",
 }
 
 WORKSPACE_SIDEBAR_SECTIONS = {
 	"Intake & Setup": (
-		{"label": "Auto Service Settings", "link_type": "DocType", "link_to": "Auto Service Settings"},
-		{"label": "Customer Vehicle", "link_type": "DocType", "link_to": "Customer Vehicle"},
-		{"label": "Workshop Bay", "link_type": "DocType", "link_to": "Workshop Bay"},
-		{"label": "Repair Job", "link_type": "DocType", "link_to": "Repair Job"},
+		{
+			"label": "Auto Service Settings",
+			"link_type": "DocType",
+			"link_to": "Auto Service Settings",
+			"icon": "settings",
+		},
+		{
+			"label": "Customer Vehicle",
+			"link_type": "DocType",
+			"link_to": "Customer Vehicle",
+			"icon": "car-front",
+		},
+		{"label": "Workshop Bay", "link_type": "DocType", "link_to": "Workshop Bay", "icon": "warehouse"},
+		{
+			"label": "Repair Job",
+			"link_type": "DocType",
+			"link_to": "Repair Job",
+			"icon": "clipboard-list",
+		},
 		{
 			"label": "Walkaround Inspection",
 			"link_type": "DocType",
 			"link_to": "Walkaround Inspection",
+			"icon": "scan-search",
 		},
-		{"label": "Diagnosis Report", "link_type": "DocType", "link_to": "Diagnosis Report"},
+		{
+			"label": "Diagnosis Report",
+			"link_type": "DocType",
+			"link_to": "Diagnosis Report",
+			"icon": "search-check",
+		},
 		{
 			"label": "Customer Authorization",
 			"link_type": "DocType",
 			"link_to": "Customer Authorization",
+			"icon": "signature",
 		},
 	),
 	"Workshop Execution": (
-		{"label": "Repair Job", "link_type": "DocType", "link_to": "Repair Job"},
-		{"label": "Repair Job Service", "link_type": "DocType", "link_to": "Repair Job Service"},
+		{
+			"label": "Repair Job",
+			"link_type": "DocType",
+			"link_to": "Repair Job",
+			"icon": "clipboard-list",
+		},
+		{
+			"label": "Repair Job Service",
+			"link_type": "DocType",
+			"link_to": "Repair Job Service",
+			"icon": "wrench",
+		},
 		{
 			"label": "Repair Queue",
 			"link_type": "DocType",
 			"link_to": "Repair Job",
+			"icon": "clipboard-clock",
 			"route_options": {
 				"job_status": ["not in", ["Closed", "Cancelled"]],
 			},
@@ -123,13 +182,25 @@ WORKSPACE_SIDEBAR_SECTIONS = {
 			"link_type": "Report",
 			"link_to": "Jobs Waiting for Parts",
 			"is_query_report": 1,
+			"icon": "package-search",
 		},
-		{"label": "Quality Check", "link_type": "DocType", "link_to": "Quality Check"},
-		{"label": "Repair Job Log", "link_type": "DocType", "link_to": "Repair Job Log"},
+		{
+			"label": "Quality Check",
+			"link_type": "DocType",
+			"link_to": "Quality Check",
+			"icon": "clipboard-check",
+		},
+		{
+			"label": "Repair Job Log",
+			"link_type": "DocType",
+			"link_to": "Repair Job Log",
+			"icon": "history",
+		},
 		{
 			"label": "Repair Job Override",
 			"link_type": "DocType",
 			"link_to": "Repair Job Override",
+			"icon": "shield-alert",
 		},
 	),
 	"QC, Release & History": (
@@ -138,26 +209,35 @@ WORKSPACE_SIDEBAR_SECTIONS = {
 			"link_type": "DocType",
 			"link_to": "Quality Check",
 			"route_options": {"status": "Pending"},
+			"icon": "clipboard-check",
 		},
 		{
 			"label": "Invoice Queue",
 			"link_type": "DocType",
 			"link_to": "Sales Invoice",
 			"route_options": {"docstatus": 0},
+			"icon": "receipt-text",
 		},
-		{"label": "Gate Pass", "link_type": "DocType", "link_to": "Gate Pass"},
+		{"label": "Gate Pass", "link_type": "DocType", "link_to": "Gate Pass", "icon": "shield-check"},
 		{
 			"label": "Gate Passes",
 			"link_type": "Report",
 			"link_to": "Gate Pass Register",
 			"is_query_report": 1,
+			"icon": "shield-check",
 		},
-		{"label": "Service History", "link_type": "DocType", "link_to": "Service History"},
+		{
+			"label": "Service History",
+			"link_type": "DocType",
+			"link_to": "Service History",
+			"icon": "history",
+		},
 		{
 			"label": "Vehicle Service History",
 			"link_type": "Report",
 			"link_to": "Vehicle Service History",
 			"is_query_report": 1,
+			"icon": "history",
 		},
 	),
 	"Fleet & Exceptions": (
@@ -165,23 +245,27 @@ WORKSPACE_SIDEBAR_SECTIONS = {
 			"label": "Fleet Service Campaign",
 			"link_type": "DocType",
 			"link_to": "Fleet Service Campaign",
+			"icon": "caravan",
 		},
 		{
 			"label": "Repair Job Override",
 			"link_type": "DocType",
 			"link_to": "Repair Job Override",
+			"icon": "shield-alert",
 		},
 		{
 			"label": "Corporate Credit Releases",
 			"link_type": "Report",
 			"link_to": "Corporate Credit Releases",
 			"is_query_report": 1,
+			"icon": "hand-coins",
 		},
 		{
 			"label": "Discount and Price Change Audit",
 			"link_type": "Report",
 			"link_to": "Discount and Price Change Audit",
 			"is_query_report": 1,
+			"icon": "badge-percent",
 		},
 	),
 	"Reports": tuple(
@@ -190,6 +274,7 @@ WORKSPACE_SIDEBAR_SECTIONS = {
 			"link_type": "Report",
 			"link_to": report_name,
 			"is_query_report": 1,
+			"icon": WORKSPACE_REPORT_ICONS.get(report_name, "file-chart-column"),
 		}
 		for report_name in WORKSPACE_REPORT_LINKS
 	),

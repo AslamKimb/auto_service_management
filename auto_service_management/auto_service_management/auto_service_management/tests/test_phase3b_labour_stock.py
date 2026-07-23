@@ -393,7 +393,14 @@ class TestRequestedIssuedQtyTracking(IntegrationTestCase):
 			with patch(f"{ADAPTER_PATCH_BASE}._make_doc") as mock_make_doc:
 				mock_se = frappe._dict(name="SE-TEST-001", insert=lambda **kw: None)
 				mock_make_doc.return_value = mock_se
-				with patch(f"{ADAPTER_PATCH_BASE}.frappe.db.set_value") as mock_set_value:
+				with (
+					patch(f"{ADAPTER_PATCH_BASE}.frappe.db.set_value") as mock_set_value,
+					patch(
+						"auto_service_management.auto_service_management.integration.erpnext.component_mapping.is_material_request_active",
+						return_value=True,
+					),
+					patch(f"{ADAPTER_PATCH_BASE}.frappe.db.get_value", return_value="Material Issue"),
+				):
 					from auto_service_management.auto_service_management.integration.erpnext.adapters import (
 						create_stock_entry_for_material_issue,
 					)
@@ -470,7 +477,14 @@ class TestShortageAndStockGuard(IntegrationTestCase):
 			with patch(f"{ADAPTER_PATCH_BASE}._make_doc") as mock_make_doc:
 				mock_se = frappe._dict(name="SE-TEST-002", insert=lambda **kw: None)
 				mock_make_doc.return_value = mock_se
-				with patch(f"{ADAPTER_PATCH_BASE}.frappe.db.set_value") as mock_set_value:
+				with (
+					patch(f"{ADAPTER_PATCH_BASE}.frappe.db.set_value") as mock_set_value,
+					patch(
+						"auto_service_management.auto_service_management.integration.erpnext.component_mapping.is_material_request_active",
+						return_value=True,
+					),
+					patch(f"{ADAPTER_PATCH_BASE}.frappe.db.get_value", return_value="Material Issue"),
+				):
 					from auto_service_management.auto_service_management.integration.erpnext.adapters import (
 						create_stock_entry_for_material_issue,
 					)

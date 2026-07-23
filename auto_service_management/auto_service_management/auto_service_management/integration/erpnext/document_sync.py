@@ -9,6 +9,9 @@ from auto_service_management.auto_service_management.doctype.repair_job_service.
 	INVOICEABLE_SERVICE_STATUSES,
 	iter_repair_job_components,
 )
+from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
+	is_material_request_active,
+)
 from auto_service_management.auto_service_management.workflow_compatibility import (
 	sync_repair_job_related_tables,
 	_service_payment_total as _compat_service_payment_total,
@@ -39,8 +42,6 @@ def validate_material_request(doc, method=None):
 	if not _has_repair_traces(doc):
 		return
 	_validate_single_repair_job(doc)
-	if doc.material_request_type != "Material Issue":
-		frappe.throw(_("Repair Job components require Material Request type Material Issue."))
 	_validate_component_links(doc, "Material Request", "material_request")
 	_validate_component_quantities(doc, stock_only=True)
 
@@ -265,8 +266,12 @@ def _validate_component_links(doc, linked_doctype, linked_field):
 			frappe.throw(_("Repair component trace does not match Repair Job {0}.").format(row.repair_job))
 		linked_name = component.get(linked_field)
 		if linked_name and linked_name != doc.name:
-			docstatus = frappe.db.get_value(linked_doctype, linked_name, "docstatus")
-			if docstatus in {0, 1}:
+			is_active = (
+				is_material_request_active(linked_name)
+				if linked_doctype == "Material Request"
+				else frappe.db.get_value(linked_doctype, linked_name, "docstatus") in {0, 1}
+			)
+			if is_active:
 				frappe.throw(
 					_("Repair component {0} is reserved by {1}.").format(
 						row.repair_component_row, linked_name

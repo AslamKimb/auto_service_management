@@ -875,8 +875,9 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		self.assertFalse(icon.hidden, "Desktop Icon must not be hidden")
 		self.assertEqual(icon.icon, "car-front")
 		self.assertEqual(icon.icon_type, "Link")
-		self.assertEqual(icon.link_type, "Workspace Sidebar")
-		self.assertEqual(icon.link_to, "Car Workshop")
+		self.assertEqual(icon.link_type, "External")
+		self.assertEqual(icon.link, "/desk/workshop-management")
+		self.assertEqual(icon.link_to, "Workshop Management")
 		self.assertFalse(icon.parent_icon)
 		self.assertTrue(icon.standard, "Desktop Icon must be standard")
 		self.assertFalse(
@@ -905,6 +906,8 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		self.assertEqual(home_item.type, "Link")
 		self.assertEqual(home_item.link_type, "Workspace")
 		self.assertEqual(home_item.link_to, "Workshop Management")
+		self.assertEqual(home_item.icon, "house")
+		self.assertTrue(all(item.icon for item in sidebar.items))
 
 		section_labels = [item.label for item in sidebar.items if item.type == "Section Break"]
 		self.assertEqual(

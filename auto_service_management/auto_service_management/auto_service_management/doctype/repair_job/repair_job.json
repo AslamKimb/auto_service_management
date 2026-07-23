@@ -243,6 +243,11 @@
    "label": "Component Billing Status"
   },
   {
+   "fieldname": "material_requests_html",
+   "fieldtype": "HTML",
+   "label": "Material Request Status"
+  },
+  {
    "fieldname": "column_break_billing",
    "fieldtype": "Column Break"
   },

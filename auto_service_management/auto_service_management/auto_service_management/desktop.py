@@ -7,6 +7,7 @@ import frappe
 from auto_service_management.auto_service_management.workspace_dashboard import (
 	WORKSPACE_LINK_CARDS,
 	WORKSPACE_SIDEBAR_HOME,
+	WORKSPACE_SIDEBAR_SECTION_ICONS,
 	WORKSPACE_SIDEBAR_SECTIONS,
 )
 
@@ -14,6 +15,7 @@ WORKSPACE_NAME = "Workshop Management"
 WORKSPACE_LABEL = "Car Workshop"
 APP_NAME = "auto_service_management"
 ICON_NAME = "car-front"
+WORKSPACE_ROUTE = f"/desk/{frappe.utils.slug(WORKSPACE_NAME)}"
 
 
 def _ensure_workspace_app_field():
@@ -103,6 +105,7 @@ def _build_sidebar_link(item, idx, *, child=0):
 		"link_to": item["link_to"],
 		"idx": idx,
 		"child": child,
+		"icon": item["icon"],
 	}
 	if item.get("is_query_report"):
 		sidebar_item["is_query_report"] = item["is_query_report"]
@@ -116,7 +119,14 @@ def _get_workspace_sidebar_items():
 	idx = 2
 
 	for section_label in WORKSPACE_LINK_CARDS:
-		items.append({"label": section_label, "type": "Section Break", "idx": idx})
+		items.append(
+			{
+				"label": section_label,
+				"type": "Section Break",
+				"idx": idx,
+				"icon": WORKSPACE_SIDEBAR_SECTION_ICONS[section_label],
+			}
+		)
 		idx += 1
 		for item in WORKSPACE_SIDEBAR_SECTIONS[section_label]:
 			items.append(_build_sidebar_link(item, idx, child=1))
@@ -154,8 +164,9 @@ def create_workspace_desktop_icon():
 				"label": WORKSPACE_LABEL,
 				"hidden": 0,
 				"icon": ICON_NAME,
-				"link_type": "Workspace Sidebar",
-				"link_to": WORKSPACE_LABEL,
+				"link_type": "External",
+				"link": WORKSPACE_ROUTE,
+				"link_to": WORKSPACE_NAME,
 				"parent_icon": None,
 				"standard": 1,
 			},
@@ -166,8 +177,9 @@ def create_workspace_desktop_icon():
 		icon.label = WORKSPACE_LABEL
 		icon.icon = ICON_NAME
 		icon.icon_type = "Link"
-		icon.link_type = "Workspace Sidebar"
-		icon.link_to = WORKSPACE_LABEL
+		icon.link_type = "External"
+		icon.link = WORKSPACE_ROUTE
+		icon.link_to = WORKSPACE_NAME
 		icon.app = APP_NAME
 		icon.standard = 1
 		icon.idx = 0

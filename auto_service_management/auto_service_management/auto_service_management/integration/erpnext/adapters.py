@@ -282,6 +282,10 @@ def create_sales_invoice(repair_job):
 
 def create_stock_entry_for_material_issue(repair_job):
 	"""Create a Stock Entry (Material Issue) for requested stock components."""
+	from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
+		is_material_request_active,
+	)
+
 	settings = get_settings()
 	items = []
 	eligible_lines = []
@@ -290,7 +294,17 @@ def create_stock_entry_for_material_issue(repair_job):
 		service_statuses=INVOICEABLE_SERVICE_STATUSES,
 		component_types=STOCK_COMPONENT_TYPES,
 	):
-		if line.item_code and line.stock_request_status == "Requested":
+		if (
+			line.item_code
+			and line.stock_request_status == "Requested"
+			and is_material_request_active(line.material_request)
+			and frappe.db.get_value(
+				"Material Request",
+				line.material_request,
+				"material_request_type",
+			)
+			== "Material Issue"
+		):
 			items.append(
 				{
 					"item_code": line.item_code,
@@ -304,7 +318,7 @@ def create_stock_entry_for_material_issue(repair_job):
 			eligible_lines.append(line)
 
 	if not items:
-		frappe.throw(_("No requested Part or Consumable components to issue."))
+		frappe.throw(_("No active Material Issue request covers a Part or Consumable component."))
 
 	se = _make_doc(
 		{

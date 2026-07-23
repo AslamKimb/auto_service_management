@@ -132,6 +132,12 @@ docker exec dms-backend-1 bench build --app uganda_compliance
 
 Then hard-refresh the browser.
 
+## Customer Repair Portal
+
+Customers can use the read-only **My Repairs** page at `/my-repairs` to follow their Repair Jobs, services, submitted Sales Invoices, and submitted Payment Entry allocations.
+
+To grant access, create or open the customer's website User, assign the standard `Customer` role, then open the matching ERPNext **Customer** record and add that user under **Portal Users**. One website user may be linked to more than one Customer record. The portal never creates users automatically and does not expose draft finance documents, internal notes, technician identities, costing, margins, or payment-account details.
+
 ## Platform Baseline
 
 - Frappe and ERPNext: `version-16`
