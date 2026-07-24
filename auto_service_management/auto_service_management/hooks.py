@@ -101,6 +101,7 @@ doc_events = {
 
 # Lifecycle hooks — ensure Desktop Icon records exist after install/migrate
 after_install = [
+	"auto_service_management.patches.vehicle_make_model_catalog.execute",
 	"auto_service_management.auto_service_management.custom_fields.ensure_trace_custom_fields",
 	"auto_service_management.patches.phase6_permission_matrix_repair.execute",
 	"auto_service_management.patches.phase24_reconcile_custom_permissions.execute",

@@ -26,7 +26,8 @@ The repository research file `Automotive DMS.md` explains legacy dealership work
 ### Configuration and Masters
 
 - **Auto Service Settings**: company, default price list, project template, default Parts/Consumables warehouse, default terms, payment tolerance, and other site-specific defaults. No accounting or tax value is hardcoded.
-- **Customer Vehicle**: registration number, customer, make, model, year, VIN/chassis, engine number, color, fuel type, transmission, current odometer, last service date, warranty, insurer, and notes. Registration and VIN are unique when supplied; search includes registration, VIN/chassis, engine, and customer.
+- **Customer Vehicle**: registration number, customer, selectable Vehicle Make and Vehicle Model, year, VIN/chassis, engine number, color, fuel type, transmission, current odometer, last service date, warranty, insurer, and notes. Make/model remain optional for legacy and unusual vehicles; when supplied, the selected model must belong to the selected make. Registration and VIN are unique when supplied; search includes registration, VIN/chassis, engine, and customer.
+- **Vehicle Make / Vehicle Model**: app-owned selectable masters. A make can have many models; model IDs are make-scoped and users with catalog create permission can add missing makes/models from Link fields.
 - **Workshop Bay**: bay code, bay name, enabled state, linked warehouse, and notes. Material Requests use the service bay warehouse before the global Parts/Consumables default.
 - **Fleet Service Campaign**: corporate customer, dates, description, status, and a child table linking independent Repair Jobs.
 

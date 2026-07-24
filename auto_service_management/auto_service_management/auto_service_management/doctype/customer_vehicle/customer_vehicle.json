@@ -61,13 +61,17 @@
   },
   {
    "fieldname": "make",
-   "fieldtype": "Data",
-   "label": "Make"
+   "fieldtype": "Link",
+   "label": "Make",
+   "options": "Vehicle Make",
+   "in_list_view": 1
   },
   {
    "fieldname": "model",
-   "fieldtype": "Data",
-   "label": "Model"
+   "fieldtype": "Link",
+   "label": "Model",
+   "options": "Vehicle Model",
+   "in_list_view": 1
   },
   {
    "fieldname": "column_break_vehicle3",

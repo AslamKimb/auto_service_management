@@ -470,9 +470,14 @@ class RepairJob(Document):
 		if self.customer_vehicle and not self.registration_number:
 			vehicle = frappe.get_doc("Customer Vehicle", self.customer_vehicle)
 			self.registration_number = vehicle.registration_number
+			model_name = (
+				frappe.db.get_value("Vehicle Model", vehicle.model, "model_name")
+				if vehicle.model
+				else ""
+			) or vehicle.model or ""
 			parts = [
 				vehicle.make or "",
-				vehicle.model or "",
+				model_name,
 				str(vehicle.year_of_manufacture or ""),
 			]
 			self.vehicle_details = " ".join(parts).strip()

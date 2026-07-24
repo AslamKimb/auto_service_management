@@ -1,0 +1,28 @@
+{
+ "name": "Vehicle Make",
+ "module": "Auto Service Management",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "autoname": "field:make_name",
+ "track_changes": 1,
+ "fields": [
+  {
+   "fieldname": "make_name",
+   "fieldtype": "Data",
+   "label": "Make Name",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  }
+ ],
+ "permissions": [
+  {"role": "Workshop Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "Service Advisor", "read": 1, "write": 1, "create": 1},
+  {"role": "Workshop Technician", "read": 1}
+ ],
+ "sort_field": "make_name",
+ "sort_order": "ASC",
+ "title_field": "make_name"
+}
