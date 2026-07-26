@@ -58,7 +58,10 @@ the cache on every deployment. Developer mode does not persist direct edits to
 application code in the image layer: commit, rebuild, and redeploy code changes.
 Before site bootstrap, the one-shot `assets-sync` service replaces only the
 derived assets volume from the selected image and validates every manifest
-target. Never run `docker compose down -v` for an upgrade.
+target. Corrected images use their immutable `/opt/frappe-assets` snapshot;
+pre-correction rollback images use the same validator from the Compose checkout
+against their baked asset tree. Never run `docker compose down -v` for an
+upgrade or rollback.
 
 ## Verification
 

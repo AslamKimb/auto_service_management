@@ -5,6 +5,10 @@ x-app-volumes: &app-volumes
   - sites:/home/frappe/frappe-bench/sites
   - assets:/home/frappe/frappe-bench/sites/assets
 
+configs:
+  asset-sync-fallback:
+    file: ./deployment/sync_assets.py
+
 services:
   db:
     image: mariadb:11.8
@@ -64,7 +68,18 @@ services:
     image: *dms-image
     user: "0:0"
     restart: "no"
-    command: ["/usr/local/bin/sync-assets", "/opt/frappe-assets", "/target-assets"]
+    command:
+      - bash
+      - -lc
+      - >
+        if [ -x /usr/local/bin/sync-assets ] && [ -f /opt/frappe-assets/assets.json ]; then
+          exec /usr/local/bin/sync-assets /opt/frappe-assets /target-assets;
+        fi;
+        exec python3 /asset-sync-fallback.py /home/frappe/frappe-bench/sites/assets /target-assets
+    configs:
+      - source: asset-sync-fallback
+        target: /asset-sync-fallback.py
+        mode: 0444
     volumes:
       - assets:/target-assets
 
