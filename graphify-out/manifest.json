@@ -735,6 +735,14 @@
     "mtime": 1784794969.4666624,
     "hash": "68b329da9893e34099c7d8ad5cb9c940"
   },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\deployment\\sync_assets.py": {
+    "mtime": 1785075820.666605,
+    "hash": "f88cc14a54481c039011439d2f8686a0"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\deployment\\tests\\test_asset_sync_contract.py": {
+    "mtime": 1785075977.7787952,
+    "hash": "baf46c3f07ad968fadb24eab8fd76193"
+  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\AGENTS.md": {
     "mtime": 1784904603.050943,
     "hash": "f6fb2cb4bbb6eadd2d0ed52df0005cc6"
@@ -748,12 +756,12 @@
     "hash": "62a2fc6482ee5e3f83f16b253c2dcee6"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docker-compose.image.yml": {
-    "mtime": 1784872132.63131,
-    "hash": "0016080b3c3667d410c9b2618be2b999"
+    "mtime": 1785075820.676098,
+    "hash": "008da338390ee746281d0183339b14a6"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\IMPLEMENTATION_PLAN.md": {
-    "mtime": 1785065822.2889771,
-    "hash": "ac79016821bb2dfcfd3684e87b98b822"
+    "mtime": 1785076167.0872107,
+    "hash": "c291850aa2f4ec16c56d2407a35299b2"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\README.md": {
     "mtime": 1784804868.772587,
@@ -824,12 +832,12 @@
     "hash": "cd5aea7a869492e48e7fa58503a1973b"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\deployment\\docker-compose.dokploy.yml": {
-    "mtime": 1784872132.62972,
-    "hash": "22d37aa8de07e6f65316eb5941be0c55"
+    "mtime": 1785075820.6785152,
+    "hash": "6b17b6843eadac578642eb1b80685c1d"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\deployment.md": {
-    "mtime": 1784904603.055515,
-    "hash": "69fd03ddaf0f0085c159f202ec13d24f"
+    "mtime": 1785075820.6840386,
+    "hash": "04d13eb7e9b8563a0930a0a612ed5feb"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\onboarding.html": {
     "mtime": 1784714149.6772773,

@@ -1,3 +1,5 @@
+x-dms-image: &dms-image ${CUSTOM_IMAGE}
+
 services:
   db:
     image: mariadb:11.8
@@ -53,8 +55,16 @@ services:
       retries: 12
       start_period: 10s
 
+  assets-sync:
+    image: *dms-image
+    user: "0:0"
+    restart: "no"
+    command: ["/usr/local/bin/sync-assets", "/opt/frappe-assets", "/target-assets"]
+    volumes:
+      - assets:/target-assets
+
   configurator:
-    image: ${CUSTOM_IMAGE}
+    image: *dms-image
     restart: "no"
     command:
       - bash
@@ -71,6 +81,8 @@ services:
       - sites:/home/frappe/frappe-bench/sites
       - assets:/home/frappe/frappe-bench/sites/assets
     depends_on:
+      assets-sync:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       redis-cache:
@@ -81,7 +93,7 @@ services:
         condition: service_healthy
 
   create-site:
-    image: ${CUSTOM_IMAGE}
+    image: *dms-image
     restart: "no"
     command:
       - bash
@@ -117,7 +129,7 @@ services:
         condition: service_healthy
 
   install-apps:
-    image: ${CUSTOM_IMAGE}
+    image: *dms-image
     restart: "no"
     command:
       - bash
@@ -156,7 +168,7 @@ services:
         condition: service_completed_successfully
 
   backend:
-    image: ${CUSTOM_IMAGE}
+    image: *dms-image
     restart: unless-stopped
     command:
       - bash
@@ -200,7 +212,7 @@ services:
       start_period: 45s
 
   websocket:
-    image: ${SOCKETIO_IMAGE}
+    image: *dms-image
     restart: unless-stopped
     command:
       - bash
@@ -230,7 +242,7 @@ services:
       start_period: 30s
 
   queue-short:
-    image: ${CUSTOM_IMAGE}
+    image: *dms-image
     restart: unless-stopped
     command:
       - bash
@@ -265,7 +277,7 @@ services:
         condition: service_healthy
 
   queue-default:
-    image: ${CUSTOM_IMAGE}
+    image: *dms-image
     restart: unless-stopped
     command:
       - bash
@@ -300,7 +312,7 @@ services:
         condition: service_healthy
 
   queue-long:
-    image: ${CUSTOM_IMAGE}
+    image: *dms-image
     restart: unless-stopped
     command:
       - bash
@@ -335,7 +347,7 @@ services:
         condition: service_healthy
 
   scheduler:
-    image: ${CUSTOM_IMAGE}
+    image: *dms-image
     restart: unless-stopped
     command:
       - bash
@@ -370,7 +382,7 @@ services:
         condition: service_healthy
 
   frontend:
-    image: ${NGINX_IMAGE}
+    image: *dms-image
     restart: unless-stopped
     command: ["/usr/local/bin/nginx-entrypoint.sh"]
     environment:

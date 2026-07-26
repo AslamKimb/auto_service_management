@@ -13,7 +13,7 @@ immutable image tag used by Dokploy; it does not change a running server.
 $tag = "dev-$(git rev-parse --short HEAD)"; docker build --pull=false --progress=plain --tag "aslamkimb/frappe-dms-ug:$tag" --file deployment/Containerfile .; if ($LASTEXITCODE -eq 0) { docker push "aslamkimb/frappe-dms-ug:$tag" }
 ```
 
-Build only from the intended committed source. Use the resulting new immutable tag for all three Dokploy image variables; do not use `latest` or overwrite a prior tag.
+Build only from the intended committed source. Use the resulting new immutable tag for the sole `CUSTOM_IMAGE` variable; do not use `latest` or overwrite a prior tag.
 
 The image extends Frappe's immutable `version-16` build and runtime layers,
 pinned by digest in `deployment/Containerfile`. Docker therefore downloads,
@@ -47,8 +47,6 @@ DB_ROOT_PASSWORD=<new-unique-password>
 ADMIN_PASSWORD=<new-unique-password>
 SITE_NAME=<dms-domain>
 CUSTOM_IMAGE=aslamkimb/frappe-dms-ug:dev-<short-git-sha>
-SOCKETIO_IMAGE=aslamkimb/frappe-dms-ug:dev-<short-git-sha>
-NGINX_IMAGE=aslamkimb/frappe-dms-ug:dev-<short-git-sha>
 ```
 
 In Dokploy Domains, route `<dms-domain>` to `frontend` on container port
@@ -58,6 +56,9 @@ volumes, Redis, database, or site names with the Health deployment.
 The app-install job enables site-level `developer_mode=1`, migrates, and clears
 the cache on every deployment. Developer mode does not persist direct edits to
 application code in the image layer: commit, rebuild, and redeploy code changes.
+Before site bootstrap, the one-shot `assets-sync` service replaces only the
+derived assets volume from the selected image and validates every manifest
+target. Never run `docker compose down -v` for an upgrade.
 
 ## Verification
 

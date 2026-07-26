@@ -60,6 +60,14 @@ services:
       retries: 12
       start_period: 10s
 
+  assets-sync:
+    image: *dms-image
+    user: "0:0"
+    restart: "no"
+    command: ["/usr/local/bin/sync-assets", "/opt/frappe-assets", "/target-assets"]
+    volumes:
+      - assets:/target-assets
+
   configurator:
     image: *dms-image
     restart: "no"
@@ -76,6 +84,8 @@ services:
         bench set-config -gp socketio_port 9000
     volumes: *app-volumes
     depends_on:
+      assets-sync:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       redis-cache:
@@ -184,7 +194,7 @@ services:
       start_period: 45s
 
   websocket:
-    image: ${SOCKETIO_IMAGE:-aslamkimb/frappe-dms-ug:dev-31f2cae-r3}
+    image: *dms-image
     restart: unless-stopped
     command:
       - bash
@@ -305,7 +315,7 @@ services:
         condition: service_healthy
 
   frontend:
-    image: ${NGINX_IMAGE:-aslamkimb/frappe-dms-ug:dev-31f2cae-r3}
+    image: *dms-image
     restart: unless-stopped
     command: ["/usr/local/bin/nginx-entrypoint.sh"]
     environment:

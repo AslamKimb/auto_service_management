@@ -59,10 +59,13 @@ FROM ${FRAPPE_BASE_IMAGE} AS backend
 
 USER root
 
+COPY deployment/sync_assets.py /usr/local/bin/sync-assets
 COPY deployment/resources/core/nginx/nginx-template.conf /templates/nginx/frappe.conf.template
 COPY deployment/resources/core/nginx/nginx-entrypoint.sh /usr/local/bin/nginx-entrypoint.sh
 COPY deployment/resources/core/nginx/security_headers.conf /etc/nginx/snippets/security_headers.conf
-RUN chmod 755 /usr/local/bin/nginx-entrypoint.sh \
+COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench/sites/assets /opt/frappe-assets
+RUN chmod 755 /usr/local/bin/sync-assets \
+    && chmod 755 /usr/local/bin/nginx-entrypoint.sh \
     && chmod 644 /templates/nginx/frappe.conf.template \
     && chmod 644 /etc/nginx/snippets/security_headers.conf
 
