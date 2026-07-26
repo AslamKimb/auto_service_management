@@ -70,6 +70,10 @@ docker compose --env-file deployment/image.env.example -f docker-compose.image.y
 
 It creates independent `dms-image_*` volumes, serves on port `18080` by default, installs ERPNext, Auto Service Management, HRMS, and Uganda Compliance once, and enables `developer_mode`. The WebSocket container must invoke the image's absolute Node binary (`/home/frappe/.nvm/versions/node/v24.12.0/bin/node`) because its non-login shell does not resolve `node` from `PATH`.
 
+### Immutable image rule
+
+Before building an image, commit the intended source and use a new tag derived from that commit: `dev-<short-git-sha>`. Push that exact tag, set all three Dokploy image variables to it, and record it in `IMPLEMENTATION_PLAN.md`. Never rebuild, overwrite, or redeploy an existing tag; make a new commit and tag for every code or image-definition change.
+
 ## Development Commands
 
 Run bench commands inside the backend container. Always name the site.

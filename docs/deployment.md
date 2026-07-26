@@ -10,10 +10,10 @@ Run this command yourself from the DMS repository. It builds and pushes the
 immutable image tag used by Dokploy; it does not change a running server.
 
 ```powershell
-docker build --pull=false --progress=plain --tag aslamkimb/frappe-dms-ug:dev-31f2cae --file deployment/Containerfile .; if ($LASTEXITCODE -eq 0) { docker push aslamkimb/frappe-dms-ug:dev-31f2cae }
+$tag = "dev-$(git rev-parse --short HEAD)"; docker build --pull=false --progress=plain --tag "aslamkimb/frappe-dms-ug:$tag" --file deployment/Containerfile .; if ($LASTEXITCODE -eq 0) { docker push "aslamkimb/frappe-dms-ug:$tag" }
 ```
 
-Use a new immutable tag for every later DMS commit. Do not use `latest`.
+Build only from the intended committed source. Use the resulting new immutable tag for all three Dokploy image variables; do not use `latest` or overwrite a prior tag.
 
 The image extends Frappe's immutable `version-16` build and runtime layers,
 pinned by digest in `deployment/Containerfile`. Docker therefore downloads,
@@ -46,9 +46,9 @@ Dokploy Environment, never in a committed `.env` file:
 DB_ROOT_PASSWORD=<new-unique-password>
 ADMIN_PASSWORD=<new-unique-password>
 SITE_NAME=<dms-domain>
-CUSTOM_IMAGE=aslamkimb/frappe-dms-ug:dev-31f2cae
-SOCKETIO_IMAGE=aslamkimb/frappe-dms-ug:dev-31f2cae
-NGINX_IMAGE=aslamkimb/frappe-dms-ug:dev-31f2cae
+CUSTOM_IMAGE=aslamkimb/frappe-dms-ug:dev-<short-git-sha>
+SOCKETIO_IMAGE=aslamkimb/frappe-dms-ug:dev-<short-git-sha>
+NGINX_IMAGE=aslamkimb/frappe-dms-ug:dev-<short-git-sha>
 ```
 
 In Dokploy Domains, route `<dms-domain>` to `frontend` on container port

@@ -100,10 +100,13 @@ services:
           echo "waiting for configurator...";
           sleep 5;
         done;
-        if [ -f "sites/${SITE_NAME}/site_config.json" ]; then
+        if [ -f "sites/${SITE_NAME}/site_config.json" ] && bench --site ${SITE_NAME} list-apps >/dev/null 2>&1; then
           echo "site ${SITE_NAME} already exists; skipping bench new-site";
+        elif [ -f "sites/${SITE_NAME}/site_config.json" ]; then
+          echo "site ${SITE_NAME} has an unusable configuration; set the original DB_ROOT_PASSWORD or remove the fresh deployment volumes" >&2;
+          exit 1;
         else
-          bench new-site ${SITE_NAME} --mariadb-root-password ${DB_ROOT_PASSWORD} --mariadb-user-host-login-scope=% --admin-password ${ADMIN_PASSWORD} --install-app erpnext --set-default;
+          bench new-site "${SITE_NAME}" --mariadb-root-password "${DB_ROOT_PASSWORD}" --mariadb-user-host-login-scope=% --admin-password "${ADMIN_PASSWORD}" --install-app erpnext --set-default;
         fi
     volumes: *app-volumes
     depends_on:
