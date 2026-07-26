@@ -91,14 +91,15 @@ class TestComposeAssetContract(unittest.TestCase):
 				self.assertEqual("registry.invalid/dms:contract", sync["image"])
 				self.assertEqual("0:0", sync["user"])
 				self.assertIn("/usr/local/bin/sync-assets", sync["command"][-1])
-				self.assertIn("/home/frappe/frappe-bench/sites/assets", sync["command"][-1])
+				self.assertIn("/opt/frappe-assets/assets.json", sync["command"][-1])
 				self.assertEqual(
 					"service_completed_successfully",
 					services["configurator"]["depends_on"]["assets-sync"]["condition"],
 				)
 				self.assertTrue(any(volume["target"] == "/target-assets" for volume in sync["volumes"]))
 				self.assertFalse(any(volume["target"].endswith("/sites") for volume in sync["volumes"]))
-				self.assertTrue(any(config["target"] == "/asset-sync-fallback.py" for config in sync["configs"]))
+				if compose_file.name == "docker-compose.dokploy.yml":
+					self.assertNotIn("configs", sync)
 
 				for service_name, service in services.items():
 					if service_name not in {"db", "redis-cache", "redis-queue", "redis-socketio"}:

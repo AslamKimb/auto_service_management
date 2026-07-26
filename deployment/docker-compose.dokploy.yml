@@ -1,9 +1,5 @@
 x-dms-image: &dms-image ${CUSTOM_IMAGE}
 
-configs:
-  asset-sync-fallback:
-    file: ./sync_assets.py
-
 services:
   db:
     image: mariadb:11.8
@@ -67,14 +63,10 @@ services:
       - bash
       - -lc
       - >
-        if [ -x /usr/local/bin/sync-assets ] && [ -f /opt/frappe-assets/assets.json ]; then
-          exec /usr/local/bin/sync-assets /opt/frappe-assets /target-assets;
-        fi;
-        exec python3 /asset-sync-fallback.py /home/frappe/frappe-bench/sites/assets /target-assets
-    configs:
-      - source: asset-sync-fallback
-        target: /asset-sync-fallback.py
-        mode: 0444
+        set -e;
+        test -x /usr/local/bin/sync-assets;
+        test -f /opt/frappe-assets/assets.json;
+        exec /usr/local/bin/sync-assets /opt/frappe-assets /target-assets
     volumes:
       - assets:/target-assets
 
