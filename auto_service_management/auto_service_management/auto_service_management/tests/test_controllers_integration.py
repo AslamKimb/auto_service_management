@@ -867,7 +867,17 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		icon = frappe.db.get_value(
 			"Desktop Icon",
 			{"label": "Car Workshop", "app": "auto_service_management"},
-			["name", "hidden", "icon", "icon_type", "link_type", "link_to", "parent_icon", "standard"],
+			[
+				"name",
+				"hidden",
+				"icon",
+				"icon_type",
+				"link_type",
+				"link",
+				"link_to",
+				"parent_icon",
+				"standard",
+			],
 			as_dict=True,
 		)
 		self.assertTrue(icon, "Desktop Icon record must exist for auto_service_management")
@@ -887,6 +897,72 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 			frappe.db.exists(
 				"Desktop Icon", {"label": "Workshop Management", "app": "auto_service_management"}
 			)
+		)
+
+	def test_desktop_setup_removes_app_less_legacy_navigation_idempotently(self):
+		from auto_service_management.auto_service_management.desktop import setup_desktop
+
+		for doctype, name in (
+			("Desktop Icon", "Workshop Management"),
+			("Workspace Sidebar", "Workshop Management"),
+			("Desktop Icon", "DMS Reconciliation Sentinel"),
+			("Workspace Sidebar", "DMS Reconciliation Sentinel"),
+		):
+			if frappe.db.exists(doctype, name):
+				frappe.delete_doc(doctype, name, ignore_permissions=True)
+
+		legacy_sidebar = frappe.new_doc("Workspace Sidebar")
+		legacy_sidebar.title = "Workshop Management"
+		legacy_sidebar.append(
+			"items",
+			{
+				"label": "Home",
+				"type": "Link",
+				"link_type": "Workspace",
+				"link_to": "Workshop Management",
+			},
+		)
+		legacy_sidebar.insert(ignore_permissions=True)
+
+		legacy_icon = frappe.new_doc("Desktop Icon")
+		legacy_icon.label = "Workshop Management"
+		legacy_icon.icon_type = "Link"
+		legacy_icon.link_type = "Workspace Sidebar"
+		legacy_icon.link_to = "Workshop Management"
+		legacy_icon.insert(ignore_permissions=True)
+
+		sentinel_sidebar = frappe.new_doc("Workspace Sidebar")
+		sentinel_sidebar.title = "DMS Reconciliation Sentinel"
+		sentinel_sidebar.insert(ignore_permissions=True)
+
+		sentinel_icon = frappe.new_doc("Desktop Icon")
+		sentinel_icon.label = "DMS Reconciliation Sentinel"
+		sentinel_icon.icon_type = "Link"
+		sentinel_icon.link_type = "External"
+		sentinel_icon.link = "/desk"
+		sentinel_icon.insert(ignore_permissions=True)
+
+		setup_desktop()
+		setup_desktop()
+
+		self.assertFalse(frappe.db.exists("Workspace Sidebar", "Workshop Management"))
+		self.assertFalse(frappe.db.exists("Desktop Icon", "Workshop Management"))
+		self.assertTrue(frappe.db.exists("Workspace Sidebar", "DMS Reconciliation Sentinel"))
+		self.assertTrue(frappe.db.exists("Desktop Icon", "DMS Reconciliation Sentinel"))
+
+		sidebar = frappe.get_doc("Workspace Sidebar", "Car Workshop")
+		self.assertEqual(len(sidebar.items), 44)
+		self.assertEqual(
+			frappe.db.count("Workspace Sidebar", {"name": "Car Workshop"}),
+			1,
+		)
+		self.assertEqual(
+			frappe.db.count("Desktop Icon", {"label": "Car Workshop", "icon_type": "Link"}),
+			1,
+		)
+		self.assertEqual(
+			frappe.db.get_value("Workspace", "Workshop Management", "name"),
+			"Workshop Management",
 		)
 
 	def test_workspace_sidebar_is_grouped_for_auto_service_management(self):

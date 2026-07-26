@@ -29,8 +29,29 @@ LEGACY_COMPONENT_DOCTYPES = {
 	"Quality Check Road Test",
 }
 
+CATALOG_MASTER_DOCTYPES = {"Vehicle Make", "Vehicle Model"}
+
 
 class TestWorkspaceDashboardContracts(UnitTestCase):
+	def test_boot_payload_excludes_legacy_navigation_keys(self):
+		from auto_service_management.auto_service_management.desktop import remove_auto_generated_sidebar
+
+		bootinfo = frappe._dict(
+			workspace_sidebar_item={
+				"auto service management": {"items": []},
+				"workshop management": {"items": []},
+				"car workshop": {"items": [{"label": "Home"}]},
+				"unrelated": {"items": []},
+			}
+		)
+
+		remove_auto_generated_sidebar(bootinfo)
+
+		self.assertNotIn("auto service management", bootinfo.workspace_sidebar_item)
+		self.assertNotIn("workshop management", bootinfo.workspace_sidebar_item)
+		self.assertIn("car workshop", bootinfo.workspace_sidebar_item)
+		self.assertIn("unrelated", bootinfo.workspace_sidebar_item)
+
 	def test_doc_type_coverage_constant_matches_app_doctype_inventory(self):
 		module_root = Path(__file__).parents[1]
 		doctype_root = module_root / "doctype"
@@ -44,8 +65,12 @@ class TestWorkspaceDashboardContracts(UnitTestCase):
 				continue
 			discovered.add(json.loads(json_path.read_text(encoding="utf-8"))["name"])
 
-		self.assertEqual(set(WORKSPACE_DOC_TYPE_COVERAGE), discovered - LEGACY_COMPONENT_DOCTYPES)
+		self.assertEqual(
+			set(WORKSPACE_DOC_TYPE_COVERAGE),
+			discovered - LEGACY_COMPONENT_DOCTYPES - CATALOG_MASTER_DOCTYPES,
+		)
 		self.assertTrue(LEGACY_COMPONENT_DOCTYPES.issubset(discovered))
+		self.assertTrue(CATALOG_MASTER_DOCTYPES.issubset(discovered))
 
 	def test_workspace_declares_expected_dashboard_charts_and_number_cards(self):
 		module_root = Path(__file__).parents[1]
@@ -55,6 +80,8 @@ class TestWorkspaceDashboardContracts(UnitTestCase):
 		declared_charts = {row["chart_name"] for row in workspace["charts"]}
 		declared_cards = {row["number_card_name"] for row in workspace["number_cards"]}
 
+		self.assertEqual(len(workspace["shortcuts"]), 11)
+		self.assertEqual(len(workspace["links"]), 36)
 		self.assertEqual(declared_charts, set(WORKSPACE_DASHBOARD_CHARTS))
 		self.assertEqual(
 			declared_cards,

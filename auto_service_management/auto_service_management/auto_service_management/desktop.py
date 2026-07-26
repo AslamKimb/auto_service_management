@@ -16,6 +16,7 @@ WORKSPACE_LABEL = "Car Workshop"
 APP_NAME = "auto_service_management"
 ICON_NAME = "car-front"
 WORKSPACE_ROUTE = f"/desk/{frappe.utils.slug(WORKSPACE_NAME)}"
+LEGACY_NAVIGATION_LABELS = (WORKSPACE_NAME, "Auto Service Management")
 
 
 def _ensure_workspace_app_field():
@@ -57,6 +58,20 @@ def _ensure_workspace_label():
 	workspace.save(ignore_permissions=True)
 
 
+def _remove_legacy_navigation():
+	"""Remove obsolete app navigation even when Frappe left ``app`` blank."""
+	for icon in frappe.get_all(
+		"Desktop Icon",
+		filters={"label": ["in", LEGACY_NAVIGATION_LABELS]},
+		pluck="name",
+	):
+		frappe.delete_doc("Desktop Icon", icon, ignore_permissions=True)
+
+	for sidebar in LEGACY_NAVIGATION_LABELS:
+		if frappe.db.exists("Workspace Sidebar", sidebar):
+			frappe.delete_doc("Workspace Sidebar", sidebar, ignore_permissions=True)
+
+
 def _ensure_workspace_sidebar():
 	"""Rebuild the app-owned Workspace Sidebar for the workshop workspace.
 
@@ -66,16 +81,6 @@ def _ensure_workspace_sidebar():
 	sites to the approved grouped navigation.
 	"""
 	sidebar_name = WORKSPACE_LABEL
-	module_sidebar_name = "Auto Service Management"
-	legacy_sidebar_name = WORKSPACE_NAME
-	if not frappe.db.exists("Workspace Sidebar", sidebar_name) and frappe.db.exists(
-		"Workspace Sidebar", module_sidebar_name
-	):
-		frappe.rename_doc("Workspace Sidebar", module_sidebar_name, sidebar_name, force=True)
-	if not frappe.db.exists("Workspace Sidebar", sidebar_name) and frappe.db.exists(
-		"Workspace Sidebar", legacy_sidebar_name
-	):
-		frappe.rename_doc("Workspace Sidebar", legacy_sidebar_name, sidebar_name, force=True)
 	if frappe.db.exists("Workspace Sidebar", sidebar_name):
 		sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
 	else:
@@ -202,10 +207,12 @@ def setup_desktop():
 	_ensure_workspace_app_field()
 	_ensure_workspace_type_field()
 	_ensure_workspace_label()
+	_remove_legacy_navigation()
 	_ensure_workspace_sidebar()
 	create_workspace_desktop_icon()
 
 
 def remove_auto_generated_sidebar(bootinfo):
 	"""Keep Frappe's generated module sidebar out of the DMS Desk boot payload."""
-	bootinfo.workspace_sidebar_item.pop("auto service management", None)
+	for sidebar in ("auto service management", "workshop management"):
+		bootinfo.workspace_sidebar_item.pop(sidebar, None)
