@@ -9,7 +9,7 @@ from auto_service_management.auto_service_management.custom_fields import TRACE_
 
 # Apps
 required_apps = ["erpnext"]
-app_include_js = ["/assets/auto_service_management/js/repair_job_billing.js"]
+app_include_js = ["repair_job_billing.bundle.js"]
 
 portal_menu_items = [
 	{"title": "My Repairs", "route": "/my-repairs", "role": "Customer"},

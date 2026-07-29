@@ -27,6 +27,18 @@ MATERIAL_REQUEST_TYPES = (
 
 
 class TestPhase16MaterialRequestContracts(UnitTestCase):
+	def test_hooks_use_hashed_bundle_entry_for_repair_job_billing(self):
+		from auto_service_management import hooks
+
+		self.assertIn("repair_job_billing.bundle.js", hooks.app_include_js)
+		self.assertNotIn("/assets/auto_service_management/js/repair_job_billing.js", hooks.app_include_js)
+
+	def test_bundle_entry_imports_repair_job_billing_source(self):
+		source = (
+			Path(__file__).parents[2] / "public" / "js" / "repair_job_billing.bundle.js"
+		).read_text(encoding="utf-8")
+		self.assertEqual(source.strip(), 'import "./repair_job_billing";')
+
 	def test_material_request_summary_uses_get(self):
 		source = (
 			Path(__file__).parents[2] / "public" / "js" / "repair_job_billing.js"
