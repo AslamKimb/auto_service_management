@@ -73,6 +73,7 @@
 	function load_material_requests(options) {
 		return frappe.call({
 			method: "auto_service_management.auto_service_management.integration.erpnext.component_mapping.get_material_request_components",
+			type: "GET",
 			args: {
 				repair_job_name: options.repairJob,
 				service_name: options.serviceName || undefined,

@@ -300,3 +300,10 @@ The same stack was then upgraded through the corrected Compose definition to `de
 Fresh and repeated derived-volume starts were exercised in the disposable `dms-phase20-fresh` project; both runs synchronized 60 entries and exited `0`. A deliberately missing source in the disposable `dms-phase20-corrupt` project made `assets-sync` and Compose exit `1`, while backend and frontend remained in `Created` rather than running state. Only those explicitly named disposable volumes were removed afterward. Final verification retained all five apps and the exact pre-upgrade navigation, catalog, uploaded-file, and business-record counts. The six live `dms-image_*` volume creation timestamps remained `2026-07-26T05:53:20Z`, proving they were preserved through the old-to-new-to-old-to-new cycle.
 
 Final repository verification passed: the focused deployment suite ran 5/5 tests; the full Auto Service Management suite passed 94 unit, 62 integration, and 42 compatibility tests; Python compilation, targeted Ruff, both Compose validations, and `git diff --check` passed. Automated in-app visual inspection could not attach because the local browser-control runtime could not create its kernel assets, so no screenshot is claimed; the live corrected Desk CSS/JavaScript HTTP checks above are the rendered-asset verification, and the stack remains available for a user hard refresh at port `18080`.
+
+## Phase 21 — Repair Job Access and System Manager Recovery
+
+- [-] Restore the GET-only Material Request component summary call, guarantee System Manager access for DMS-owned and DMS-used ERPNext DocTypes, and add focused regression coverage.
+  - Active files: `public/js/repair_job_billing.js`, app DocType JSON permissions, `patches/phase25_system_manager_permissions.py`, `patches.txt`, and focused contract/integration tests.
+  - Planned verification: targeted Material Request and permission tests; test/development migrations; asset build; isolated image upgrade and live System Manager smoke test.
+- [ ] Build and deploy a new immutable local image only after the source and test evidence above is complete.

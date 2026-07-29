@@ -1,4 +1,5 @@
 import inspect
+from pathlib import Path
 from unittest.mock import patch
 
 import frappe
@@ -26,6 +27,15 @@ MATERIAL_REQUEST_TYPES = (
 
 
 class TestPhase16MaterialRequestContracts(UnitTestCase):
+	def test_material_request_summary_uses_get(self):
+		source = (
+			Path(__file__).parents[2] / "public" / "js" / "repair_job_billing.js"
+		).read_text(encoding="utf-8")
+		self.assertIn(
+			'get_material_request_components",\n\t\t\ttype: "GET",',
+			source,
+		)
+
 	def test_mapping_endpoints_accept_component_refs_and_material_request_type(self):
 		for method in (repair_job.make_material_request, repair_job_service.make_material_request):
 			with self.subTest(method=method.__module__):

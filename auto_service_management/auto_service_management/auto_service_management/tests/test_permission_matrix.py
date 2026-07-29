@@ -4,6 +4,7 @@ import frappe
 from frappe.desk.query_report import run as run_query_report
 from frappe.tests import IntegrationTestCase
 
+from auto_service_management.auto_service_management.integration.erpnext import component_mapping
 from auto_service_management.auto_service_management.tests.test_controllers_integration import (
 	_create_test_vehicle,
 	_ensure_erpnext_basics,
@@ -13,6 +14,7 @@ from auto_service_management.auto_service_management.user_defaults import (
 	WORKSHOP_DEFAULT_WORKSPACE,
 	backfill_default_workspace_for_existing_users,
 )
+from auto_service_management.patches import phase25_system_manager_permissions
 
 ROLE_MATRIX = {
 	"Service Advisor": {
@@ -56,6 +58,23 @@ ACTIVE_COMPONENT_CHILD_DOCTYPES = (
 	"Repair Job Service Part",
 	"Repair Job Service Labour",
 	"Repair Job Service Consumable",
+)
+
+SYSTEM_MANAGER_PERMISSIONS = (
+	"read",
+	"write",
+	"create",
+	"delete",
+	"submit",
+	"cancel",
+	"amend",
+	"report",
+	"export",
+	"import",
+	"share",
+	"print",
+	"email",
+	"select",
 )
 
 
@@ -133,6 +152,33 @@ class TestPermissionMatrix(IntegrationTestCase):
 				with self.subTest(role=role, report=report_name):
 					result = run_query_report(report_name, filters={})
 					self.assertIn("result", result)
+
+	def test_system_manager_has_full_dms_and_erpnext_permissions(self):
+		phase25_system_manager_permissions.execute()
+		user = _create_role_user("System Manager")
+		self.users_to_delete.append(user)
+
+		for doctype in phase25_system_manager_permissions.all_doctypes():
+			for permtype in SYSTEM_MANAGER_PERMISSIONS:
+				with self.subTest(doctype=doctype, permtype=permtype):
+					self.assertTrue(frappe.has_permission(doctype, permtype, user=user))
+
+		job = frappe.get_doc(
+			{
+				"doctype": "Repair Job",
+				"customer": self.customer,
+				"customer_vehicle": self.vehicle,
+				"odometer_in": 1,
+				"customer_concern": "Permission recovery test",
+			}
+		).insert(ignore_permissions=True)
+		frappe.set_user(user)
+		job.customer_concern = "System Manager can save this Repair Job"
+		job.save()
+		self.assertEqual(
+			component_mapping.get_material_request_components(job.name)["repair_job"],
+			job.name,
+		)
 
 	def test_workshop_roles_can_read_active_component_child_doctypes_with_parent_context(self):
 		parent_map = {

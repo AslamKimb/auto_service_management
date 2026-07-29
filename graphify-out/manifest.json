@@ -504,8 +504,8 @@
     "hash": "cc03fa09f689ee9810e37fdefb5210c8"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_permission_matrix.py": {
-    "mtime": 1784436064.4504287,
-    "hash": "035e266b3cd15c584461813d2dbda52d"
+    "mtime": 1785344084.5233986,
+    "hash": "e1c73aac0dd56c7ddde7e478510d78f8"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_phase10_mapping_units.py": {
     "mtime": 1784694860.9229581,
@@ -524,8 +524,8 @@
     "hash": "c05fadb22691407c4399864835e77653"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_phase16_contracts.py": {
-    "mtime": 1784796874.0543904,
-    "hash": "a70d0848d70c7a85af440eaaafc53653"
+    "mtime": 1785343192.410956,
+    "hash": "54500578ae638a9e1738482ee3d823ff"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_phase30_service_submission_contract.py": {
     "mtime": 1784553481.6438315,
@@ -643,6 +643,10 @@
     "mtime": 1784754447.019261,
     "hash": "ab6cc8f378e3a414de46790b1585baeb"
   },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\patches\\phase25_system_manager_permissions.py": {
+    "mtime": 1785344084.5233986,
+    "hash": "a92b86a49052f13ecd26e4d5f5f58b9a"
+  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\patches\\phase6_permission_matrix_repair.py": {
     "mtime": 1784735842.84626,
     "hash": "85eb0b8030a9ba5c7bdff4ef1fdb55ad"
@@ -676,8 +680,8 @@
     "hash": "9f892d9509e8525bef5d31b595937631"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\js\\repair_job_billing.js": {
-    "mtime": 1784794454.4299405,
-    "hash": "c5003b3c4c15034052d97d3fcc34c671"
+    "mtime": 1785343515.3572845,
+    "hash": "2fdfcf2f237a90d16ee678f8ee122256"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\js\\sales_invoice.js": {
     "mtime": 1784365630.2188642,
@@ -760,8 +764,8 @@
     "hash": "0518ef95064c352c4db1d07e2bbe1eab"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\IMPLEMENTATION_PLAN.md": {
-    "mtime": 1785096058.044654,
-    "hash": "5adbde79147683f7467016a9f5189693"
+    "mtime": 1785343156.4957669,
+    "hash": "4043ffd68e41059afc9849efa7a11a73"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\README.md": {
     "mtime": 1784804868.772587,
@@ -788,8 +792,8 @@
     "hash": "ef9582bab4785455b31ac2d2f68885d4"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\patches.txt": {
-    "mtime": 1784907671.8854167,
-    "hash": "efd069b1bd79baebe64a522f4d68a03a"
+    "mtime": 1785343515.3640416,
+    "hash": "cf1a3c46538ea2a97a84e3a7ed8761e4"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\modules.txt": {
     "mtime": 1782727331.0,
