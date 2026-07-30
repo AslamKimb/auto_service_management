@@ -12,8 +12,8 @@
     "hash": "890e1066f9252a1b29f99e165a5c8369"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\hooks.py": {
-    "mtime": 1784907671.8916621,
-    "hash": "10dc9bab13d6b32d1854d05514b53d8b"
+    "mtime": 1785364662.9206562,
+    "hash": "a13e6322f7647dbad586d24be7ba930a"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\portal.py": {
     "mtime": 1784796863.5662997,
@@ -524,8 +524,8 @@
     "hash": "c05fadb22691407c4399864835e77653"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_phase16_contracts.py": {
-    "mtime": 1785343192.410956,
-    "hash": "54500578ae638a9e1738482ee3d823ff"
+    "mtime": 1785364662.9312289,
+    "hash": "4908f3261b1f10ffe32fbd8237394342"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_phase30_service_submission_contract.py": {
     "mtime": 1784553481.6438315,
@@ -679,6 +679,10 @@
     "mtime": 1784365620.7095103,
     "hash": "9f892d9509e8525bef5d31b595937631"
   },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\js\\repair_job_billing.bundle.js": {
+    "mtime": 1785364662.926693,
+    "hash": "51640cda52ecfeec3f285eba855a6a68"
+  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\js\\repair_job_billing.js": {
     "mtime": 1785343515.3572845,
     "hash": "2fdfcf2f237a90d16ee678f8ee122256"
@@ -764,8 +768,8 @@
     "hash": "0518ef95064c352c4db1d07e2bbe1eab"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\IMPLEMENTATION_PLAN.md": {
-    "mtime": 1785343156.4957669,
-    "hash": "4043ffd68e41059afc9849efa7a11a73"
+    "mtime": 1785365027.967382,
+    "hash": "35cdb7cbbe8c3b93f2587d6ab486632e"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\README.md": {
     "mtime": 1784804868.772587,
