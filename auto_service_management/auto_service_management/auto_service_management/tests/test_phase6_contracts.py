@@ -369,6 +369,12 @@ class TestPhase6Contracts(UnitTestCase):
 		self.assertIn("after_install", hooks_source)
 		self.assertIn("after_migrate", hooks_source)
 		self.assertIn("desktop.setup_desktop", hooks_source)
+		self.assertNotIn("setup_helper", hooks_source)
+
+	def test_dead_workspace_setup_helper_is_removed(self):
+		"""Workspace setup must use desktop.py, not the old cache-flushing helper."""
+		module_root = Path(__file__).parents[1]
+		self.assertFalse((module_root / "setup_helper.py").exists())
 
 	def test_desktop_module_exists_with_required_functions(self):
 		"""desktop.py must create the workspace icon and grouped workspace sidebar."""

@@ -89,14 +89,16 @@ services:
         }
 
         install_local_auto_service() {
-          if [ -d apps/auto_service_management ]; then
-            echo "=== auto_service_management already present ==="
-          else
-            echo "=== Installing auto_service_management from local source ==="
-            cp -r /app-source apps/auto_service_management
-          fi
+          source_dir="/app-source"
+          dest_dir="apps/auto_service_management"
+          tmp_dir="apps/.auto_service_management.sync"
           echo "=== Syncing auto_service_management source ==="
-          cp -r /app-source/. apps/auto_service_management/
+          test -f "$$source_dir/auto_service_management/__init__.py"
+          rm -rf "$$tmp_dir"
+          cp -a "$$source_dir" "$$tmp_dir"
+          test -f "$$tmp_dir/auto_service_management/__init__.py"
+          rm -rf "$$dest_dir"
+          mv "$$tmp_dir" "$$dest_dir"
           echo "=== Editable install for Python 3.14 compatibility ==="
           env/bin/pip install -e apps/auto_service_management --no-deps
           ensure_apps_txt_entry auto_service_management

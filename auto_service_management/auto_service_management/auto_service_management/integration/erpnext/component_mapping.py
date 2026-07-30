@@ -8,7 +8,6 @@ from frappe.model.document import Document
 from frappe.utils import cint, flt, today
 
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
-	INVOICEABLE_SERVICE_STATUSES,
 	STOCK_COMPONENT_TYPES,
 	ServiceComponent,
 	iter_repair_job_components,
@@ -113,7 +112,7 @@ def map_sales_invoice(
 	return target
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_sales_invoice_components(
 	repair_job_name: str,
 	service_name: str | None = None,

@@ -16,7 +16,7 @@ ERP_NEXT_DOCTYPES = (
 	"Sales Invoice",
 	"Payment Entry",
 )
-PERMISSION_FIELDS = (
+ACTION_PERMISSION_FIELDS = (
 	"read",
 	"write",
 	"create",
@@ -32,6 +32,7 @@ PERMISSION_FIELDS = (
 	"email",
 	"select",
 )
+PERMISSION_FIELDS = (*ACTION_PERMISSION_FIELDS, "if_owner")
 
 
 def execute():
@@ -91,7 +92,9 @@ def _ensure_full_system_manager_permission(doctype, *, standard):
 		{"parent": doctype, "role": "System Manager", "permlevel": 0},
 		"name",
 	)
-	values = {field: 1 for field in PERMISSION_FIELDS}
+	applicable_fields = _applicable_action_fields(doctype)
+	values = {field: int(field in applicable_fields) for field in ACTION_PERMISSION_FIELDS}
+	values["if_owner"] = 0
 	if name:
 		frappe.db.set_value(doctype_name, name, values, update_modified=False)
 	else:
@@ -105,3 +108,13 @@ def _ensure_full_system_manager_permission(doctype, *, standard):
 			}
 		).insert(ignore_permissions=True)
 	frappe.clear_cache(doctype=doctype)
+
+
+def _applicable_action_fields(doctype):
+	meta = frappe.get_meta(doctype)
+	fields = set(ACTION_PERMISSION_FIELDS)
+	if not meta.is_submittable:
+		fields.difference_update({"submit", "cancel", "amend"})
+	if not meta.allow_import:
+		fields.discard("import")
+	return fields

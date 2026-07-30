@@ -13,7 +13,6 @@ import frappe
 from frappe import _
 
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
-	INVOICEABLE_SERVICE_STATUSES,
 	STOCK_COMPONENT_TYPES,
 	iter_repair_job_components,
 	set_component_values,
@@ -28,6 +27,10 @@ def get_settings():
 def _make_doc(values):
 	"""Small seam for adapter tests to mock ERPNext document creation."""
 	return frappe.get_doc(values)
+
+
+def _require_create_permission(doctype: str):
+	frappe.has_permission(doctype, "create", throw=True)
 
 
 def _component_trace_fields(repair_job, service, line):
@@ -94,6 +97,7 @@ def create_project_for_repair_job(repair_job):
 			"status": "Working",
 		}
 	)
+	# Project creation is trusted check-in orchestration from a writable Repair Job.
 	project.insert(ignore_permissions=True)
 	frappe.db.set_value(
 		"Repair Job",
@@ -131,6 +135,7 @@ def create_tasks_from_template(project_name, repair_job):
 				"status": "Open",
 			}
 		)
+		# Task creation is trusted check-in orchestration from the linked Project.
 		task.insert(ignore_permissions=True)
 		tasks.append(task.name)
 
@@ -170,7 +175,6 @@ def create_quotation(repair_job):
 	eligible_lines = []
 	for service, line in _eligible_components(
 		repair_job,
-		service_statuses=INVOICEABLE_SERVICE_STATUSES,
 		billable_only=True,
 	):
 		items.append(
@@ -191,6 +195,7 @@ def create_quotation(repair_job):
 	if not items:
 		frappe.throw(_("No approved service components to quote."))
 
+	_require_create_permission("Quotation")
 	quotation = _make_doc(
 		{
 			"doctype": "Quotation",
@@ -218,6 +223,7 @@ def create_sales_order(repair_job):
 	if not repair_job.quotation:
 		frappe.throw(_("Create a Quotation before generating a Sales Order."))
 
+	_require_create_permission("Sales Order")
 	settings = get_settings()
 	quotation = frappe.get_doc("Quotation", repair_job.quotation)
 
@@ -236,7 +242,6 @@ def create_sales_order(repair_job):
 	frappe.db.set_value("Repair Job", repair_job.name, {"sales_order": so.name})
 	for _service, line in _eligible_components(
 		repair_job,
-		service_statuses=INVOICEABLE_SERVICE_STATUSES,
 		billable_only=True,
 	):
 		set_component_values(line, {"sales_order": so.name})
@@ -291,12 +296,16 @@ def create_stock_entry_for_material_issue(repair_job):
 	eligible_lines = []
 	for service, line in _eligible_components(
 		repair_job,
-		service_statuses=INVOICEABLE_SERVICE_STATUSES,
 		component_types=STOCK_COMPONENT_TYPES,
 	):
+		requested_qty = frappe.utils.flt(line.requested_qty or line.quantity)
+		issued_qty = frappe.utils.flt(line.issued_qty)
+		remaining_qty = requested_qty - issued_qty
 		if (
 			line.item_code
 			and line.stock_request_status == "Requested"
+			and not line.stock_entry
+			and remaining_qty > 0
 			and is_material_request_active(line.material_request)
 			and frappe.db.get_value(
 				"Material Request",
@@ -308,18 +317,19 @@ def create_stock_entry_for_material_issue(repair_job):
 			items.append(
 				{
 					"item_code": line.item_code,
-					"qty": line.quantity,
+					"qty": remaining_qty,
 					"uom": line.uom,
 					"s_warehouse": line.warehouse or getattr(settings, "default_warehouse", None),
 					"description": _component_description(service, line),
 					**_component_trace_fields(repair_job, service, line),
 				}
 			)
-			eligible_lines.append(line)
+			eligible_lines.append((line, issued_qty + remaining_qty))
 
 	if not items:
 		frappe.throw(_("No active Material Issue request covers a Part or Consumable component."))
 
+	_require_create_permission("Stock Entry")
 	se = _make_doc(
 		{
 			"doctype": "Stock Entry",
@@ -330,11 +340,11 @@ def create_stock_entry_for_material_issue(repair_job):
 	)
 	se.insert(ignore_permissions=True)
 
-	for line in eligible_lines:
+	for line, issued_qty in eligible_lines:
 		set_component_values(
 			line,
 			{
-				"issued_qty": line.quantity,
+				"issued_qty": issued_qty,
 				"stock_entry": se.name,
 				"stock_request_status": "Fully Issued",
 			},

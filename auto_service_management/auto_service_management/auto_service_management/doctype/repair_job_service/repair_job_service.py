@@ -151,13 +151,19 @@ class RepairJobService(Document):
 		template = frappe.get_doc("Repair Service Template", self.repair_service_template)
 		changed = False
 		for fieldname in ("service_name", "description", "billable"):
-			value = getattr(template, "default_billable", None) if fieldname == "billable" else getattr(template, fieldname, None)
+			value = (
+				getattr(template, "default_billable", None)
+				if fieldname == "billable"
+				else getattr(template, fieldname, None)
+			)
 			if value is not None and getattr(self, fieldname, None) in (None, ""):
 				setattr(self, fieldname, value)
 				changed = True
 		for definition in COMPONENT_TABLES:
 			fieldname = definition["fieldname"]
-			existing = [_component_signature(row, definition["component_type"]) for row in self.get(fieldname) or []]
+			existing = [
+				_component_signature(row, definition["component_type"]) for row in self.get(fieldname) or []
+			]
 			for source_row in template.get(definition["template_fieldname"]) or []:
 				signature = _component_signature(source_row, definition["component_type"])
 				if signature in existing:
@@ -319,6 +325,7 @@ class RepairJobService(Document):
 			self.precision("margin_percentage"),
 		)
 
+
 class RepairJobServiceComponent(Document):
 	component_type = None
 
@@ -344,9 +351,9 @@ def _validate_labour_item(item_code):
 		frappe.throw(_("Labour Service Item {0} does not exist.").format(item_code))
 	if item.disabled or item.is_stock_item or not item.is_sales_item or item.stock_uom != "Hour":
 		frappe.throw(
-			_("Labour Service Item {0} must be an enabled, non-stock sales Item with Hour as its UOM.").format(
-				item_code
-			)
+			_(
+				"Labour Service Item {0} must be an enabled, non-stock sales Item with Hour as its UOM."
+			).format(item_code)
 		)
 
 
@@ -492,8 +499,7 @@ def iter_repair_job_components(
 			continue
 		if not include_excluded and getattr(service, "docstatus", 0) == 2:
 			continue
-		service_status = getattr(service, "status", None)
-		if service_statuses is not None and service_status is not None and service_status not in service_statuses:
+		if service_statuses is not None and not _status_filter_allows(service, service_statuses):
 			continue
 		for component in get_service_components(service, component_types=component_types):
 			if billable_only and not component.billable:
@@ -504,6 +510,13 @@ def iter_repair_job_components(
 def set_component_values(component, values, update_modified=False):
 	row = component.row if isinstance(component, ServiceComponent) else component
 	frappe.db.set_value(row.doctype, row.name, values, update_modified=update_modified)
+
+
+def _status_filter_allows(service, service_statuses):
+	meta = getattr(service, "meta", None)
+	if meta and not meta.has_field("status"):
+		return True
+	return getattr(service, "status", None) in service_statuses
 
 
 def sync_repair_job_total(repair_job_name):

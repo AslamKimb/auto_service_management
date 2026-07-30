@@ -76,6 +76,7 @@ SYSTEM_MANAGER_PERMISSIONS = (
 	"email",
 	"select",
 )
+SYSTEM_MANAGER_ROW_FIELDS = (*SYSTEM_MANAGER_PERMISSIONS, "if_owner")
 
 
 def _create_role_user(role: str, *, blank_default_workspace: bool = True) -> str:
@@ -94,6 +95,23 @@ def _create_role_user(role: str, *, blank_default_workspace: bool = True) -> str
 	)
 	user.insert(ignore_permissions=True)
 	return email
+
+
+def _effective_system_manager_permission_rows(doctype: str):
+	custom_rows = frappe.get_all(
+		"Custom DocPerm",
+		filters={"parent": doctype, "role": "System Manager", "permlevel": 0},
+		fields=["name", *SYSTEM_MANAGER_ROW_FIELDS],
+		limit_page_length=0,
+	)
+	if custom_rows:
+		return custom_rows
+	return frappe.get_all(
+		"DocPerm",
+		filters={"parent": doctype, "role": "System Manager", "permlevel": 0},
+		fields=["name", *SYSTEM_MANAGER_ROW_FIELDS],
+		limit_page_length=0,
+	)
 
 
 class TestPermissionMatrix(IntegrationTestCase):
@@ -159,9 +177,17 @@ class TestPermissionMatrix(IntegrationTestCase):
 		self.users_to_delete.append(user)
 
 		for doctype in phase25_system_manager_permissions.all_doctypes():
-			for permtype in SYSTEM_MANAGER_PERMISSIONS:
+			applicable_fields = phase25_system_manager_permissions._applicable_action_fields(doctype)
+			for permtype in applicable_fields:
 				with self.subTest(doctype=doctype, permtype=permtype):
 					self.assertTrue(frappe.has_permission(doctype, permtype, user=user))
+			rows = _effective_system_manager_permission_rows(doctype)
+			self.assertTrue(rows)
+			for row in rows:
+				with self.subTest(doctype=doctype, row=row.name):
+					for field in SYSTEM_MANAGER_PERMISSIONS:
+						self.assertEqual(row.get(field), int(field in applicable_fields))
+					self.assertEqual(row.get("if_owner"), 0)
 
 		job = frappe.get_doc(
 			{

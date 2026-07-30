@@ -4,6 +4,9 @@
 from datetime import datetime
 
 import frappe
+from frappe import _
+from frappe.model.document import Document
+
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
 	STOCK_COMPONENT_TYPES,
 	component_has_downstream,
@@ -14,8 +17,6 @@ from auto_service_management.auto_service_management.doctype.repair_job_service.
 from auto_service_management.auto_service_management.workflow_compatibility import (
 	sync_repair_job_compatibility_views,
 )
-from frappe import _
-from frappe.model.document import Document
 
 # ---------------------------------------------------------------------------
 # State machine - spec-aligned workflow
@@ -69,6 +70,18 @@ def make_material_request(
 		component_refs=component_refs or args.get("component_refs"),
 		material_request_type=material_request_type or args.get("material_request_type"),
 	)
+
+
+@frappe.whitelist(methods=["GET"])
+def can_create_final_release_gate_pass(repair_job_name: str) -> bool:
+	if not repair_job_name:
+		return False
+	job = frappe.get_doc("Repair Job", repair_job_name)
+	job.check_permission("read")
+	if job.gate_pass or any(row.sales_invoice for row in job.get("sales_invoices") or []):
+		return True
+	policy = frappe.get_single("Auto Service Settings").get("gate_pass_payment_policy")
+	return policy in {"Payment Not Required", "No Payment Required"}
 
 
 class RepairJob(Document):
@@ -489,6 +502,9 @@ class RepairJob(Document):
 	def _require_write_permission(self):
 		self.check_permission("write")
 
+	def _require_create_permission(self, doctype: str):
+		frappe.has_permission(doctype, "create", throw=True)
+
 	def _require_manager_override_permission(self):
 		roles = set(frappe.get_roles(frappe.session.user))
 		if not roles.intersection({"Workshop Manager", "Auto Service Admin", "System Manager"}):
@@ -652,6 +668,7 @@ class RepairJob(Document):
 	@frappe.whitelist(methods=["POST"])
 	def create_service(self, service_name=None):
 		self._require_write_permission()
+		self._require_create_permission("Repair Job Service")
 		service = frappe.get_doc(
 			{
 				"doctype": "Repair Job Service",
@@ -734,6 +751,7 @@ class RepairJob(Document):
 	def create_gate_pass(self, purpose="Final Release"):
 		"""Issue a Gate Pass for this Repair Job."""
 		self._require_write_permission()
+		self._require_create_permission("Gate Pass")
 		purpose = purpose or "Final Release"
 		from auto_service_management.auto_service_management.integration.erpnext.document_sync import (
 			validate_job_invoices_for_gate_pass,

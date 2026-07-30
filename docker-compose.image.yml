@@ -1,6 +1,6 @@
 name: dms-image
 
-x-dms-image: &dms-image ${CUSTOM_IMAGE:-aslamkimb/frappe-dms-ug:dev-31f2cae-r3}
+x-dms-image: &dms-image ${CUSTOM_IMAGE:?Set CUSTOM_IMAGE=aslamkimb/frappe-dms-ug:dev-<short-sha>}
 x-app-volumes: &app-volumes
   - sites:/home/frappe/frappe-bench/sites
   - assets:/home/frappe/frappe-bench/sites/assets

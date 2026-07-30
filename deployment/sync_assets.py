@@ -37,6 +37,10 @@ def validate(root: Path) -> int:
 			asset = root.joinpath(*relative.parts)
 			if not asset.exists():
 				raise ValueError(f"{manifest}: {logical_name} target {asset} is missing")
+			if asset.is_symlink():
+				raise ValueError(f"{manifest}: {logical_name} target {asset} must not be a symlink")
+			if not asset.is_file():
+				raise ValueError(f"{manifest}: {logical_name} target {asset} must be a file")
 			count += 1
 	return count
 

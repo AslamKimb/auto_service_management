@@ -1,23 +1,6 @@
 frappe.ui.form.on("Repair Job", {
 	setup(frm) {
-		frappe.realtime.on("repair_job_services_updated", (data) => {
-			if (!frm.is_new() && data?.repair_job === frm.doc.name && !frm.is_dirty()) {
-				frm.reload_doc();
-			}
-		});
-		frappe.realtime.on("repair_job_related_tables_updated", (data) => {
-			if (frm.is_new() || data?.repair_job !== frm.doc.name) {
-				return;
-			}
-			if (!frm.is_dirty()) {
-				frm.reload_doc();
-				return;
-			}
-			frappe.show_alert({
-				message: __("Linked invoices, payments, or services changed. Save or reload to refresh the tables."),
-				indicator: "orange",
-			});
-		});
+		setup_realtime_handlers(frm);
 		frm.set_query("customer_vehicle", () => {
 			if (!frm.doc.customer) {
 				return {};
@@ -67,12 +50,12 @@ frappe.ui.form.on("Repair Job", {
 			});
 		}, "Services");
 
-		auto_service_billing.setup(frm, {
+		setup_optional_widget("auto_service_billing", frm, {
 			fieldname: "billing_components_html",
 			method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_sales_invoice",
 		});
 
-		auto_service_material_requests.setup(frm, {
+		setup_optional_widget("auto_service_material_requests", frm, {
 			fieldname: "material_requests_html",
 			method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_material_request",
 		});
@@ -140,21 +123,7 @@ frappe.ui.form.on("Repair Job", {
 			});
 		}
 
-		if (frm.doc.gate_pass || can_create_gate_pass(frm)) {
-			add_related_document_button(frm, {
-				fieldname: "gate_pass",
-				doctype: "Gate Pass",
-				create_label: "Create Final Release Gate Pass",
-				open_label: "Open Final Release Gate Pass",
-				route_options: {
-					repair_job: frm.doc.name,
-					purpose: "Final Release",
-					customer_vehicle: frm.doc.customer_vehicle,
-					sales_invoice: frm.doc.sales_invoices?.[0]?.sales_invoice || "",
-					recipient_name: frm.doc.customer,
-				},
-			});
-		}
+		setup_final_release_gate_pass_button(frm);
 		frm.add_custom_button(__("Create Road Test Gate Pass"), () => {
 			new_doc_with_values("Gate Pass", {
 				repair_job: frm.doc.name,
@@ -192,6 +161,31 @@ frappe.ui.form.on("Repair Job", {
 	},
 });
 
+function setup_realtime_handlers(frm) {
+	if (frm.__auto_service_realtime_handlers_setup) {
+		return;
+	}
+	frm.__auto_service_realtime_handlers_setup = true;
+	frappe.realtime.on("repair_job_services_updated", (data) => {
+		if (!frm.is_new() && data?.repair_job === frm.doc.name && !frm.is_dirty()) {
+			frm.reload_doc();
+		}
+	});
+	frappe.realtime.on("repair_job_related_tables_updated", (data) => {
+		if (frm.is_new() || data?.repair_job !== frm.doc.name) {
+			return;
+		}
+		if (!frm.is_dirty()) {
+			frm.reload_doc();
+			return;
+		}
+		frappe.show_alert({
+			message: __("Linked invoices, payments, or services changed. Save or reload to refresh the tables."),
+			indicator: "orange",
+		});
+	});
+}
+
 function show_repair_job_id(frm) {
 		const field = frm.fields_dict.repair_job_id_html;
 		if (!field) {
@@ -219,6 +213,15 @@ function add_workflow_action_buttons(frm) {
 	}
 }
 
+function setup_optional_widget(globalName, frm, options) {
+	const widget = window[globalName];
+	if (widget?.setup) {
+		widget.setup(frm, options);
+		return;
+	}
+	console.warn(`${globalName} is unavailable; skipping optional Repair Job widget setup.`);
+}
+
 function add_related_document_button(frm, options) {
 	if (frm.doc[options.fieldname]) {
 		frm.add_custom_button(options.open_label, () => {
@@ -241,6 +244,44 @@ function new_doc_with_values(doctype, values) {
 			}
 		}
 		frappe.set_route("Form", doctype, doc.name);
+	});
+}
+
+function setup_final_release_gate_pass_button(frm) {
+	if (frm.doc.gate_pass || can_create_gate_pass(frm)) {
+		add_final_release_gate_pass_button(frm);
+		return;
+	}
+	if (frm.is_new()) {
+		return;
+	}
+	frappe.call({
+		method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.can_create_final_release_gate_pass",
+		args: {
+			repair_job_name: frm.doc.name,
+		},
+		type: "GET",
+		callback(response) {
+			if (response.message) {
+				add_final_release_gate_pass_button(frm);
+			}
+		},
+	});
+}
+
+function add_final_release_gate_pass_button(frm) {
+	add_related_document_button(frm, {
+		fieldname: "gate_pass",
+		doctype: "Gate Pass",
+		create_label: "Create Final Release Gate Pass",
+		open_label: "Open Final Release Gate Pass",
+		route_options: {
+			repair_job: frm.doc.name,
+			purpose: "Final Release",
+			customer_vehicle: frm.doc.customer_vehicle,
+			sales_invoice: frm.doc.sales_invoices?.[0]?.sales_invoice || "",
+			recipient_name: frm.doc.customer,
+		},
 	});
 }
 

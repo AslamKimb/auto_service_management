@@ -139,7 +139,19 @@ def trash_material_request(doc, method=None):
 def validate_job_invoices_for_gate_pass(repair_job_name: str) -> list[str]:
 	settings = frappe.get_single("Auto Service Settings")
 	policy = settings.get("gate_pass_payment_policy") or "Full Payment Required"
-	invoices = get_repair_job_sales_invoices(repair_job_name, submitted_only=True)
+	invoices = get_repair_job_sales_invoices(repair_job_name)
+	_missing_invoices = [
+		invoice for invoice in invoices if not frappe.db.exists("Sales Invoice", invoice)
+	]
+	if _missing_invoices:
+		frappe.throw(
+			_("Linked Sales Invoice {0} no longer exists. Refresh Repair Job billing links.").format(
+				", ".join(_missing_invoices)
+			)
+		)
+	invoices = [
+		invoice for invoice in invoices if frappe.db.get_value("Sales Invoice", invoice, "docstatus") == 1
+	]
 	if policy in {"Payment Not Required", "No Payment Required"}:
 		return invoices
 	if not invoices:
@@ -162,6 +174,12 @@ def validate_job_invoices_for_gate_pass(repair_job_name: str) -> list[str]:
 	unpaid = []
 	total = paid = 0
 	for invoice, row in zip(invoices, rows, strict=False):
+		if not row:
+			frappe.throw(
+				_("Linked Sales Invoice {0} no longer exists. Refresh Repair Job billing links.").format(
+					invoice
+				)
+			)
 		payable = flt(row.rounded_total or row.grand_total)
 		outstanding = flt(row.outstanding_amount)
 		total += payable
@@ -229,11 +247,30 @@ def _all_billable_components_submitted(repair_job_name: str) -> bool:
 
 
 def _validate_invoice_service_submission(doc):
+	if getattr(doc, "docstatus", 0) == 0:
+		return
 	service_names = {
 		row.repair_job_service for row in _trace_items(doc) if getattr(row, "repair_job_service", None)
 	}
 	if not service_names:
 		return
+	services = frappe.get_all(
+		"Repair Job Service",
+		filters={"name": ["in", sorted(service_names)]},
+		fields=["name", "service_name", "docstatus"],
+		limit_page_length=0,
+	)
+	services_by_name = {service.name: service for service in services}
+	missing = sorted(service_names - set(services_by_name))
+	if missing:
+		frappe.throw(_("Repair Job Service {0} was not found.").format(", ".join(missing)))
+	invalid = [service.service_name or service.name for service in services if service.docstatus == 2]
+	if invalid:
+		frappe.throw(
+			_(
+				"Cancelled Repair Job Services cannot be submitted in a Sales Invoice: {0}."
+			).format(", ".join(sorted(invalid)))
+		)
 
 
 def _validate_single_repair_job(doc):

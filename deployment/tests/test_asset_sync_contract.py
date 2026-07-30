@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 DEPLOYMENT = ROOT / "deployment"
+STALE_IMAGE_TAGS = {"dev-31f2cae-r3"}
 sys.path.insert(0, str(DEPLOYMENT))
 
 import sync_assets  # noqa: E402
@@ -60,11 +61,59 @@ class TestAssetSync(unittest.TestCase):
 
 			self.assertTrue((target / "keep.css").exists())
 
+	def test_sync_rejects_directory_manifest_target_before_clearing(self):
+		with tempfile.TemporaryDirectory() as directory:
+			base = Path(directory)
+			source = base / "source"
+			target = base / "target"
+			(source / "frappe" / "dist" / "css" / "desk.bundle.DIR.css").mkdir(parents=True)
+			(source / "assets.json").write_text(
+				json.dumps({"desk.bundle.css": "/assets/frappe/dist/css/desk.bundle.DIR.css"}),
+				encoding="utf-8",
+			)
+			(source / "assets-rtl.json").write_text("{}", encoding="utf-8")
+			target.mkdir()
+			(target / "keep.css").write_text("keep", encoding="utf-8")
+
+			with self.assertRaisesRegex(ValueError, "must be a file"):
+				sync_assets.sync(source, target)
+
+			self.assertTrue((target / "keep.css").exists())
+
+	def test_sync_rejects_symlink_manifest_target_before_clearing(self):
+		with tempfile.TemporaryDirectory() as directory:
+			base = Path(directory)
+			source = base / "source"
+			target = base / "target"
+			bundle = source / "frappe" / "dist" / "css" / "desk.bundle.LINK.css"
+			bundle.parent.mkdir(parents=True)
+			real_bundle = source / "real.css"
+			real_bundle.write_text("real", encoding="utf-8")
+			try:
+				bundle.symlink_to(real_bundle)
+			except OSError as exc:
+				self.skipTest(f"symlinks unavailable: {exc}")
+			(source / "assets.json").write_text(
+				json.dumps({"desk.bundle.css": "/assets/frappe/dist/css/desk.bundle.LINK.css"}),
+				encoding="utf-8",
+			)
+			(source / "assets-rtl.json").write_text("{}", encoding="utf-8")
+			target.mkdir()
+			(target / "keep.css").write_text("keep", encoding="utf-8")
+
+			with self.assertRaisesRegex(ValueError, "must not be a symlink"):
+				sync_assets.sync(source, target)
+
+			self.assertTrue((target / "keep.css").exists())
+
 
 class TestComposeAssetContract(unittest.TestCase):
 	def test_editable_stack_syncs_source_and_validates_repair_bundle(self):
 		compose = (ROOT / "docker-compose.dev.yml").read_text(encoding="utf-8")
-		self.assertIn("cp -r /app-source/. apps/auto_service_management/", compose)
+		self.assertIn('dest_dir="apps/auto_service_management"', compose)
+		self.assertIn('tmp_dir="apps/.auto_service_management.sync"', compose)
+		self.assertIn('rm -rf "$$dest_dir"', compose)
+		self.assertIn('mv "$$tmp_dir" "$$dest_dir"', compose)
 		self.assertIn('test -f "sites/assets/$$bundle_path"', compose)
 
 	def _render(self, compose_file: Path) -> dict:
@@ -124,6 +173,16 @@ class TestComposeAssetContract(unittest.TestCase):
 		self.assertIn("CUSTOM_IMAGE=", env_example)
 		self.assertNotIn("SOCKETIO_IMAGE=", env_example)
 		self.assertNotIn("NGINX_IMAGE=", env_example)
+
+	def test_image_stack_requires_explicit_non_stale_immutable_tag(self):
+		local_compose = (ROOT / "docker-compose.image.yml").read_text(encoding="utf-8")
+		env_example = (DEPLOYMENT / "image.env.example").read_text(encoding="utf-8")
+
+		self.assertIn("${CUSTOM_IMAGE:?", local_compose)
+		self.assertIn("CUSTOM_IMAGE=aslamkimb/frappe-dms-ug:dev-<short-sha>", env_example)
+		for stale_tag in STALE_IMAGE_TAGS:
+			self.assertNotIn(stale_tag, local_compose)
+			self.assertNotIn(stale_tag, env_example)
 
 
 if __name__ == "__main__":

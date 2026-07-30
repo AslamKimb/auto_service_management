@@ -493,3 +493,67 @@ class TestShortageAndStockGuard(IntegrationTestCase):
 					self.assertEqual(mock_set_value.call_count, 1)
 					call_args = mock_set_value.call_args
 					self.assertEqual(call_args[0][2]["stock_request_status"], "Fully Issued")
+
+	def test_stock_entry_skips_already_issued_lines(self):
+		job_name = _create_repair_job(self.customer, self.vehicle)
+		job = frappe.get_doc("Repair Job", job_name)
+		_add_parts_line(job, description="Already issued part", qty=2, rate=50000)
+		job.reload()
+		line = _get_job_components(job_name)[0]
+		_set_child_field(line.name, "stock_request_status", "Requested")
+		_set_child_field(line.name, "requested_qty", 2)
+		_set_child_field(line.name, "issued_qty", 2)
+		_set_child_field(line.name, "stock_entry", "SE-OLD-001")
+		_set_child_field(line.name, "material_request", "MR-TEST-004")
+		job.reload()
+
+		with (
+			patch(f"{ADAPTER_PATCH_BASE}.get_settings", return_value=_MOCK_SETTINGS),
+			patch(
+				"auto_service_management.auto_service_management.integration.erpnext.component_mapping.is_material_request_active",
+				return_value=True,
+			),
+			patch(f"{ADAPTER_PATCH_BASE}.frappe.db.get_value", return_value="Material Issue"),
+			patch(f"{ADAPTER_PATCH_BASE}._make_doc") as mock_make_doc,
+		):
+			from auto_service_management.auto_service_management.integration.erpnext.adapters import (
+				create_stock_entry_for_material_issue,
+			)
+
+			with self.assertRaises(frappe.ValidationError):
+				create_stock_entry_for_material_issue(job)
+
+		mock_make_doc.assert_not_called()
+
+	def test_stock_entry_issues_only_remaining_requested_qty(self):
+		job_name = _create_repair_job(self.customer, self.vehicle)
+		job = frappe.get_doc("Repair Job", job_name)
+		_add_parts_line(job, description="Partially issued part", qty=4, rate=50000)
+		job.reload()
+		line = _get_job_components(job_name)[0]
+		_set_child_field(line.name, "stock_request_status", "Requested")
+		_set_child_field(line.name, "requested_qty", 3)
+		_set_child_field(line.name, "issued_qty", 1)
+		_set_child_field(line.name, "material_request", "MR-TEST-005")
+		job.reload()
+
+		with (
+			patch(f"{ADAPTER_PATCH_BASE}.get_settings", return_value=_MOCK_SETTINGS),
+			patch(f"{ADAPTER_PATCH_BASE}._make_doc") as mock_make_doc,
+			patch(f"{ADAPTER_PATCH_BASE}.frappe.db.set_value") as mock_set_value,
+			patch(
+				"auto_service_management.auto_service_management.integration.erpnext.component_mapping.is_material_request_active",
+				return_value=True,
+			),
+			patch(f"{ADAPTER_PATCH_BASE}.frappe.db.get_value", return_value="Material Issue"),
+		):
+			mock_se = frappe._dict(name="SE-TEST-003", insert=lambda **kw: None)
+			mock_make_doc.return_value = mock_se
+			from auto_service_management.auto_service_management.integration.erpnext.adapters import (
+				create_stock_entry_for_material_issue,
+			)
+
+			create_stock_entry_for_material_issue(job)
+
+		self.assertEqual(mock_make_doc.call_args[0][0]["items"][0]["qty"], 2)
+		self.assertEqual(mock_set_value.call_args[0][2]["issued_qty"], 3)

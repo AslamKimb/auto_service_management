@@ -7,11 +7,14 @@ from unittest.mock import patch
 import frappe
 from frappe.tests import UnitTestCase
 
+from auto_service_management.auto_service_management.doctype.repair_job import repair_job as repair_job_module
 from auto_service_management.auto_service_management.doctype.repair_job.repair_job import RepairJob
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
 	ServiceComponent,
+	iter_repair_job_components,
 )
 from auto_service_management.auto_service_management.integration.erpnext import (
+	adapters,
 	component_mapping,
 	document_sync,
 )
@@ -30,6 +33,71 @@ class TestPhase10MappingUnits(UnitTestCase):
 		):
 			with self.assertRaises(frappe.ValidationError):
 				job.release()
+
+	def test_repair_job_create_service_requires_target_create_permission(self):
+		job = RepairJob({"doctype": "Repair Job", "name": "RJ-1"})
+		with (
+			patch.object(job, "_require_write_permission"),
+			patch.object(repair_job_module.frappe, "has_permission", side_effect=frappe.PermissionError),
+			patch.object(repair_job_module.frappe, "get_doc") as get_doc,
+		):
+			with self.assertRaises(frappe.PermissionError):
+				job.create_service()
+
+		get_doc.assert_not_called()
+
+	def test_repair_job_create_gate_pass_requires_target_create_permission(self):
+		job = RepairJob({"doctype": "Repair Job", "name": "RJ-1"})
+		with (
+			patch.object(job, "_require_write_permission"),
+			patch.object(repair_job_module.frappe, "has_permission", side_effect=frappe.PermissionError),
+			patch(
+				"auto_service_management.auto_service_management.integration.erpnext.document_sync.validate_job_invoices_for_gate_pass"
+			) as validator,
+		):
+			with self.assertRaises(frappe.PermissionError):
+				job.create_gate_pass()
+
+		validator.assert_not_called()
+
+	def test_stock_entry_creation_requires_target_create_permission_before_document_insert(self):
+		service = frappe._dict(name="RJS-1", service_name="Service")
+		line = frappe._dict(
+			row_doctype="Repair Job Service Part",
+			name="PART-1",
+			item_code="ITEM-1",
+			stock_request_status="Requested",
+			stock_entry=None,
+			requested_qty=2,
+			issued_qty=0,
+			quantity=2,
+			material_request="MR-1",
+			uom="Nos",
+			warehouse="WH-1",
+			service_description="Part",
+			legacy_repair_service_line=None,
+		)
+		job = frappe._dict(name="RJ-1", customer_vehicle="VEH-1")
+		with (
+			patch.object(adapters, "get_settings", return_value=frappe._dict(company="Company")),
+			patch.object(adapters, "_eligible_components", return_value=[(service, line)]),
+			patch.object(adapters.frappe.db, "get_value", return_value="Material Issue"),
+			patch(
+				"auto_service_management.auto_service_management.integration.erpnext.component_mapping.is_material_request_active",
+				return_value=True,
+			),
+			patch.object(adapters.frappe, "has_permission", side_effect=frappe.PermissionError),
+			patch.object(adapters, "_make_doc") as make_doc,
+		):
+			with self.assertRaises(frappe.PermissionError):
+				adapters.create_stock_entry_for_material_issue(job)
+
+		make_doc.assert_not_called()
+
+	def test_erpnext_adapter_explicit_create_actions_check_target_create_permission(self):
+		source = inspect.getsource(adapters)
+		for doctype in ("Quotation", "Sales Order", "Stock Entry"):
+			self.assertIn(f'_require_create_permission("{doctype}")', source)
 
 	def test_invoice_component_state_distinguishes_draft_and_submitted_invoice(self):
 		component = frappe._dict(billable=1, sales_invoice="SI-1")
@@ -67,22 +135,116 @@ class TestPhase10MappingUnits(UnitTestCase):
 			),
 		)
 
-	def test_sales_invoice_draft_validation_skips_service_status_gate(self):
+	def test_sales_invoice_component_scope_skips_service_status_gate(self):
 		services = [frappe._dict(name="RJS-1", repair_job="RJ-1", status="Draft", service_name="Job service")]
 
 		with patch.object(component_mapping.frappe, "get_all", return_value=services):
 			component_mapping._validate_service_scope("RJ-1", {"RJS-1"}, None, document_label="Sales Invoice")
 
-	def test_sales_invoice_submission_does_not_require_submitted_services(self):
+	def test_component_iterator_excludes_blank_status_when_statuses_are_required(self):
+		service = frappe._dict(
+			name="RJS-1",
+			status=None,
+			docstatus=0,
+			parts=[
+				frappe._dict(
+					doctype="Repair Job Service Part",
+					name="PART-1",
+					billable=True,
+				)
+			],
+		)
+
+		with patch(
+			"auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service.get_repair_job_services",
+			return_value=[service],
+		):
+			self.assertEqual(
+				list(iter_repair_job_components("RJ-1", service_statuses={"Approved"})),
+				[],
+			)
+
+	def test_component_iterator_does_not_status_gate_when_service_doctype_has_no_status_field(self):
+		service = frappe._dict(
+			name="RJS-1",
+			docstatus=0,
+			meta=frappe._dict(has_field=lambda fieldname: False),
+			parts=[
+				frappe._dict(
+					doctype="Repair Job Service Part",
+					name="PART-1",
+					billable=True,
+				)
+			],
+		)
+
+		with patch(
+			"auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service.get_repair_job_services",
+			return_value=[service],
+		):
+			self.assertEqual(
+				[row.name for _service, row in iter_repair_job_components("RJ-1", service_statuses={"Approved"})],
+				["PART-1"],
+			)
+
+	def test_component_summary_endpoints_and_desk_loaders_use_get(self):
+		source = inspect.getsource(component_mapping)
+		asset = (
+			Path(__file__).resolve().parents[2]
+			/ "public"
+			/ "js"
+			/ "repair_job_billing.js"
+		).read_text(encoding="utf-8")
+
+		self.assertIn('@frappe.whitelist(methods=["GET"])\ndef get_sales_invoice_components', source)
+		self.assertIn('@frappe.whitelist(methods=["GET"])\ndef get_material_request_components', source)
+		self.assertGreaterEqual(asset.count('type: "GET"'), 2)
+
+	def test_sales_invoice_draft_submission_validation_skips_service_status_gate(self):
 		with (
 			patch.object(
 				document_sync,
 				"_trace_items",
 				return_value=[frappe._dict(repair_job_service="RJS-1")],
 			),
-			patch.object(document_sync.frappe.db, "get_value", return_value=0),
+			patch.object(document_sync.frappe, "get_all") as get_all,
 		):
-			document_sync._validate_invoice_service_submission(frappe._dict())
+			document_sync._validate_invoice_service_submission(frappe._dict(docstatus=0))
+
+		get_all.assert_not_called()
+
+	def test_sales_invoice_submission_allows_invoiceable_service_status(self):
+		with (
+			patch.object(
+				document_sync,
+				"_trace_items",
+				return_value=[frappe._dict(repair_job_service="RJS-1")],
+			),
+			patch.object(
+				document_sync.frappe,
+				"get_all",
+				return_value=[frappe._dict(name="RJS-1", service_name="Approved service", docstatus=0)],
+			),
+		):
+			document_sync._validate_invoice_service_submission(frappe._dict(docstatus=1))
+
+	def test_sales_invoice_submission_rejects_cancelled_service(self):
+		with (
+			patch.object(
+				document_sync,
+				"_trace_items",
+				return_value=[frappe._dict(repair_job_service="RJS-1")],
+			),
+			patch.object(
+				document_sync.frappe,
+				"get_all",
+				return_value=[
+					frappe._dict(name="RJS-1", service_name="Cancelled service", docstatus=2)
+				],
+			),
+		):
+			with self.assertRaises(frappe.ValidationError):
+				document_sync._validate_invoice_service_submission(frappe._dict(docstatus=1))
 
 	def test_repair_job_sales_invoices_returns_multiple_rows(self):
 		class _Job:
@@ -158,9 +320,26 @@ class TestPhase10MappingUnits(UnitTestCase):
 				"get_single",
 				return_value=frappe._dict(gate_pass_payment_policy="Full Payment Required"),
 			),
+			patch.object(document_sync.frappe.db, "exists", return_value=True),
 			patch.object(document_sync.frappe.db, "get_value", side_effect=get_value),
 		):
 			self.assertEqual(document_sync.validate_job_invoices_for_gate_pass("RJ-1"), ["SI-1"])
+
+	def test_gate_pass_validation_rejects_stale_invoice_link_clearly(self):
+		with (
+			patch.object(document_sync, "get_repair_job_sales_invoices", return_value=["SI-MISSING"]),
+			patch.object(
+				document_sync.frappe,
+				"get_single",
+				return_value=frappe._dict(gate_pass_payment_policy="Full Payment Required"),
+			),
+			patch.object(document_sync.frappe.db, "exists", return_value=False),
+			patch.object(document_sync, "_all_billable_components_submitted") as coverage,
+		):
+			with self.assertRaisesRegex(frappe.ValidationError, "no longer exists"):
+				document_sync.validate_job_invoices_for_gate_pass("RJ-1")
+
+		coverage.assert_not_called()
 
 	def test_gate_pass_payment_not_required_allows_uninvoiced_job(self):
 		with (
@@ -174,6 +353,45 @@ class TestPhase10MappingUnits(UnitTestCase):
 		):
 			self.assertEqual(document_sync.validate_job_invoices_for_gate_pass("RJ-1"), [])
 			coverage.assert_not_called()
+
+	def test_gate_pass_button_check_allows_payment_not_required_without_invoice(self):
+		job = frappe._dict(gate_pass=None, sales_invoices=[])
+		job.check_permission = lambda permission: None
+		with (
+			patch.object(repair_job_module.frappe, "get_doc", return_value=job),
+			patch.object(
+				repair_job_module.frappe,
+				"get_single",
+				return_value=frappe._dict(gate_pass_payment_policy="Payment Not Required"),
+			),
+		):
+			self.assertTrue(repair_job_module.can_create_final_release_gate_pass("RJ-1"))
+
+	def test_gate_pass_button_check_rejects_invoice_required_job_without_invoice(self):
+		job = frappe._dict(gate_pass=None, sales_invoices=[])
+		job.check_permission = lambda permission: None
+		with (
+			patch.object(repair_job_module.frappe, "get_doc", return_value=job),
+			patch.object(
+				repair_job_module.frappe,
+				"get_single",
+				return_value=frappe._dict(gate_pass_payment_policy="Full Payment Required"),
+			),
+		):
+			self.assertFalse(repair_job_module.can_create_final_release_gate_pass("RJ-1"))
+
+	def test_gate_pass_button_check_preserves_invoice_and_existing_pass_paths(self):
+		for job in (
+			frappe._dict(gate_pass="GP-1", sales_invoices=[]),
+			frappe._dict(gate_pass=None, sales_invoices=[frappe._dict(sales_invoice="SI-1")]),
+		):
+			job.check_permission = lambda permission: None
+			with (
+				patch.object(repair_job_module.frappe, "get_doc", return_value=job),
+				patch.object(repair_job_module.frappe, "get_single") as settings,
+			):
+				self.assertTrue(repair_job_module.can_create_final_release_gate_pass("RJ-1"))
+				settings.assert_not_called()
 
 	def test_gate_pass_invoice_coverage_includes_pending_approval_services(self):
 		component = frappe._dict(sales_invoice="SI-1", billable=True)
@@ -189,6 +407,11 @@ class TestPhase10MappingUnits(UnitTestCase):
 			self.assertEqual(components.call_args.kwargs, {"billable_only": True})
 
 	def test_gate_pass_full_payment_rejects_outstanding_invoice(self):
+		def get_value(doctype, name, fields=None, as_dict=False):
+			if fields == "docstatus":
+				return 1
+			return frappe._dict(grand_total=220000, rounded_total=220000, outstanding_amount=1)
+
 		with (
 			patch.object(document_sync, "get_repair_job_sales_invoices", return_value=["SI-1"]),
 			patch.object(document_sync, "_all_billable_components_submitted", return_value=True),
@@ -200,13 +423,19 @@ class TestPhase10MappingUnits(UnitTestCase):
 			patch.object(
 				document_sync.frappe.db,
 				"get_value",
-				return_value=frappe._dict(grand_total=220000, rounded_total=220000, outstanding_amount=1),
+				side_effect=get_value,
 			),
+			patch.object(document_sync.frappe.db, "exists", return_value=True),
 		):
 			with self.assertRaises(frappe.ValidationError):
 				document_sync.validate_job_invoices_for_gate_pass("RJ-1")
 
 	def test_gate_pass_rejects_partial_component_invoice_coverage(self):
+		def get_value(doctype, name, fields=None, as_dict=False):
+			if fields == "docstatus":
+				return 1
+			return frappe._dict(grand_total=220000, rounded_total=220000, outstanding_amount=0)
+
 		with (
 			patch.object(document_sync, "get_repair_job_sales_invoices", return_value=["SI-1"]),
 			patch.object(document_sync, "_all_billable_components_submitted", return_value=False),
@@ -218,8 +447,9 @@ class TestPhase10MappingUnits(UnitTestCase):
 			patch.object(
 				document_sync.frappe.db,
 				"get_value",
-				return_value=frappe._dict(grand_total=220000, rounded_total=220000, outstanding_amount=0),
+				side_effect=get_value,
 			),
+			patch.object(document_sync.frappe.db, "exists", return_value=True),
 		):
 			with self.assertRaises(frappe.ValidationError):
 				document_sync.validate_job_invoices_for_gate_pass("RJ-1")
@@ -390,7 +620,6 @@ class TestPhase10MappingUnits(UnitTestCase):
 			self.assertFalse(document_sync._all_billable_components_submitted("RJ-1"))
 			document_sync.iter_repair_job_components.assert_called_once_with(
 				"RJ-1",
-				service_statuses={"Approved", "Completed"},
 				billable_only=True,
 			)
 

@@ -10,6 +10,7 @@
 	function load_data(options) {
 		return frappe.call({
 			method: "auto_service_management.auto_service_management.integration.erpnext.component_mapping.get_sales_invoice_components",
+			type: "GET",
 			args: {
 				repair_job_name: options.repairJob,
 				service_name: options.serviceName || undefined,
