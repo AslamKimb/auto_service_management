@@ -7,10 +7,10 @@ from unittest.mock import patch
 import frappe
 from frappe.tests import UnitTestCase
 
+from auto_service_management.auto_service_management.doctype.repair_job.repair_job import RepairJob
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
 	ServiceComponent,
 )
-from auto_service_management.auto_service_management.doctype.repair_job.repair_job import RepairJob
 from auto_service_management.auto_service_management.integration.erpnext import (
 	component_mapping,
 	document_sync,
@@ -57,10 +57,15 @@ class TestPhase10MappingUnits(UnitTestCase):
 		path = Path(__file__).resolve().parents[1] / "doctype" / "repair_job" / "repair_job.json"
 		meta = json.loads(path.read_text(encoding="utf-8"))
 		self.assertEqual(meta["is_submittable"], 0)
-		self.assertNotIn("before_submit", inspect.getsource(__import__(
-			"auto_service_management.auto_service_management.doctype.repair_job.repair_job",
-			fromlist=["RepairJob"],
-		)))
+		self.assertNotIn(
+			"before_submit",
+			inspect.getsource(
+				__import__(
+					"auto_service_management.auto_service_management.doctype.repair_job.repair_job",
+					fromlist=["RepairJob"],
+				)
+			),
+		)
 
 	def test_sales_invoice_draft_validation_skips_service_status_gate(self):
 		services = [frappe._dict(name="RJS-1", repair_job="RJ-1", status="Draft", service_name="Job service")]
@@ -126,9 +131,13 @@ class TestPhase10MappingUnits(UnitTestCase):
 
 	def test_payment_rows_skip_unsubmitted_payment_entries(self):
 		with (
-			patch.object(document_sync.frappe.db, "get_all", return_value=[
-				frappe._dict(parent="PE-1", reference_name="SI-1", allocated_amount=50),
-			]),
+			patch.object(
+				document_sync.frappe.db,
+				"get_all",
+				return_value=[
+					frappe._dict(parent="PE-1", reference_name="SI-1", allocated_amount=50),
+				],
+			),
 			patch.object(document_sync.frappe.db, "get_value", return_value=0),
 		):
 			self.assertEqual(document_sync._service_payment_total(frappe._dict(), []), 0)
@@ -152,6 +161,32 @@ class TestPhase10MappingUnits(UnitTestCase):
 			patch.object(document_sync.frappe.db, "get_value", side_effect=get_value),
 		):
 			self.assertEqual(document_sync.validate_job_invoices_for_gate_pass("RJ-1"), ["SI-1"])
+
+	def test_gate_pass_payment_not_required_allows_uninvoiced_job(self):
+		with (
+			patch.object(document_sync, "get_repair_job_sales_invoices", return_value=[]),
+			patch.object(
+				document_sync.frappe,
+				"get_single",
+				return_value=frappe._dict(gate_pass_payment_policy="Payment Not Required"),
+			),
+			patch.object(document_sync, "_all_billable_components_submitted") as coverage,
+		):
+			self.assertEqual(document_sync.validate_job_invoices_for_gate_pass("RJ-1"), [])
+			coverage.assert_not_called()
+
+	def test_gate_pass_invoice_coverage_includes_pending_approval_services(self):
+		component = frappe._dict(sales_invoice="SI-1", billable=True)
+		with (
+			patch.object(
+				document_sync,
+				"iter_repair_job_components",
+				return_value=[(frappe._dict(status="Pending Approval"), component)],
+			) as components,
+			patch.object(document_sync.frappe.db, "get_value", return_value=1),
+		):
+			self.assertTrue(document_sync._all_billable_components_submitted("RJ-1"))
+			self.assertEqual(components.call_args.kwargs, {"billable_only": True})
 
 	def test_gate_pass_full_payment_rejects_outstanding_invoice(self):
 		with (

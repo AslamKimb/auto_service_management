@@ -94,9 +94,11 @@ services:
           else
             echo "=== Installing auto_service_management from local source ==="
             cp -r /app-source apps/auto_service_management
-            echo "=== Editable install for Python 3.14 compatibility ==="
-            env/bin/pip install -e apps/auto_service_management --no-deps
           fi
+          echo "=== Syncing auto_service_management source ==="
+          cp -r /app-source/. apps/auto_service_management/
+          echo "=== Editable install for Python 3.14 compatibility ==="
+          env/bin/pip install -e apps/auto_service_management --no-deps
           ensure_apps_txt_entry auto_service_management
           test -f apps/auto_service_management/auto_service_management/__init__.py
         }
@@ -163,6 +165,9 @@ services:
 
         echo "=== Building assets ==="
         bench build --app auto_service_management
+        bundle_path=$$(python -c 'import json; print(json.load(open("sites/assets/assets.json"))["repair_job_billing.bundle.js"])')
+        bundle_path=$${bundle_path#/assets/}
+        test -f "sites/assets/$$bundle_path" || { echo "Missing generated Repair Job billing bundle: sites/assets/$$bundle_path" >&2; exit 1; }
         bench build --app hrms
         bench build --app uganda_compliance
 

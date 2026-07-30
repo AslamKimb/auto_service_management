@@ -39,6 +39,11 @@ class TestPhase16MaterialRequestContracts(UnitTestCase):
 		).read_text(encoding="utf-8")
 		self.assertEqual(source.strip(), 'import "./repair_job_billing";')
 
+	def test_editable_setup_syncs_source_and_validates_hashed_bundle(self):
+		source = (Path(__file__).parents[4] / "docker-compose.dev.yml").read_text(encoding="utf-8")
+		self.assertIn("cp -r /app-source/. apps/auto_service_management/", source)
+		self.assertIn('test -f "sites/assets/$$bundle_path"', source)
+
 	def test_material_request_summary_uses_get(self):
 		source = (
 			Path(__file__).parents[2] / "public" / "js" / "repair_job_billing.js"

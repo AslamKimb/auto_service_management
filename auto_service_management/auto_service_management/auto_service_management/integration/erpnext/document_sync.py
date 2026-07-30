@@ -6,15 +6,16 @@ from frappe.utils import flt
 
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
 	COMPONENT_TABLES,
-	INVOICEABLE_SERVICE_STATUSES,
 	iter_repair_job_components,
 )
 from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
 	is_material_request_active,
 )
 from auto_service_management.auto_service_management.workflow_compatibility import (
-	sync_repair_job_related_tables,
 	_service_payment_total as _compat_service_payment_total,
+)
+from auto_service_management.auto_service_management.workflow_compatibility import (
+	sync_repair_job_related_tables,
 )
 
 ACTIVE_COMPONENT_DOCTYPES = {row["doctype"] for row in COMPONENT_TABLES}
@@ -136,15 +137,19 @@ def trash_material_request(doc, method=None):
 
 
 def validate_job_invoices_for_gate_pass(repair_job_name: str) -> list[str]:
+	settings = frappe.get_single("Auto Service Settings")
+	policy = settings.get("gate_pass_payment_policy") or "Full Payment Required"
 	invoices = get_repair_job_sales_invoices(repair_job_name, submitted_only=True)
+	if policy in {"Payment Not Required", "No Payment Required"}:
+		return invoices
 	if not invoices:
 		frappe.throw(_("A submitted Sales Invoice is required before issuing a Gate Pass."))
 	if not _all_billable_components_submitted(repair_job_name):
-		frappe.throw(_("Every billable component must be covered by a submitted Sales Invoice before issuing a Gate Pass."))
-	settings = frappe.get_single("Auto Service Settings")
-	policy = settings.get("gate_pass_payment_policy") or "Full Payment Required"
-	if policy == "No Payment Required":
-		return invoices
+		frappe.throw(
+			_(
+				"Every billable component must be covered by a submitted Sales Invoice before issuing a Gate Pass."
+			)
+		)
 	rows = [
 		frappe.db.get_value(
 			"Sales Invoice",
@@ -211,7 +216,6 @@ def _all_billable_components_submitted(repair_job_name: str) -> bool:
 		component
 		for _service, component in iter_repair_job_components(
 			repair_job_name,
-			service_statuses=INVOICEABLE_SERVICE_STATUSES,
 			billable_only=True,
 		)
 	]
@@ -226,9 +230,7 @@ def _all_billable_components_submitted(repair_job_name: str) -> bool:
 
 def _validate_invoice_service_submission(doc):
 	service_names = {
-		row.repair_job_service
-		for row in _trace_items(doc)
-		if getattr(row, "repair_job_service", None)
+		row.repair_job_service for row in _trace_items(doc) if getattr(row, "repair_job_service", None)
 	}
 	if not service_names:
 		return

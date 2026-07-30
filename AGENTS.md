@@ -74,6 +74,18 @@ It creates independent `dms-image_*` volumes, serves on port `18080` by default,
 
 Before building an image, commit the intended source and use a new tag derived from that commit: `dev-<short-git-sha>`. Push that exact tag, set all three Dokploy image variables to it, and record it in `IMPLEMENTATION_PLAN.md`. Never rebuild, overwrite, or redeploy an existing tag; make a new commit and tag for every code or image-definition change.
 
+### Non-image first approval gate
+
+For code changes that may later go into an image, follow this order every time:
+
+1. Sync or migrate the changes into the existing Docker Desktop development deployment that is **not** image-based (`docker-compose.dev.yml` stack).
+2. Test the change there yourself and record the evidence before proposing any image work.
+3. Stop and wait for the user to test that non-image deployment.
+4. Do **not** build or update any image until the user explicitly says to create the image.
+5. After the image is created, deploy the image stack locally and test it yourself to confirm the image behaves the same as the verified non-image deployment.
+
+If the user has not yet approved image creation, treat any image build, image redeploy, or image rollout as out of scope even if the code change itself is complete.
+
 ## Development Commands
 
 Run bench commands inside the backend container. Always name the site.
