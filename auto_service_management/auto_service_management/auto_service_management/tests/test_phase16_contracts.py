@@ -34,20 +34,15 @@ class TestPhase16MaterialRequestContracts(UnitTestCase):
 		self.assertNotIn("/assets/auto_service_management/js/repair_job_billing.js", hooks.app_include_js)
 
 	def test_bundle_entry_imports_repair_job_billing_source(self):
-		source = (
-			Path(__file__).parents[2] / "public" / "js" / "repair_job_billing.bundle.js"
-		).read_text(encoding="utf-8")
+		source = (Path(__file__).parents[2] / "public" / "js" / "repair_job_billing.bundle.js").read_text(
+			encoding="utf-8"
+		)
 		self.assertEqual(source.strip(), 'import "./repair_job_billing";')
 
-	def test_editable_setup_syncs_source_and_validates_hashed_bundle(self):
-		source = (Path(__file__).parents[4] / "docker-compose.dev.yml").read_text(encoding="utf-8")
-		self.assertIn("cp -r /app-source/. apps/auto_service_management/", source)
-		self.assertIn('test -f "sites/assets/$$bundle_path"', source)
-
 	def test_material_request_summary_uses_get(self):
-		source = (
-			Path(__file__).parents[2] / "public" / "js" / "repair_job_billing.js"
-		).read_text(encoding="utf-8")
+		source = (Path(__file__).parents[2] / "public" / "js" / "repair_job_billing.js").read_text(
+			encoding="utf-8"
+		)
 		self.assertIn(
 			'get_material_request_components",\n\t\t\ttype: "GET",',
 			source,
@@ -75,9 +70,7 @@ class TestPhase16MaterialRequestContracts(UnitTestCase):
 		):
 			for request_type in MATERIAL_REQUEST_TYPES:
 				with self.subTest(request_type=request_type):
-					document_sync.validate_material_request(
-						frappe._dict(material_request_type=request_type)
-					)
+					document_sync.validate_material_request(frappe._dict(material_request_type=request_type))
 
 	def test_terminal_statuses_release_component_for_a_later_request(self):
 		terminal = {
@@ -147,9 +140,7 @@ class TestPhase16MaterialRequestContracts(UnitTestCase):
 				):
 					result = component_mapping.map_material_request(
 						"RJ-1",
-						component_refs=[
-							{"doctype": "Repair Job Service Part", "name": "PART-1"}
-						],
+						component_refs=[{"doctype": "Repair Job Service Part", "name": "PART-1"}],
 						material_request_type=request_type,
 					)
 
@@ -164,12 +155,12 @@ class TestPhase16MaterialRequestContracts(UnitTestCase):
 	def test_existing_target_purpose_is_preserved(self):
 		target = frappe._dict(
 			doctype="Material Request",
-			name=None,
+			name="MR-1",
 			docstatus=0,
 			material_request_type="Purchase",
 			items=[],
 		)
-		target.is_new = lambda: True
+		target.is_new = lambda: False
 		target.set = lambda fieldname, value: target.update({fieldname: value})
 		target.append = lambda fieldname, value: target[fieldname].append(value)
 		target.run_method = lambda method: None
@@ -205,6 +196,45 @@ class TestPhase16MaterialRequestContracts(UnitTestCase):
 				material_request_type="Material Issue",
 			)
 		self.assertEqual(target.material_request_type, "Purchase")
+
+	def test_selected_purpose_overrides_erpnext_default_on_new_target(self):
+		target = frappe._dict(
+			doctype="Material Request",
+			name=None,
+			docstatus=0,
+			material_request_type="Purchase",
+			items=[],
+		)
+		target.is_new = lambda: True
+		target.set = lambda fieldname, value: target.update({fieldname: value})
+		target.append = lambda fieldname, value: target[fieldname].append(value)
+		target.run_method = lambda method: None
+		service = frappe._dict(name="RJS-1")
+		component = frappe._dict()
+		with (
+			patch.object(
+				component_mapping,
+				"_get_repair_job",
+				return_value=frappe._dict(name="RJ-1", customer="CUSTOMER-1"),
+			),
+			patch.object(component_mapping, "_get_target_doc", return_value=target),
+			patch.object(component_mapping, "_validate_target_job"),
+			patch.object(component_mapping, "_validate_service_scope"),
+			patch.object(component_mapping, "_validate_requested_component_refs"),
+			patch.object(
+				component_mapping, "_eligible_components", return_value=([(service, component)], {})
+			),
+			patch.object(
+				component_mapping.frappe, "get_single", return_value=frappe._dict(company="COMPANY-1")
+			),
+			patch.object(component_mapping, "_validate_company"),
+			patch.object(
+				component_mapping, "get_material_request_types", return_value=list(MATERIAL_REQUEST_TYPES)
+			),
+			patch.object(component_mapping, "_material_request_item", return_value={}),
+		):
+			component_mapping.map_material_request("RJ-1", material_request_type="Material Issue")
+		self.assertEqual(target.material_request_type, "Material Issue")
 
 	def test_component_summary_includes_not_requested_and_history_rows(self):
 		service = frappe._dict(
@@ -266,7 +296,9 @@ class TestPhase16MaterialRequestContracts(UnitTestCase):
 		):
 			summary = component_mapping.get_material_request_components("RJ-1")
 
-		self.assertEqual([row["request_state"] for row in summary["components"]], ["Not Requested", "Completed"])
+		self.assertEqual(
+			[row["request_state"] for row in summary["components"]], ["Not Requested", "Completed"]
+		)
 		self.assertEqual(summary["components"][0]["history"], [])
 		self.assertEqual(summary["components"][1]["history"][0]["material_request"], "MR-1")
 
@@ -302,8 +334,7 @@ class TestPhase16PortalContracts(UnitTestCase):
 		)
 		self.assertTrue(
 			any(
-				rule["from_route"] == "/my-repairs/<path:name>"
-				and rule["to_route"] == "my_repairs"
+				rule["from_route"] == "/my-repairs/<path:name>" and rule["to_route"] == "my_repairs"
 				for rule in hooks.website_route_rules
 			)
 		)
@@ -389,8 +420,7 @@ class TestPhase16PortalContracts(UnitTestCase):
 		self.assertIn(("Sales Invoice", {"repair_job": "RJ-1", "docstatus": 1}), calls)
 		self.assertTrue(
 			any(
-				doctype == "Payment Entry Reference"
-				and filters["docstatus"] == 1
+				doctype == "Payment Entry Reference" and filters["docstatus"] == 1
 				for doctype, filters in calls
 			)
 		)

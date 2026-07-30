@@ -62,6 +62,11 @@ class TestAssetSync(unittest.TestCase):
 
 
 class TestComposeAssetContract(unittest.TestCase):
+	def test_editable_stack_syncs_source_and_validates_repair_bundle(self):
+		compose = (ROOT / "docker-compose.dev.yml").read_text(encoding="utf-8")
+		self.assertIn("cp -r /app-source/. apps/auto_service_management/", compose)
+		self.assertIn('test -f "sites/assets/$$bundle_path"', compose)
+
 	def _render(self, compose_file: Path) -> dict:
 		env = os.environ | {
 			"DB_ROOT_PASSWORD": "contract-db-password",

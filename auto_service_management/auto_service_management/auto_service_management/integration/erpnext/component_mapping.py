@@ -205,7 +205,10 @@ def map_material_request(
 	settings = frappe.get_single("Auto Service Settings")
 	_validate_company(target, settings.company)
 	_set_if_empty(target, "company", settings.company)
-	request_type = target.get("material_request_type") or material_request_type or "Material Issue"
+	if target.name and not target.is_new():
+		request_type = target.get("material_request_type") or material_request_type or "Material Issue"
+	else:
+		request_type = material_request_type or target.get("material_request_type") or "Material Issue"
 	if request_type not in get_material_request_types():
 		frappe.throw(_("Material Request purpose {0} is not available in ERPNext.").format(request_type))
 	target.material_request_type = request_type
@@ -468,7 +471,9 @@ def _validate_requested_component_refs(
 	}
 	missing = component_refs - set(available)
 	if missing:
-		frappe.throw(_("Selected component {0} was not found on this Repair Job.").format(sorted(missing)[0][1]))
+		frappe.throw(
+			_("Selected component {0} was not found on this Repair Job.").format(sorted(missing)[0][1])
+		)
 	for ref in component_refs:
 		service, component = available[ref]
 		if getattr(service, "docstatus", 0) == 2:
