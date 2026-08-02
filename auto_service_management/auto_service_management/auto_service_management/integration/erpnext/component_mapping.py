@@ -112,6 +112,65 @@ def map_sales_invoice(
 	return target
 
 
+def map_quotation(
+	repair_job_name: str,
+	*,
+	target_doc: str | dict | None = None,
+	service_names: Iterable[str] | None = None,
+	component_refs: Iterable[dict] | str | None = None,
+) -> Document:
+	"""Map billable Repair Job components without reserving them for the quotation."""
+	repair_job = _get_repair_job(repair_job_name)
+	requested_refs = _normalize_component_refs(component_refs)
+	service_names = set(service_names or [])
+
+	target = _get_target_doc("Quotation", target_doc)
+	_validate_target_job(target, repair_job)
+	_validate_service_scope(
+		repair_job.name,
+		service_names,
+		None,
+		document_label=_("Quotation"),
+	)
+	_validate_requested_component_refs(repair_job.name, requested_refs, service_names)
+
+	components = []
+	for service, component in iter_repair_job_components(
+		repair_job.name,
+		include_excluded=False,
+		billable_only=True,
+		service_names=service_names,
+	):
+		if requested_refs is not None and (component.row_doctype, component.name) not in requested_refs:
+			continue
+		components.append((service, component))
+	if not components:
+		frappe.throw(
+			_("No billable Parts, Consumables, or Labour components are available on this Repair Job.")
+		)
+
+	settings = frappe.get_single("Auto Service Settings")
+	_validate_company(target, settings.company)
+	target.quotation_to = "Customer"
+	_set_if_empty(target, "party_name", repair_job.customer)
+	_set_if_empty(target, "company", settings.company)
+	_set_if_empty(target, "selling_price_list", settings.selling_price_list or settings.price_list)
+	_set_if_empty(target, "project", repair_job.project)
+	target.repair_job = repair_job.name
+	if len(service_names) == 1:
+		target.repair_job_service = next(iter(service_names))
+	transaction_date = target.get("transaction_date") or today()
+	target.transaction_date = transaction_date
+	target.valid_till = target.get("valid_till") or frappe.utils.add_months(transaction_date, 1)
+
+	for service, component in components:
+		target.append("items", _sales_invoice_item(repair_job, service, component))
+
+	target.run_method("set_missing_values")
+	target.run_method("calculate_taxes_and_totals")
+	return target
+
+
 @frappe.whitelist(methods=["GET"])
 def get_sales_invoice_components(
 	repair_job_name: str,
@@ -383,12 +442,9 @@ def _get_target_doc(doctype: str, target_doc: str | dict | None):
 def _validate_target_job(target, repair_job):
 	if target.get("repair_job") and target.repair_job != repair_job.name:
 		frappe.throw(_("A target document can contain components from only one Repair Job."))
-	if (
-		target.doctype == "Sales Invoice"
-		and target.get("customer")
-		and target.customer != repair_job.customer
-	):
-		frappe.throw(_("Sales Invoice customer must match the Repair Job customer."))
+	target_customer = target.get("customer") or target.get("party_name")
+	if target.doctype in {"Sales Invoice", "Quotation"} and target_customer and target_customer != repair_job.customer:
+		frappe.throw(_("Target customer must match the Repair Job customer."))
 
 	item_jobs = {row.repair_job for row in target.get("items") or [] if getattr(row, "repair_job", None)}
 	if item_jobs - {repair_job.name}:

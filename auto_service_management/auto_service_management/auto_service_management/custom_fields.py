@@ -2,6 +2,8 @@ from __future__ import annotations
 
 TRACE_CUSTOM_FIELD_NAMES = (
 	"Sales Invoice-repair_job",
+	"Quotation-repair_job",
+	"Quotation-repair_job_service",
 	"Material Request-repair_job",
 	"Timesheet Detail-repair_job",
 	"Timesheet Detail-customer_vehicle",
@@ -27,6 +29,12 @@ TRACE_CUSTOM_FIELD_NAMES = (
 	"Sales Invoice Item-repair_component_doctype",
 	"Sales Invoice Item-repair_component_row",
 	"Sales Invoice Item-repair_service_line",
+	"Quotation Item-repair_job",
+	"Quotation Item-customer_vehicle",
+	"Quotation Item-repair_job_service",
+	"Quotation Item-repair_component_doctype",
+	"Quotation Item-repair_component_row",
+	"Quotation Item-repair_service_line",
 )
 
 PARENT_TRACE_FIELDS = {
@@ -48,6 +56,26 @@ PARENT_TRACE_FIELDS = {
 		"read_only": 1,
 		"no_copy": 1,
 	},
+	"Quotation": [
+		{
+			"fieldname": "repair_job",
+			"label": "Repair Job",
+			"fieldtype": "Link",
+			"options": "Repair Job",
+			"insert_after": "party_name",
+			"read_only": 1,
+			"no_copy": 1,
+		},
+		{
+			"fieldname": "repair_job_service",
+			"label": "Repair Job Service",
+			"fieldtype": "Link",
+			"options": "Repair Job Service",
+			"insert_after": "repair_job",
+			"read_only": 1,
+			"no_copy": 1,
+		},
+	],
 }
 
 TRACE_CHILD_DOCTYPES = (
@@ -55,6 +83,7 @@ TRACE_CHILD_DOCTYPES = (
 	"Material Request Item",
 	"Stock Entry Detail",
 	"Sales Invoice Item",
+	"Quotation Item",
 )
 
 TRACE_FIELDS = (
@@ -113,8 +142,12 @@ def get_trace_custom_fields():
 		]
 		for doctype in TRACE_CHILD_DOCTYPES
 	}
-	for doctype, field in PARENT_TRACE_FIELDS.items():
-		custom_fields[doctype] = [{**field, "module": "Auto Service Management"}]
+	for doctype, fields in PARENT_TRACE_FIELDS.items():
+		if isinstance(fields, dict):
+			fields = [fields]
+		custom_fields[doctype] = [
+			{**field, "module": "Auto Service Management"} for field in fields
+		]
 	return custom_fields
 
 

@@ -11,6 +11,12 @@ from auto_service_management.auto_service_management.custom_fields import TRACE_
 required_apps = ["erpnext"]
 app_include_js = ["repair_job_billing.bundle.js"]
 
+jinja = {
+	"methods": [
+		"auto_service_management.auto_service_management.printing.get_print_branding",
+	],
+}
+
 portal_menu_items = [
 	{"title": "My Repairs", "route": "/my-repairs", "role": "Customer"},
 ]
@@ -70,6 +76,11 @@ doctype_js = {
 	"Material Request": "public/js/material_request.js",
 }
 
+override_whitelisted_methods = {
+	"erpnext.selling.doctype.quotation.quotation.make_sales_invoice":
+		"auto_service_management.auto_service_management.integration.quotation_mapping.make_sales_invoice",
+}
+
 doc_events = {
 	"User": {
 		"validate": "auto_service_management.auto_service_management.user_defaults.assign_default_workspace",
@@ -107,6 +118,7 @@ after_install = [
 	"auto_service_management.patches.phase24_reconcile_custom_permissions.execute",
 	"auto_service_management.auto_service_management.workflow_setup.deactivate_repair_job_workflow",
 	"auto_service_management.auto_service_management.desktop.setup_desktop",
+	"auto_service_management.auto_service_management.printing.ensure_print_branding",
 ]
 after_migrate = [
 	"auto_service_management.auto_service_management.custom_fields.ensure_trace_custom_fields",
@@ -114,6 +126,7 @@ after_migrate = [
 	"auto_service_management.patches.phase24_reconcile_custom_permissions.execute",
 	"auto_service_management.auto_service_management.workflow_setup.deactivate_repair_job_workflow",
 	"auto_service_management.auto_service_management.desktop.setup_desktop",
+	"auto_service_management.auto_service_management.printing.ensure_print_branding",
 ]
 before_tests = [
 	"auto_service_management.auto_service_management.custom_fields.ensure_trace_custom_fields",
@@ -121,5 +134,6 @@ before_tests = [
 	"auto_service_management.patches.phase24_reconcile_custom_permissions.execute",
 	"auto_service_management.auto_service_management.workflow_setup.deactivate_repair_job_workflow",
 	"auto_service_management.auto_service_management.desktop.setup_desktop",
+	"auto_service_management.auto_service_management.printing.ensure_print_branding",
 ]
 boot_session = ["auto_service_management.auto_service_management.desktop.remove_auto_generated_sidebar"]

@@ -41,6 +41,19 @@ frappe.ui.form.on('Repair Job Service', {
             });
 
             if (!frm.is_new()) {
+				frm.add_custom_button(__('Create Quotation'), function() {
+					frm.call('create_quotation').then(function(response) {
+						if (response.message) {
+							frappe.set_route('Form', 'Quotation', response.message);
+						}
+					});
+				}, __('Create'));
+				frm.add_custom_button(__('Quotations'), function() {
+					frappe.set_route('List', 'Quotation', {
+						repair_job: frm.doc.repair_job,
+						repair_job_service: frm.doc.name,
+					});
+				}, __('Related Documents'));
                 auto_service_billing.setup(frm, {
                     fieldname: 'billing_components_html',
                     repairJob: frm.doc.repair_job,

@@ -168,49 +168,28 @@ def get_item_price(item_code, price_list=None):
 # ---------------------------------------------------------------------------
 
 
-def create_quotation(repair_job):
-	"""Create a Quotation from approved service components."""
-	settings = get_settings()
-	items = []
-	eligible_lines = []
-	for service, line in _eligible_components(
-		repair_job,
-		billable_only=True,
-	):
-		items.append(
-			{
-				"item_code": line.item_code,
-				"item_name": line.service_description,
-				"description": _component_description(service, line),
-				"qty": line.invoice_quantity,
-				"uom": getattr(line, "uom", None) or frappe.db.get_value("Item", line.item_code, "stock_uom"),
-				"rate": line.invoice_rate,
-				"amount": line.invoice_amount,
-				"project": repair_job.project,
-				**_component_trace_fields(repair_job, service, line),
-			}
-		)
-		eligible_lines.append(line)
-
-	if not items:
-		frappe.throw(_("No approved service components to quote."))
-
+def _create_quotation(repair_job, *, service_names=None):
 	_require_create_permission("Quotation")
-	quotation = _make_doc(
-		{
-			"doctype": "Quotation",
-			"quotation_to": "Customer",
-			"party_name": repair_job.customer,
-			"company": settings.company,
-			"selling_price_list": settings.selling_price_list or settings.price_list,
-			"items": items,
-		}
+	from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
+		map_quotation,
 	)
+
+	quotation = map_quotation(repair_job.name, service_names=service_names)
 	quotation.insert(ignore_permissions=True)
 	frappe.db.set_value("Repair Job", repair_job.name, {"quotation": quotation.name})
-	for line in eligible_lines:
-		set_component_values(line, {"quotation": quotation.name})
+	for item in quotation.items:
+		frappe.db.set_value(
+			item.repair_component_doctype,
+			item.repair_component_row,
+			{"quotation": quotation.name, "quotation_item": item.name},
+			update_modified=False,
+		)
 	return quotation.name
+
+
+def create_quotation(repair_job, *, service_names=None):
+	"""Create a Quotation from a full Repair Job or selected services."""
+	return _create_quotation(repair_job, service_names=service_names)
 
 
 # ---------------------------------------------------------------------------

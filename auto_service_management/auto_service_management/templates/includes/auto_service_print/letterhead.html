@@ -1,0 +1,25 @@
+{% set branding = get_print_branding(doc) %}
+<style>
+.dms-letterhead { border-bottom: 3px solid #e66f2a; margin-bottom: 14px; padding: 0 0 10px; width: 100%; }
+.dms-letterhead td { padding: 0; vertical-align: middle; }
+.dms-letterhead-logo { max-height: 58px; max-width: 110px; }
+.dms-letterhead-name { color: #183c43; font-size: 16px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.dms-letterhead-contact { color: #5b6472; font-size: 9px; margin-top: 3px; }
+.dms-letterhead-document { color: #183c43; font-size: 14px; font-weight: 800; text-align: right; text-transform: uppercase; }
+.dms-letterhead-reference { color: #5b6472; font-size: 9px; text-align: right; }
+</style>
+<table class="dms-letterhead">
+  <tr>
+    <td style="width: 18%;">
+      {% if branding.logo %}<img class="dms-letterhead-logo" src="{{ branding.logo }}" alt="{{ branding.company_name }}">{% endif %}
+    </td>
+    <td>
+      <div class="dms-letterhead-name">{{ branding.company_name }}</div>
+      {% if branding.contact %}<div class="dms-letterhead-contact">{{ branding.contact }}</div>{% endif %}
+    </td>
+    <td style="width: 25%;">
+      <div class="dms-letterhead-document">{{ doc.doctype }}</div>
+      <div class="dms-letterhead-reference">{{ doc.name }}</div>
+    </td>
+  </tr>
+</table>

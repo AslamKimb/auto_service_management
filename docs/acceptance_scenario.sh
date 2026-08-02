@@ -145,9 +145,18 @@ try:
         "Customer Authorization", "Estimate Summary", "Gate Pass",
         "Job Card", "Repair Summary", "Walkaround Inspection",
     ]
-    missing = [pf for pf in expected_pf if not frappe.db.exists("Print Format", pf)]
+    expected_editable = [f"DMS Editable - {pf}" for pf in expected_pf]
+    expected_editable.extend(
+        f"DMS Editable - {pf}"
+        for pf in ("Quotation", "Sales Invoice", "Sales Order", "Material Request", "Stock Entry", "Timesheet", "Payment Entry")
+    )
+    missing = [pf for pf in expected_pf + expected_editable if not frappe.db.exists("Print Format", pf)]
     assert not missing, f"Missing print formats: {missing}"
-    print(f"  All {len(expected_pf)} print formats present")
+    for name in expected_editable:
+        row = frappe.db.get_value("Print Format", name, ["standard", "custom_format", "print_format_builder", "disabled"], as_dict=True)
+        assert row.standard == "No" and not row.custom_format and row.print_format_builder and not row.disabled, name
+    assert frappe.db.exists("Letter Head", "DMS Company Letterhead"), "Branded letterhead missing"
+    print(f"  All {len(expected_pf)} canonical and {len(expected_editable)} editable print formats present")
 finally:
     frappe.destroy()
 PY
@@ -177,6 +186,10 @@ try:
     assert shortcuts == expected_shortcuts, f"Shortcuts mismatch: {shortcuts.symmetric_difference(expected_shortcuts)}"
     assert "Workshop Manager" in roles, "Workshop Manager role missing"
     assert "Service Advisor" in roles, "Service Advisor role missing"
+    icon = frappe.get_doc("Desktop Icon", {"label": "Car Workshop", "icon_type": "Link"})
+    assert icon.link_type == "Workspace Sidebar", "Car Workshop icon is not an internal workspace link"
+    assert icon.link_to == "Workshop Management", "Car Workshop icon targets the wrong workspace"
+    assert not icon.link, "Car Workshop icon still has an external URL"
     print(f"  Workshop Management workspace present with {len(shortcuts)} shortcuts")
 finally:
     frappe.destroy()
@@ -225,7 +238,7 @@ try:
         finally:
             frappe_pdf.bundled_asset = previous_bundled_asset
         assert pdf[:4] == b"%PDF", f"Invalid PDF header for {print_format_name}"
-        return pdf
+        return pdf, html
 
     def ensure_item(item_code, item_name, is_stock_item, price_list, rate):
         if not frappe.db.exists("Item", item_code):
@@ -455,6 +468,35 @@ try:
     frappe.db.commit()
     job.reload()
 
+    quotation_name = job.create_quotation()
+    frappe.db.commit()
+    quotation = frappe.get_doc("Quotation", quotation_name)
+    quotation.submit()
+    frappe.db.commit()
+    second_quotation_name = job.create_quotation()
+    frappe.db.commit()
+    second_quotation = frappe.get_doc("Quotation", second_quotation_name)
+    quotation_rows = frappe.get_all(
+        "Quotation",
+        filters={"repair_job": job.name},
+        fields=["name", "valid_till"],
+        order_by="creation asc",
+    )
+    assert len(quotation_rows) == 2, f"Expected two quotations, got {len(quotation_rows)}"
+    assert quotation_rows[0].name != quotation_rows[1].name, "Repeated quotation overwrote history"
+    assert quotation.valid_till == frappe.utils.add_months(quotation.transaction_date, 1)
+    assert quotation.items, "Quotation has no billable lines"
+    assert all(item.repair_job == job.name for item in quotation.items)
+    from auto_service_management.auto_service_management.integration.quotation_mapping import (
+        make_sales_invoice,
+    )
+
+    mapped_invoice = make_sales_invoice(quotation.name)
+    mapped_invoice.insert(ignore_permissions=True)
+    assert mapped_invoice.items, "Native quotation-to-invoice mapping produced no lines"
+    assert all(item.repair_job == job.name for item in mapped_invoice.items)
+    frappe.db.commit()
+
     sales_invoice_name = job.create_sales_invoice()
     frappe.db.commit()
     sales_invoice = frappe.get_doc("Sales Invoice", sales_invoice_name)
@@ -497,6 +539,8 @@ try:
     print(f"  Customer Authorization: {authorization.name}")
     print(f"  Quality Check: {quality_check.name}")
     print(f"  Sales Invoice: {sales_invoice.name}")
+    print(f"  Quotations: {quotation.name}, {second_quotation.name}")
+    print(f"  Native Quotation Invoice: {mapped_invoice.name}")
     print(f"  Gate Pass: {gate_pass.name}")
     if service_history:
         print(f"  Service History: {service_history.name}")
@@ -510,6 +554,8 @@ try:
     assert job.job_status == "Closed", f"Expected Closed, got {job.job_status}"
     assert job.total_amount == 470000, f"Expected total 470000, got {job.total_amount}"
     assert sales_invoice.docstatus == 1, "Sales Invoice was not submitted"
+    assert len(quotation_rows) == 2, "Quotation count did not include repeated quotations"
+    assert mapped_invoice.repair_job == job.name, "Native invoice lost Repair Job trace"
     assert gate_pass.status == "Used", f"Expected Used gate pass, got {gate_pass.status}"
     assert service_history is not None, "Service History was not created"
     assert len(logs) >= 10, f"Expected at least 10 logs, got {len(logs)}"
@@ -527,8 +573,31 @@ try:
     ]
 
     for doctype, doc_name, print_format_name in documents:
-        pdf = render_pdf(doctype, doc_name, print_format_name)
+        pdf, html = render_pdf(doctype, doc_name, print_format_name)
         print(f"    Rendered {print_format_name}: {len(pdf)} bytes")
+        if print_format_name == "Estimate Summary":
+            assert "This quotation is valid for one month only unless the vehicle is not mobile." in html
+            assert "Source:" in html
+
+    company_logo = frappe.db.get_value("Company", settings.company, "company_logo")
+    website = frappe.get_single("Website Settings")
+    website_logos = {"app_logo": website.app_logo, "banner_image": website.banner_image}
+    try:
+        frappe.db.set_value("Company", settings.company, "company_logo", "/files/acceptance-company-logo.svg")
+        _company_pdf, company_logo_html = render_pdf("Repair Job", job.name, "Estimate Summary")
+        assert "/files/acceptance-company-logo.svg" in company_logo_html
+        frappe.db.set_value("Company", settings.company, "company_logo", None)
+        frappe.db.set_value("Website Settings", website.name, "app_logo", "/files/acceptance-app-logo.svg")
+        _app_pdf, app_logo_html = render_pdf("Repair Job", job.name, "Estimate Summary")
+        assert "/files/acceptance-app-logo.svg" in app_logo_html
+        frappe.db.set_value("Website Settings", website.name, "app_logo", None)
+        frappe.db.set_value("Website Settings", website.name, "banner_image", "/files/acceptance-banner.svg")
+        _banner_pdf, banner_html = render_pdf("Repair Job", job.name, "Estimate Summary")
+        assert "/files/acceptance-banner.svg" in banner_html
+    finally:
+        frappe.db.set_value("Company", settings.company, "company_logo", company_logo)
+        for field, value in website_logos.items():
+            frappe.db.set_value("Website Settings", website.name, field, value)
 
     print("  PASS: End-to-end walk-in repair lifecycle and PDF rendering verified")
 finally:
@@ -553,6 +622,8 @@ try:
     assert frappe.db.exists("DocType", "Repair Job"), "Repair Job DocType missing"
     assert frappe.db.exists("Workspace", "Workshop Management"), "Workspace missing"
     assert frappe.db.exists("Print Format", "Repair Summary"), "Print Format missing"
+    assert frappe.db.exists("Print Format", "DMS Editable - Repair Summary"), "Editable print format missing"
+    assert frappe.db.exists("Letter Head", "DMS Company Letterhead"), "Branded letterhead missing"
     assert frappe.db.exists("Report", "Open Repair Jobs"), "Report missing"
     print("  Test site reinstall verified")
 finally:

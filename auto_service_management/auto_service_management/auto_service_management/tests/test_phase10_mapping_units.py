@@ -200,6 +200,74 @@ class TestPhase10MappingUnits(UnitTestCase):
 		self.assertIn('@frappe.whitelist(methods=["GET"])\ndef get_material_request_components', source)
 		self.assertGreaterEqual(asset.count('type: "GET"'), 2)
 
+	def test_quotation_mapping_reuses_billable_invoice_values_without_reservation(self):
+		class Target:
+			doctype = "Quotation"
+			docstatus = 0
+			name = None
+
+			def __init__(self):
+				self.items = []
+				self.values = {}
+
+			def get(self, fieldname):
+				return self.values.get(fieldname)
+
+			def set(self, fieldname, value):
+				self.values[fieldname] = value
+				setattr(self, fieldname, value)
+
+			def append(self, fieldname, value):
+				self.items.append(value)
+
+			def run_method(self, _method):
+				return None
+
+		job = frappe._dict(
+			name="RJ-1",
+			customer="CUST-1",
+			customer_vehicle="VEH-1",
+			project="PROJ-1",
+		)
+		service = frappe._dict(name="RJS-1", service_name="Brake Service")
+		component = frappe._dict(row_doctype="Repair Job Service Part", name="PART-1")
+		target = Target()
+
+		with (
+			patch.object(component_mapping, "_get_repair_job", return_value=job),
+			patch.object(component_mapping, "_get_target_doc", return_value=target),
+			patch.object(component_mapping, "_validate_target_job"),
+			patch.object(component_mapping, "_validate_service_scope"),
+			patch.object(component_mapping, "_validate_requested_component_refs"),
+			patch.object(component_mapping, "iter_repair_job_components", return_value=[(service, component)]),
+			patch.object(component_mapping, "_sales_invoice_item", return_value={"item_code": "PART-1", "qty": 2}),
+			patch.object(component_mapping, "today", return_value="2026-08-02"),
+			patch.object(
+				component_mapping.frappe,
+				"get_single",
+				return_value=frappe._dict(company="Company", selling_price_list="Standard Selling"),
+			),
+		):
+			result = component_mapping.map_quotation("RJ-1", service_names={"RJS-1"})
+
+		self.assertIs(result, target)
+		self.assertEqual(target.repair_job, "RJ-1")
+		self.assertEqual(target.repair_job_service, "RJS-1")
+		self.assertEqual(target.transaction_date, "2026-08-02")
+		self.assertEqual(target.valid_till, "2026-09-02")
+		self.assertEqual(target.items, [{"item_code": "PART-1", "qty": 2}])
+
+	def test_quotation_and_count_mutations_have_explicit_http_methods(self):
+		job_source = inspect.getsource(repair_job_module)
+		service_source = inspect.getsource(
+			__import__(
+				"auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service",
+				fromlist=["RepairJobService"],
+			)
+		)
+		self.assertIn('@frappe.whitelist(methods=["GET"])\ndef get_quotation_summary', job_source)
+		self.assertIn('@frappe.whitelist(methods=["POST"])\ndef make_quotation', service_source)
+
 	def test_sales_invoice_draft_submission_validation_skips_service_status_gate(self):
 		with (
 			patch.object(

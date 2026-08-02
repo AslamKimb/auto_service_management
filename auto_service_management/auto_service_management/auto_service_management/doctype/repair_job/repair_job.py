@@ -73,6 +73,20 @@ def make_material_request(
 
 
 @frappe.whitelist(methods=["GET"])
+def get_quotation_summary(repair_job_name: str) -> dict:
+	job = frappe.get_doc("Repair Job", repair_job_name)
+	job.check_permission("read")
+	quotations = frappe.get_all(
+		"Quotation",
+		filters={"repair_job": repair_job_name},
+		fields=["name", "docstatus", "status", "transaction_date", "valid_till", "grand_total"],
+		order_by="creation desc",
+		limit_page_length=0,
+	)
+	return {"count": len(quotations), "quotations": quotations}
+
+
+@frappe.whitelist(methods=["GET"])
 def can_create_final_release_gate_pass(repair_job_name: str) -> bool:
 	if not repair_job_name:
 		return False

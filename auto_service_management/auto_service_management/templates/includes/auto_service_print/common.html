@@ -1,15 +1,14 @@
-{% set print_company = frappe.db.get_single_value("Auto Service Settings", "company") or doc.get("company") or frappe.defaults.get_global_default("company") %}
-{% set company = frappe.db.get_value("Company", print_company, ["company_name", "company_logo", "phone_no", "email", "website"], as_dict=True) if print_company else {} %}
-{% set company_name = company.company_name or print_company or "Auto Service Workshop" %}
-{% set logo = company.company_logo %}
-{% set contact = [company.phone_no, company.email, company.website] | select | join(" · ") %}
+{% set branding = get_print_branding(doc) %}
+{% set company = branding.company %}
+{% set company_name = branding.company_name %}
+{% set logo = branding.logo %}
+{% set contact = branding.contact %}
 <style>
 .asm-print { color: #18212f; font-family: Inter, Arial, sans-serif; font-size: 11px; line-height: 1.42; }
 .asm-brand { border: 1px solid #d7d0c1; border-top: 6px solid #e66f2a; display: table; margin-bottom: 14px; padding: 12px; width: 100%; }
 .asm-logo, .asm-brand-copy, .asm-doc-chip { display: table-cell; vertical-align: middle; }
 .asm-logo { width: 74px; }
 .asm-logo img { max-height: 52px; max-width: 64px; }
-.asm-logo-fallback { align-items: center; background: #183c43; border-radius: 8px; color: #fff7ed; display: inline-flex; font-size: 18px; font-weight: 800; height: 52px; justify-content: center; width: 64px; }
 .asm-brand-copy h1 { color: #111827; font-size: 18px; letter-spacing: .04em; margin: 0 0 3px; text-transform: uppercase; }
 .asm-brand-copy p { color: #5b6472; margin: 0; }
 .asm-doc-chip { text-align: right; width: 34%; }
@@ -49,8 +48,6 @@
   <div class="asm-logo">
     {% if logo %}
     <img src="{{ logo }}" alt="{{ company_name }}">
-    {% else %}
-    <span class="asm-logo-fallback">CW</span>
     {% endif %}
   </div>
   <div class="asm-brand-copy">

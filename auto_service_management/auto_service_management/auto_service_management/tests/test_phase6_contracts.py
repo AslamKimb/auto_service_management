@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+import frappe
 from frappe import scrub
 from frappe.tests import UnitTestCase
 
@@ -101,11 +102,63 @@ class TestPhase6Contracts(UnitTestCase):
 	def test_print_formats_share_company_branded_header(self):
 		common = (PRINT_TEMPLATE_ROOT / "common.html").read_text(encoding="utf-8")
 
-		self.assertIn("Auto Service Settings", common)
-		self.assertIn("Company", common)
-		self.assertIn("company_logo", common)
+		self.assertIn("get_print_branding", common)
 		self.assertIn("asm-brand", common)
-		self.assertIn("asm-logo-fallback", common)
+		self.assertNotIn("car_workshop.svg", common)
+		self.assertNotIn("asm-logo-fallback", common)
+
+	def test_print_branding_resolver_contract(self):
+		from auto_service_management.auto_service_management.printing import (
+			DMS_PRINT_FORMATS,
+			WORKSHOP_PRINT_FORMATS,
+			get_print_branding,
+		)
+
+		self.assertEqual(len(DMS_PRINT_FORMATS), 6)
+		self.assertEqual(len(WORKSHOP_PRINT_FORMATS), 7)
+		branding = get_print_branding(frappe._dict(company="Garage"))
+		self.assertIn("company_name", branding)
+		self.assertIn("logo", branding)
+
+	def test_builder_copies_are_editable_and_enabled(self):
+		from auto_service_management.auto_service_management.printing import (
+			DMS_PRINT_FORMATS,
+			WORKSHOP_PRINT_FORMATS,
+		)
+
+		expected = [f"DMS Editable - {name}" for name, _, *_ in DMS_PRINT_FORMATS]
+		expected.extend(f"DMS Editable - {name}" for name, _ in WORKSHOP_PRINT_FORMATS)
+		for name in expected:
+			with self.subTest(print_format=name):
+				row = frappe.db.get_value(
+					"Print Format",
+					name,
+					["standard", "custom_format", "print_format_builder", "disabled"],
+					as_dict=True,
+				)
+				self.assertTrue(row, f"Missing builder copy: {name}")
+				self.assertEqual(row.standard, "No")
+				self.assertFalse(row.custom_format)
+				self.assertTrue(row.print_format_builder)
+				self.assertFalse(row.disabled)
+				layout = json.loads(frappe.db.get_value("Print Format", name, "format_data"))
+				self.assertTrue(any(field.get("fieldtype") == "Custom HTML" for field in layout))
+
+	def test_branded_letterheads_are_html_and_guard_existing_records(self):
+		from auto_service_management.auto_service_management.printing import ensure_print_branding
+
+		existing = frappe.db.get_value("Letter Head", "Company Letterhead", "content")
+		ensure_print_branding()
+		ensure_print_branding()
+		self.assertEqual(
+			frappe.db.get_value("Letter Head", "Company Letterhead", "content"),
+			existing,
+		)
+		for name in ("DMS Company Letterhead", "DMS Company Letterhead - Compact"):
+			with self.subTest(letterhead=name):
+				row = frappe.db.get_value("Letter Head", name, ["source", "content"], as_dict=True)
+				self.assertEqual(row.source, "HTML")
+				self.assertIn("letterhead.html", row.content)
 
 	def test_walkaround_print_uses_silhouette_and_damage_markers(self):
 		html = (PRINT_TEMPLATE_ROOT / "walkaround_inspection.html").read_text(encoding="utf-8")
@@ -271,6 +324,7 @@ class TestPhase6Contracts(UnitTestCase):
 			"Material Request Item",
 			"Stock Entry Detail",
 			"Sales Invoice Item",
+			"Quotation Item",
 		):
 			for fieldname in (
 				"repair_job",
@@ -281,6 +335,16 @@ class TestPhase6Contracts(UnitTestCase):
 				"repair_service_line",
 			):
 				self.assertIn(f"{child_doctype}-{fieldname}", names)
+
+	def test_estimate_summary_contains_exact_note_and_component_trace_hierarchy(self):
+		html = (PRINT_TEMPLATE_ROOT / "estimate_summary.html").read_text(encoding="utf-8")
+
+		self.assertIn(
+			"This quotation is valid for one month only unless the vehicle is not mobile. Payment can be done by CASH, through a bank, DFCU Bank: 01670016727489, OR MTN Mobile Money: 0392554255. We value and respect your time and will provide the best service to you.",
+			html,
+		)
+		for marker in ("row.item_code", "row.invoice_quantity", "row.invoice_rate", "row.invoice_amount", "row.row_doctype", "row.name"):
+			self.assertIn(marker, html)
 
 	def test_repair_summary_print_uses_linked_quality_check_status(self):
 		html = (PRINT_TEMPLATE_ROOT / "repair_summary.html").read_text(encoding="utf-8")

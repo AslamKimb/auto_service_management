@@ -15,7 +15,6 @@ WORKSPACE_NAME = "Workshop Management"
 WORKSPACE_LABEL = "Car Workshop"
 APP_NAME = "auto_service_management"
 ICON_NAME = "car-front"
-WORKSPACE_ROUTE = f"/desk/{frappe.utils.slug(WORKSPACE_NAME)}"
 LEGACY_NAVIGATION_LABELS = (WORKSPACE_NAME, "Auto Service Management")
 
 
@@ -49,9 +48,15 @@ def _ensure_workspace_type_field():
 
 
 def _ensure_workspace_label():
-	"""Keep the underlying workspace doc stable but expose a shorter label."""
+	"""Keep the workspace route key stable while naming the icon Car Workshop.
+
+	Frappe's native Workspace Sidebar route builder uses ``Workspace.title``
+	for the URL but indexes the boot map by ``Workspace.name``.  Those values
+	must therefore remain identical; the shorter product label belongs on the
+	Desktop Icon and sidebar, not on the Workspace route record.
+	"""
 	workspace = frappe.get_doc("Workspace", WORKSPACE_NAME)
-	workspace.title = WORKSPACE_LABEL
+	workspace.title = WORKSPACE_NAME
 	workspace.label = WORKSPACE_LABEL
 	workspace.icon = ICON_NAME
 	workspace.flags.ignore_links = True
@@ -170,8 +175,8 @@ def create_workspace_desktop_icon():
 				"label": WORKSPACE_LABEL,
 				"hidden": 0,
 				"icon": ICON_NAME,
-				"link_type": "External",
-				"link": WORKSPACE_ROUTE,
+				"link_type": "Workspace Sidebar",
+				"link": None,
 				"link_to": WORKSPACE_NAME,
 				"parent_icon": None,
 				"standard": 1,
@@ -183,8 +188,8 @@ def create_workspace_desktop_icon():
 		icon.label = WORKSPACE_LABEL
 		icon.icon = ICON_NAME
 		icon.icon_type = "Link"
-		icon.link_type = "External"
-		icon.link = WORKSPACE_ROUTE
+		icon.link_type = "Workspace Sidebar"
+		icon.link = None
 		icon.link_to = WORKSPACE_NAME
 		icon.app = APP_NAME
 		icon.standard = 1

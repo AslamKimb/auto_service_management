@@ -62,6 +62,27 @@ def make_sales_invoice(
 
 
 @frappe.whitelist(methods=["POST"])
+def make_quotation(
+	source_name: str,
+	target_doc: str | None = None,
+	component_refs=None,
+):
+	service = frappe.get_doc("Repair Job Service", source_name)
+	service.check_permission("read")
+	from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
+		map_quotation,
+	)
+
+	args = getattr(frappe.flags, "args", None) or {}
+	return map_quotation(
+		service.repair_job,
+		target_doc=target_doc,
+		service_names={service.name},
+		component_refs=component_refs or args.get("component_refs"),
+	)
+
+
+@frappe.whitelist(methods=["POST"])
 def make_material_request(
 	source_name: str,
 	target_doc: str | None = None,
@@ -144,6 +165,15 @@ class ServiceComponent:
 
 
 class RepairJobService(Document):
+	@frappe.whitelist(methods=["POST"])
+	def create_quotation(self):
+		self.check_permission("write")
+		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
+			create_quotation,
+		)
+
+		return create_quotation(frappe.get_doc("Repair Job", self.repair_job), service_names={self.name})
+
 	def materialize_template_components(self):
 		"""Copy missing template fields and component rows onto this service once."""
 		if not self.repair_service_template:

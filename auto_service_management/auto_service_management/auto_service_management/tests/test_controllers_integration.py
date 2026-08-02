@@ -579,6 +579,44 @@ class TestERPNextAdapters(IntegrationTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			create_quotation(job)
 
+	def test_repeated_quotation_and_native_invoice_mapping_preserve_component_trace(self):
+		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
+			create_quotation,
+		)
+
+		job = frappe.get_doc("Repair Job", _create_repair_job(self.customer, self.vehicle))
+		service = _create_job_service(job, status="Approved")
+		_append_service_component(
+			service,
+			service_type="Labour",
+			description="Native quotation labour",
+			quantity=2,
+			rate=120000,
+		)
+
+		first_name = create_quotation(job)
+		second_name = create_quotation(job)
+		first = frappe.get_doc("Quotation", first_name)
+		second = frappe.get_doc("Quotation", second_name)
+
+		self.assertNotEqual(first.name, second.name)
+		self.assertEqual(first.repair_job, job.name)
+		self.assertEqual(first.valid_till, frappe.utils.add_months(first.transaction_date, 1))
+		self.assertTrue(first.items)
+		self.assertEqual(first.items[0].repair_job_service, service.name)
+		self.assertEqual(first.items[0].repair_component_doctype, "Repair Job Service Labour")
+		self.assertTrue(first.items[0].repair_component_row)
+
+		first.submit()
+		from auto_service_management.auto_service_management.integration.quotation_mapping import (
+			make_sales_invoice,
+		)
+
+		invoice = make_sales_invoice(first.name)
+		self.assertTrue(invoice.items)
+		self.assertEqual(invoice.items[0].repair_job, job.name)
+		self.assertEqual(invoice.items[0].repair_component_row, first.items[0].repair_component_row)
+
 	def test_create_material_request_rejects_no_parts(self):
 		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
 			create_material_request,
@@ -760,11 +798,11 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		return job.name, walkaround.name, authorization.name, quality_check.name, gate_pass.name
 
 	def _render_pdf(self, doctype, name, print_format_name):
+		import frappe.utils.jinja_globals as frappe_jinja_globals
 		import frappe.utils.pdf as frappe_pdf
 		from frappe.utils.pdf import get_pdf
-		import frappe.utils.jinja_globals as frappe_jinja_globals
-		from frappe.www.printview import get_rendered_template
 		from frappe.website.utils import abs_url
+		from frappe.www.printview import get_rendered_template
 
 		doc = frappe.get_doc(doctype, name)
 		print_format = frappe.get_doc("Print Format", print_format_name)
@@ -885,8 +923,8 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		self.assertFalse(icon.hidden, "Desktop Icon must not be hidden")
 		self.assertEqual(icon.icon, "car-front")
 		self.assertEqual(icon.icon_type, "Link")
-		self.assertEqual(icon.link_type, "External")
-		self.assertEqual(icon.link, "/desk/workshop-management")
+		self.assertEqual(icon.link_type, "Workspace Sidebar")
+		self.assertFalse(icon.link)
 		self.assertEqual(icon.link_to, "Workshop Management")
 		self.assertFalse(icon.parent_icon)
 		self.assertTrue(icon.standard, "Desktop Icon must be standard")
@@ -897,6 +935,11 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 			frappe.db.exists(
 				"Desktop Icon", {"label": "Workshop Management", "app": "auto_service_management"}
 			)
+		)
+		self.assertEqual(
+			frappe.db.get_value("Workspace", "Workshop Management", "title"),
+			"Workshop Management",
+			"Workspace title must match its route key for native Desk routing",
 		)
 
 	def test_desktop_setup_removes_app_less_legacy_navigation_idempotently(self):
@@ -960,6 +1003,10 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 			frappe.db.count("Desktop Icon", {"label": "Car Workshop", "icon_type": "Link"}),
 			1,
 		)
+		icon = frappe.get_doc("Desktop Icon", {"label": "Car Workshop", "icon_type": "Link"})
+		self.assertEqual(icon.link_type, "Workspace Sidebar")
+		self.assertEqual(icon.link_to, "Workshop Management")
+		self.assertFalse(icon.link)
 		self.assertEqual(
 			frappe.db.get_value("Workspace", "Workshop Management", "name"),
 			"Workshop Management",
