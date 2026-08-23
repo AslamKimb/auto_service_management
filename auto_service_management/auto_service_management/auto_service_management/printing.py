@@ -28,7 +28,7 @@ DMS_PRINT_FORMATS = (
 WORKSHOP_PRINT_FORMATS = (
 	("Quotation", "Quotation"),
 	("Sales Invoice", "Sales Invoice"),
-	("Sales Order", "Sales Order"),
+	("Proforma Invoice", "Sales Order"),
 	("Material Request", "Material Request"),
 	("Stock Entry", "Stock Entry"),
 	("Timesheet", "Timesheet"),
@@ -322,6 +322,20 @@ def _workshop_builder_format_data(doc_type):
 	return _builder_format_data(html=source.html if source else None)
 
 
+def _migrate_sales_order_builder_format():
+	"""Preserve custom Sales Order builder edits under the Proforma Invoice name."""
+	legacy = "DMS Editable - Sales Order"
+	current = "DMS Editable - Proforma Invoice"
+	if not frappe.db.exists("Print Format", legacy) or frappe.db.exists("Print Format", current):
+		return
+	try:
+		frappe.rename_doc("Print Format", legacy, current, force=True)
+	except Exception:
+		# A locked or customized installation can complete the rename manually;
+		# keeping the legacy format is safer than replacing its content.
+		frappe.log_error(frappe.get_traceback(), "Unable to rename Sales Order print format")
+
+
 def _letterhead_content():
 	return '{% include "templates/includes/auto_service_print/letterhead.html" %}'
 
@@ -358,8 +372,21 @@ def _ensure_letterhead(name, is_default):
 	)
 
 
+def _ensure_print_heading(name="Proforma Invoice"):
+	if not frappe.db.exists("Print Heading", name):
+		frappe.get_doc(
+			{
+				"doctype": "Print Heading",
+				"print_heading": name,
+				"description": "DMS Sales Order print heading",
+			}
+		).insert(ignore_permissions=True)
+
+
 def ensure_print_branding():
-	"""Idempotently create app-owned builder formats and branded letterheads."""
+	"""Idempotently create app-owned formats, heading, and branded letterheads."""
+	_migrate_sales_order_builder_format()
+	_ensure_print_heading()
 	for name, doc_type, template in DMS_PRINT_FORMATS:
 		_ensure_builder_format(
 			f"DMS Editable - {name}",

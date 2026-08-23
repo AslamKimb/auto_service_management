@@ -1,4 +1,6 @@
-# Repair Job Sales Quotation and Print Output Specification
+# Legacy Repair Job Sales Quotation and Print Output Specification
+
+> Historical compatibility specification. New Repair Job document creation uses Sales Order documents printed as Proforma Invoice. Existing Quotation records, read-only summaries, and invoice compatibility mapping remain supported; no new Quotation action is exposed.
 
 ## Goal
 

@@ -80,6 +80,8 @@ doctype_js = {
 override_whitelisted_methods = {
 	"erpnext.selling.doctype.quotation.quotation.make_sales_invoice":
 		"auto_service_management.auto_service_management.integration.quotation_mapping.make_sales_invoice",
+	"erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice":
+		"auto_service_management.auto_service_management.integration.sales_order_mapping.make_sales_invoice",
 }
 
 doc_events = {
@@ -104,6 +106,13 @@ doc_events = {
 		"on_submit": "auto_service_management.auto_service_management.integration.erpnext.document_sync.sync_material_request",
 		"on_cancel": "auto_service_management.auto_service_management.integration.erpnext.document_sync.cancel_material_request",
 		"on_trash": "auto_service_management.auto_service_management.integration.erpnext.document_sync.trash_material_request",
+	},
+	"Sales Order": {
+		"validate": "auto_service_management.auto_service_management.integration.erpnext.document_sync.validate_sales_order",
+		"on_update": "auto_service_management.auto_service_management.integration.erpnext.document_sync.sync_sales_order",
+		"on_submit": "auto_service_management.auto_service_management.integration.erpnext.document_sync.submit_sales_order",
+		"on_cancel": "auto_service_management.auto_service_management.integration.erpnext.document_sync.cancel_sales_order",
+		"on_trash": "auto_service_management.auto_service_management.integration.erpnext.document_sync.trash_sales_order",
 	},
 	"Timesheet": {
 		"on_submit": "auto_service_management.auto_service_management.integration.erpnext.adapters.sync_timesheet_actuals",

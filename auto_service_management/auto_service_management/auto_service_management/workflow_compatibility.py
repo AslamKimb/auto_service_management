@@ -33,6 +33,17 @@ REPAIR_JOB_INVOICE_FIELDS = (
 	"outstanding_amount",
 	"payment_status",
 )
+REPAIR_JOB_SALES_ORDER_FIELDS = (
+	"repair_job",
+	"sales_order",
+	"transaction_date",
+	"delivery_date",
+	"status",
+	"docstatus",
+	"grand_total",
+	"per_billed",
+	"billing_status",
+)
 REPAIR_JOB_PAYMENT_FIELDS = (
 	"repair_job",
 	"payment_entry",
@@ -95,6 +106,24 @@ def sync_repair_job_compatibility_views(repair_job):
 		sum(flt(row.get("grand_total")) for row in repair_job.get("sales_invoices") or []),
 		repair_job.payment_total,
 	)
+	repair_job.set(
+		"sales_orders",
+		[
+			{field: row.get(field) for field in REPAIR_JOB_SALES_ORDER_FIELDS}
+			for row in build_repair_job_sales_order_rows(repair_job.name)
+		],
+	)
+	# Keep the singular field as a derived compatibility pointer for older
+	# callers: prefer the newest submitted order, otherwise newest draft.
+	if repair_job.get("sales_orders"):
+		ordered = sorted(
+			repair_job.get("sales_orders") or [],
+			key=lambda row: (int(row.get("docstatus") or 0) == 1, row.get("transaction_date") or "", row.get("sales_order") or ""),
+			reverse=True,
+		)
+		repair_job.sales_order = ordered[0].get("sales_order")
+	else:
+		repair_job.sales_order = None
 	return repair_job
 
 
@@ -267,6 +296,40 @@ def build_repair_job_invoice_rows(repair_job_name: str) -> list[dict]:
 					flt(invoice.get("rounded_total") or invoice.grand_total),
 					flt(max(flt(invoice.get("rounded_total") or invoice.grand_total) - flt(getattr(invoice, "outstanding_amount", 0)), 0)),
 				),
+			}
+		)
+	return rows
+
+
+def build_repair_job_sales_order_rows(repair_job_name: str) -> list[dict]:
+	orders = frappe.get_all(
+		"Sales Order",
+		filters={"repair_job": repair_job_name},
+		fields=["name", "transaction_date", "delivery_date", "status", "docstatus", "grand_total", "per_billed"],
+		order_by="creation asc",
+		limit_page_length=0,
+	)
+	rows = []
+	for order in orders:
+		if order.docstatus == 2:
+			billing_status = "Cancelled"
+		elif flt(order.per_billed) >= 100:
+			billing_status = "Fully Billed"
+		elif flt(order.per_billed) > 0:
+			billing_status = "Partly Billed"
+		else:
+			billing_status = "Not Billed"
+		rows.append(
+			{
+				"repair_job": repair_job_name,
+				"sales_order": order.name,
+				"transaction_date": order.transaction_date,
+				"delivery_date": order.delivery_date,
+				"status": order.status or {0: "Draft", 1: "Submitted", 2: "Cancelled"}.get(order.docstatus, "Draft"),
+				"docstatus": order.docstatus,
+				"grand_total": flt(order.grand_total),
+				"per_billed": flt(order.per_billed),
+				"billing_status": billing_status,
 			}
 		)
 	return rows

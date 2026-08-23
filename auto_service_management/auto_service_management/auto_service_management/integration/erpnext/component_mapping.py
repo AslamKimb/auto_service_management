@@ -112,6 +112,101 @@ def map_sales_invoice(
 	return target
 
 
+def map_sales_order(
+	repair_job_name: str,
+	*,
+	target_doc: str | dict | None = None,
+	service_names: Iterable[str] | None = None,
+	component_refs: Iterable[dict] | str | None = None,
+) -> Document:
+	"""Map billable Repair Job components into a draft Sales Order.
+
+	Draft orders are alternative Proforma revisions; overlap is validated when an
+	order is submitted. Components covered by a submitted invoice are excluded.
+	"""
+	repair_job = _get_repair_job(repair_job_name)
+	requested_refs = _normalize_component_refs(component_refs)
+	if isinstance(service_names, str):
+		service_names = frappe.parse_json(service_names)
+	service_names = set(service_names or [])
+	target = _get_target_doc("Sales Order", target_doc)
+	_validate_target_job(target, repair_job)
+	_validate_service_scope(repair_job.name, service_names, None, document_label=_("Sales Order"))
+	_validate_requested_component_refs(repair_job.name, requested_refs, service_names)
+	components = []
+	for service, component in iter_repair_job_components(
+		repair_job.name,
+		include_excluded=False,
+		billable_only=True,
+		service_names=service_names,
+	):
+		if requested_refs is not None and (component.row_doctype, component.name) not in requested_refs:
+			continue
+		if _component_invoice_state(component) == "Invoiced":
+			continue
+		components.append((service, component))
+	if not components:
+		frappe.throw(_("No billable Parts, Consumables, or Labour components are available on this Repair Job."))
+
+	settings = frappe.get_single("Auto Service Settings")
+	_validate_company(target, settings.company)
+	_set_if_empty(target, "customer", repair_job.customer)
+	_set_if_empty(target, "company", settings.company)
+	_set_if_empty(target, "selling_price_list", settings.selling_price_list or settings.price_list)
+	_set_if_empty(target, "project", repair_job.project)
+	target.repair_job = repair_job.name
+	if len(service_names) == 1:
+		target.repair_job_service = next(iter(service_names))
+	target.transaction_date = target.get("transaction_date") or today()
+	target.delivery_date = target.get("delivery_date") or (
+		frappe.utils.getdate(repair_job.promised_date) if repair_job.promised_date else target.transaction_date
+	)
+	for service, component in components:
+		target.append("items", _sales_order_item(repair_job, service, component))
+	target.run_method("set_missing_values")
+	target.run_method("calculate_taxes_and_totals")
+	return target
+
+
+@frappe.whitelist(methods=["GET"])
+def get_sales_order_components(repair_job_name: str, service_name: str | None = None) -> dict:
+	"""Return selectable component rows and Sales Order/Invoice history."""
+	repair_job = _get_repair_job(repair_job_name)
+	service_names = {service_name} if service_name else None
+	if service_name:
+		frappe.get_doc("Repair Job Service", service_name).check_permission("read")
+		_validate_service_scope(repair_job.name, service_names, None, document_label=_("Sales Order"))
+	history = _sales_order_component_history(repair_job.name, service_name)
+	rows = []
+	counts = {"Available": 0, "Draft": 0, "Submitted": 0, "Cancelled": 0, "Invoiced": 0, "Not Billable": 0}
+	for service, component in iter_repair_job_components(
+		repair_job.name, include_excluded=False, service_names=service_names
+	):
+		state = "Not Billable" if not component.billable else "Invoiced" if _component_invoice_state(component) == "Invoiced" else _component_sales_order_state(component)
+		counts[state] += 1
+		rows.append({
+			"repair_job_service": service.name,
+			"service_name": service.service_name or service.name,
+			"component_doctype": component.row_doctype,
+			"component_name": component.name,
+			"component_type": component.component_type,
+			"description": component.service_description or component.item_code or component.name,
+			"item_code": component.item_code,
+			"quantity": flt(component.invoice_quantity),
+			"rate": flt(component.invoice_rate),
+			"amount": flt(component.invoice_amount),
+			"billable": bool(component.billable),
+			"sales_invoice": component.sales_invoice,
+			"sales_order": component.sales_order,
+			"sales_order_item": component.sales_order_item,
+			"order_state": state,
+			"sales_order_state": state,
+			"history": history.get((component.row_doctype, component.name), []),
+			"selectable": state == "Available",
+		})
+	return {"repair_job": repair_job.name, "components": rows, "counts": counts}
+
+
 def map_quotation(
 	repair_job_name: str,
 	*,
@@ -443,7 +538,7 @@ def _validate_target_job(target, repair_job):
 	if target.get("repair_job") and target.repair_job != repair_job.name:
 		frappe.throw(_("A target document can contain components from only one Repair Job."))
 	target_customer = target.get("customer") or target.get("party_name")
-	if target.doctype in {"Sales Invoice", "Quotation"} and target_customer and target_customer != repair_job.customer:
+	if target.doctype in {"Sales Invoice", "Quotation", "Sales Order"} and target_customer and target_customer != repair_job.customer:
 		frappe.throw(_("Target customer must match the Repair Job customer."))
 
 	item_jobs = {row.repair_job for row in target.get("items") or [] if getattr(row, "repair_job", None)}
@@ -616,7 +711,85 @@ def _sales_invoice_item(repair_job, service, component: ServiceComponent):
 	}
 	if component.component_type in STOCK_COMPONENT_TYPES:
 		item["discount_percentage"] = flt(component.discount_percentage)
+	accepted_order = _accepted_sales_order_item(component)
+	if accepted_order:
+		item["sales_order"], item["so_detail"] = accepted_order
 	return item
+
+
+def _sales_order_item(repair_job, service, component: ServiceComponent):
+	item = _sales_invoice_item(repair_job, service, component)
+	item.pop("sales_order", None)
+	item.pop("so_detail", None)
+	return item
+
+
+def _accepted_sales_order_item(component):
+	order_name = getattr(component, "sales_order", None)
+	item_name = getattr(component, "sales_order_item", None)
+	if not order_name or not item_name:
+		return None
+	if frappe.db.get_value("Sales Order", order_name, "docstatus") != 1:
+		return None
+	if not frappe.db.exists("Sales Order Item", item_name):
+		return None
+	return order_name, item_name
+
+
+def _component_sales_order_state(component):
+	order_name = getattr(component, "sales_order", None)
+	if not order_name:
+		return "Available"
+	docstatus = frappe.db.get_value("Sales Order", order_name, "docstatus")
+	return {0: "Draft", 1: "Submitted", 2: "Cancelled"}.get(docstatus, "Available")
+
+
+def _sales_order_component_history(repair_job_name: str, service_name: str | None = None):
+	filters = {
+		"repair_job": repair_job_name,
+		"repair_component_doctype": ["is", "set"],
+		"repair_component_row": ["is", "set"],
+	}
+	if service_name:
+		filters["repair_job_service"] = service_name
+	items = frappe.get_all(
+		"Sales Order Item",
+		filters=filters,
+		fields=["name", "parent", "repair_component_doctype", "repair_component_row", "qty", "creation"],
+		order_by="creation desc",
+		limit_page_length=0,
+	)
+	orders = {
+		row.name: row
+		for row in (
+			frappe.get_all(
+				"Sales Order",
+				filters={"name": ["in", sorted({item.parent for item in items})]},
+				fields=["name", "docstatus", "status", "transaction_date", "delivery_date", "grand_total"],
+				limit_page_length=0,
+			)
+			if items
+			else []
+		)
+	}
+	history = {}
+	for item in items:
+		order = orders.get(item.parent)
+		if not order:
+			continue
+		history.setdefault((item.repair_component_doctype, item.repair_component_row), []).append(
+			{
+				"sales_order": order.name,
+				"sales_order_item": item.name,
+				"docstatus": order.docstatus,
+				"status": order.status or ({0: "Draft", 1: "Submitted", 2: "Cancelled"}.get(order.docstatus, "Draft")),
+				"transaction_date": order.transaction_date,
+				"delivery_date": order.delivery_date,
+				"grand_total": flt(order.grand_total),
+				"quantity": flt(item.qty),
+			}
+		)
+	return history
 
 
 def _material_request_item(repair_job, service, component: ServiceComponent, settings):

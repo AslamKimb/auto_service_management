@@ -54,6 +54,24 @@ def make_sales_invoice(
 
 
 @frappe.whitelist(methods=["POST"])
+def make_sales_order(
+	source_name: str,
+	target_doc: str | None = None,
+	component_refs=None,
+):
+	from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
+		map_sales_order,
+	)
+
+	args = getattr(frappe.flags, "args", None) or {}
+	return map_sales_order(
+		source_name,
+		target_doc=target_doc,
+		component_refs=component_refs or args.get("component_refs"),
+	)
+
+
+@frappe.whitelist(methods=["POST"])
 def make_material_request(
 	source_name: str,
 	target_doc: str | None = None,
@@ -74,7 +92,22 @@ def make_material_request(
 
 
 @frappe.whitelist(methods=["GET"])
+def get_sales_order_summary(repair_job_name: str) -> dict:
+	job = frappe.get_doc("Repair Job", repair_job_name)
+	job.check_permission("read")
+	orders = frappe.get_all(
+		"Sales Order",
+		filters={"repair_job": repair_job_name},
+		fields=["name", "docstatus", "status", "transaction_date", "delivery_date", "grand_total", "per_billed"],
+		order_by="creation desc",
+		limit_page_length=0,
+	)
+	return {"count": len(orders), "sales_orders": orders}
+
+
+@frappe.whitelist(methods=["GET"])
 def get_quotation_summary(repair_job_name: str) -> dict:
+	"""Read-only legacy view retained for historical Quotation documents."""
 	job = frappe.get_doc("Repair Job", repair_job_name)
 	job.check_permission("read")
 	quotations = frappe.get_all(
@@ -717,25 +750,18 @@ class RepairJob(Document):
 	# ------------------------------------------------------------------ #
 
 	@frappe.whitelist(methods=["POST"])
-	def create_quotation(self):
-		"""Generate a Quotation from approved service components."""
-		self._require_write_permission()
-		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
-			create_quotation,
-		)
-
-		quote_name = create_quotation(self)
-		self.reload()
-		return quote_name
-
-	@frappe.whitelist(methods=["POST"])
-	def create_sales_order(self):
+	def create_sales_order(self, component_refs=None, service_names=None):
 		self._require_write_permission()
 		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
 			create_sales_order,
 		)
 
-		so_name = create_sales_order(self)
+		args = getattr(frappe.flags, "args", None) or {}
+		so_name = create_sales_order(
+			self,
+			component_refs=component_refs or args.get("component_refs"),
+			service_names=service_names or args.get("service_names"),
+		)
 		self.reload()
 		return so_name
 

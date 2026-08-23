@@ -62,7 +62,7 @@ def make_sales_invoice(
 
 
 @frappe.whitelist(methods=["POST"])
-def make_quotation(
+def make_sales_order(
 	source_name: str,
 	target_doc: str | None = None,
 	component_refs=None,
@@ -70,11 +70,11 @@ def make_quotation(
 	service = frappe.get_doc("Repair Job Service", source_name)
 	service.check_permission("read")
 	from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
-		map_quotation,
+		map_sales_order,
 	)
 
 	args = getattr(frappe.flags, "args", None) or {}
-	return map_quotation(
+	return map_sales_order(
 		service.repair_job,
 		target_doc=target_doc,
 		service_names={service.name},
@@ -166,13 +166,17 @@ class ServiceComponent:
 
 class RepairJobService(Document):
 	@frappe.whitelist(methods=["POST"])
-	def create_quotation(self):
+	def create_sales_order(self, component_refs=None):
 		self.check_permission("write")
 		from auto_service_management.auto_service_management.integration.erpnext.adapters import (
-			create_quotation,
+			create_sales_order,
 		)
 
-		return create_quotation(frappe.get_doc("Repair Job", self.repair_job), service_names={self.name})
+		return create_sales_order(
+			frappe.get_doc("Repair Job", self.repair_job),
+			service_names={self.name},
+			component_refs=component_refs,
+		)
 
 	def materialize_template_components(self):
 		"""Copy missing template fields and component rows onto this service once."""
@@ -475,6 +479,8 @@ def component_has_downstream(component):
 			"stock_entry_detail",
 			"timesheet",
 			"timesheet_detail",
+			"sales_order",
+			"sales_order_item",
 			"sales_invoice",
 			"sales_invoice_item",
 		)

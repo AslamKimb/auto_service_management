@@ -71,6 +71,110 @@
 		},
 	};
 
+	function load_sales_order_components(options) {
+		return frappe.call({
+			method: "auto_service_management.auto_service_management.integration.erpnext.component_mapping.get_sales_order_components",
+			type: "GET",
+			args: {
+				repair_job_name: options.repairJob,
+				service_name: options.serviceName || undefined,
+			},
+		}).then((response) => response.message || { components: [], counts: {}, totals: {} });
+	}
+
+	function sales_order_state(row) {
+		return row.sales_order_state || row.order_state || row.component_state || row.invoice_state || "Unordered";
+	}
+
+	function sales_order_link(name) {
+		return name
+			? `<a href="/app/sales-order/${encodeURIComponent(name)}">${esc(name)}</a>`
+			: `<span class="text-muted">${__("Not created")}</span>`;
+	}
+
+	function render_sales_order_summary(frm, fieldname, data) {
+		const field = frm.fields_dict[fieldname];
+		if (!field) return;
+		const counts = data.counts || {};
+		const rows = (data.components || []).map((row) => {
+			const state = sales_order_state(row);
+			const indicator = state === "Submitted" || state === "Billed" || state === "Available" ? "green"
+				: state === "Draft" || state === "Reserved" ? "orange"
+				: state === "Cancelled" || state === "Invoiced" ? "gray" : "red";
+			return `<tr><td>${esc(row.service_name || "—")}</td><td>${esc(row.component_type || row.service_type || "—")}</td><td>${esc(row.description || row.service_description || row.item_code || "—")}</td><td>${row.quantity || row.invoice_quantity || 0}</td><td>${amount(row.amount || row.invoice_amount)}</td><td><span class="indicator-pill ${indicator}">${esc(state)}</span></td><td>${sales_order_link(row.sales_order)}</td></tr>`;
+		}).join("");
+		field.$wrapper.html(`<div class="text-muted small mb-2">${__("Available")}: <b>${counts.Available || counts.Unordered || 0}</b> · ${__("Invoiced")}: <b>${counts.Invoiced || 0}</b> · ${__("Not Billable")}: <b>${counts["Not Billable"] || 0}</b></div><div class="table-responsive"><table class="table table-bordered table-sm"><thead><tr><th>${__("Service")}</th><th>${__("Type")}</th><th>${__("Component")}</th><th>${__("Qty")}</th><th>${__("Amount")}</th><th>${__("Proforma State")}</th><th>${__("Sales Order")}</th></tr></thead><tbody>${rows || `<tr><td colspan="7" class="text-muted">${__("No service components found.")}</td></tr>`}</tbody></table></div>`);
+	}
+
+	function render_sales_order_loading(frm, fieldname) {
+		const field = frm.fields_dict[fieldname];
+		if (field) field.$wrapper.html(`<div class="text-muted small">${__("Loading Proforma Invoice components…")}</div>`);
+	}
+
+	function render_sales_order_error(frm, fieldname) {
+		const field = frm.fields_dict[fieldname];
+		if (field) field.$wrapper.html(`<div class="text-danger small">${__("Unable to load Sales Order component status. Refresh to try again.")}</div>`);
+	}
+
+	function open_sales_order_dialog(frm, options, data) {
+		const rows = (data.components || []).filter((row) => {
+			const state = sales_order_state(row);
+			return row.selectable !== false && row.billable !== false && state !== "Invoiced";
+		});
+		if (!rows.length) {
+			frappe.msgprint(__("There are no selectable billable components available for a Proforma Invoice."));
+			return;
+		}
+		const html = rows.map((row, index) => {
+			const state = sales_order_state(row);
+			const existing = row.sales_order ? ` · ${__("Existing")}: ${sales_order_link(row.sales_order)}` : "";
+			return `<label class="d-flex align-items-start mb-2"><input type="checkbox" class="sales-order-component-choice mr-2 mt-1" data-index="${index}" checked><span><b>${esc(row.service_name || "—")}</b> · ${esc(row.component_type || row.service_type || "—")} · ${esc(row.description || row.service_description || row.item_code || "—")}<br><span class="text-muted">${__("Quantity")}: ${row.quantity || row.invoice_quantity || 0} · ${__("Amount")}: ${amount(row.amount || row.invoice_amount)} · ${__("State")}: ${esc(state)}${existing}</span></span></label>`;
+		}).join("");
+		const dialog = new frappe.ui.Dialog({
+			title: options.title || __("Select components for Proforma Invoice (Sales Order)"),
+			fields: [{ fieldname: "components_html", fieldtype: "HTML" }],
+			primary_action_label: __("Create Draft Sales Order"),
+			primary_action() {
+				const selected = [...dialog.fields_dict.components_html.$wrapper.find(".sales-order-component-choice:checked")]
+					.map((input) => rows[Number(input.dataset.index)]);
+				if (!selected.length) {
+					frappe.msgprint(__("Select at least one component."));
+					return;
+				}
+				dialog.hide();
+				frappe.model.open_mapped_doc({
+					method: options.method,
+					frm,
+					args: {
+						component_refs: JSON.stringify(selected.map((row) => ({
+							doctype: row.component_doctype || row.row_doctype || row.doctype,
+							name: row.component_name || row.row_name || row.name,
+						}))),
+					},
+				});
+			},
+		});
+		dialog.fields_dict.components_html.$wrapper.html(html);
+		dialog.show();
+	}
+
+	window.auto_service_sales_orders = {
+		setup(frm, options) {
+			if (frm.is_new()) return;
+			const load_options = { repairJob: options.repairJob || frm.doc.name, serviceName: options.serviceName };
+			render_sales_order_loading(frm, options.fieldname);
+			load_sales_order_components(load_options)
+				.then((data) => render_sales_order_summary(frm, options.fieldname, data))
+				.catch(() => render_sales_order_error(frm, options.fieldname));
+			frm.add_custom_button(__("Proforma Invoice (Sales Order)"), () => {
+				render_sales_order_loading(frm, options.fieldname);
+				load_sales_order_components(load_options)
+					.then((data) => open_sales_order_dialog(frm, options, data))
+					.catch(() => frappe.msgprint(__("Unable to load components. Refresh and try again.")));
+			}, __("Create"));
+		},
+	};
+
 	function load_material_requests(options) {
 		return frappe.call({
 			method: "auto_service_management.auto_service_management.integration.erpnext.component_mapping.get_material_request_components",

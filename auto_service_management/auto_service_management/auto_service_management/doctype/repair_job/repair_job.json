@@ -220,6 +220,13 @@
    "options": "Repair Job Invoice Row"
   },
   {
+   "fieldname": "sales_orders",
+   "fieldtype": "Table",
+   "label": "Proforma Invoices (Sales Orders)",
+   "options": "Repair Job Sales Order Row",
+   "read_only": 1
+  },
+  {
    "fieldname": "payment_entries",
    "fieldtype": "Table",
    "label": "Payment Entries",
@@ -249,6 +256,11 @@
    "fieldname": "billing_components_html",
    "fieldtype": "HTML",
    "label": "Component Billing Status"
+  },
+  {
+   "fieldname": "sales_orders_html",
+   "fieldtype": "HTML",
+   "label": "Proforma Invoice Component Status"
   },
   {
    "fieldname": "material_requests_html",

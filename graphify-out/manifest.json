@@ -8,12 +8,12 @@
     "hash": "b3214f47bb2daa00a7a533994440c563"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\hooks.py": {
-    "mtime": 1784465132.6396723,
+    "mtime": 1787487040.4066637,
     "hash": "890e1066f9252a1b29f99e165a5c8369"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\hooks.py": {
-    "mtime": 1787448666.1830297,
-    "hash": "f711458ebd30cefbe5b3bc784f65cc56"
+    "mtime": 1787487030.9042058,
+    "hash": "5dc3c98e2cb8cae889fd6f9dbe9f7aad"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\portal.py": {
     "mtime": 1784796863.5662997,
@@ -28,8 +28,8 @@
     "hash": "4867131295172353fe6c2295851defc7"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\custom_fields.py": {
-    "mtime": 1785622802.068776,
-    "hash": "2c330b634823810e8cda32ecf8d8b476"
+    "mtime": 1787486458.094192,
+    "hash": "d820be91c9d7851aa591d885b2a3e27e"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\desktop.py": {
     "mtime": 1785676082.145233,
@@ -40,23 +40,23 @@
     "hash": "d25905d7311f300de543f147ef00cdb7"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\printing.py": {
-    "mtime": 1787477340.5388036,
-    "hash": "a07db1fe54d8c124027c1ff32dcd8736"
+    "mtime": 1787490469.461939,
+    "hash": "37b1f0a2db64bdaae037c83391d862fe"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\user_defaults.py": {
     "mtime": 1782774771.0,
     "hash": "c5793eb09ae1948f651c5f61b694133c"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\workflow_compatibility.py": {
-    "mtime": 1784651938.212777,
-    "hash": "eef5df5ad9889038d72bf315e4c89588"
+    "mtime": 1787487410.5796497,
+    "hash": "54cecaf934be995f43cc64d0426eb1d0"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\workflow_setup.py": {
     "mtime": 1784510686.170789,
     "hash": "fddafbc51e5d3091d992990100eecf63"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\workspace_dashboard.py": {
-    "mtime": 1784797269.720405,
+    "mtime": 1787493590.5932255,
     "hash": "1da84422c42718577581d16250bd8351"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\__init__.py": {
@@ -128,12 +128,12 @@
     "hash": "68b329da9893e34099c7d8ad5cb9c940"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\repair_job\\repair_job.js": {
-    "mtime": 1785623096.6056654,
-    "hash": "1732be82ef8fe59691cb4cdf99c1a01e"
+    "mtime": 1787486294.8184285,
+    "hash": "c7cf2df752142829e464e2359d988def"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\repair_job\\repair_job.py": {
-    "mtime": 1787448666.1845531,
-    "hash": "3514fc7667fdd468b1e2710d091745ec"
+    "mtime": 1787491328.5021007,
+    "hash": "02337b1caff40a4da1e47de42752a8e3"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\repair_job_invoice_row\\repair_job_invoice_row.py": {
     "mtime": 1784231273.1322,
@@ -159,13 +159,21 @@
     "mtime": 1784231273.14079,
     "hash": "68b329da9893e34099c7d8ad5cb9c940"
   },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\repair_job_sales_order_row\\repair_job_sales_order_row.py": {
+    "mtime": 1787486647.7896006,
+    "hash": "83253663878c8a54ed4a0f342519ef76"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\repair_job_sales_order_row\\__init__.py": {
+    "mtime": 1787486647.7864592,
+    "hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\repair_job_service\\repair_job_service.js": {
-    "mtime": 1785623121.7569344,
-    "hash": "d84ffc9a8c39cd010db21d4244d5cd65"
+    "mtime": 1787486570.412339,
+    "hash": "d5e3850cfd7fa27631ebcbc71b3efaa3"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\repair_job_service\\repair_job_service.py": {
-    "mtime": 1785623018.4241874,
-    "hash": "a54c08f4a09375fa6e03e0c0295f22a1"
+    "mtime": 1787491328.5000832,
+    "hash": "3145b6c29b1365147bfddf28b9df2c45"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\repair_job_service\\__init__.py": {
     "mtime": 1783472734.8641176,
@@ -243,21 +251,25 @@
     "mtime": 1785626754.3161132,
     "hash": "572e5b98614c1a540e6e3bb287e2d500"
   },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\integration\\sales_order_mapping.py": {
+    "mtime": 1787487987.4305568,
+    "hash": "46cf989a44ab217a502dfcc330888f07"
+  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\integration\\__init__.py": {
     "mtime": 1782727080.0,
     "hash": "81051bcc2cf1bedf378224b0a93e2877"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\integration\\erpnext\\adapters.py": {
-    "mtime": 1785622941.5020933,
-    "hash": "61d632893eb5258a98cad3cad2b96626"
+    "mtime": 1787486392.1658723,
+    "hash": "1d104503e90004c9d59154abdbc528ad"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\integration\\erpnext\\component_mapping.py": {
-    "mtime": 1785623703.6246493,
-    "hash": "613e410a435328472b50bf0af71c6195"
+    "mtime": 1787487106.483587,
+    "hash": "74e01e7753086cbdb3d9b16b568de026"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\integration\\erpnext\\document_sync.py": {
-    "mtime": 1785425526.1899955,
-    "hash": "5f2f5879a11120aad5023c458305fbe0"
+    "mtime": 1787490469.4639423,
+    "hash": "02466e2d672e5fc164845819e8c70148"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\integration\\erpnext\\__init__.py": {
     "mtime": 1782727080.0,
@@ -290,6 +302,10 @@
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\print_format\\job_card\\__init__.py": {
     "mtime": 1782731300.0,
     "hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\print_format\\proforma_invoice\\__init__.py": {
+    "mtime": 1787486382.5776072,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\print_format\\repair_summary\\__init__.py": {
     "mtime": 1782731300.0,
@@ -512,8 +528,8 @@
     "hash": "2f2305f18c3c35e32904ae3fc713224e"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_phase10_mapping_units.py": {
-    "mtime": 1785625650.991724,
-    "hash": "ee549beb24ff6933502a42ce00d280c6"
+    "mtime": 1787491328.5036905,
+    "hash": "ebbde417d4313b4d6ab29ccce7916933"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_phase10_service_billing_contracts.py": {
     "mtime": 1784620538.0759072,
@@ -552,8 +568,8 @@
     "hash": "a7122ee0389e903561872afb56eb8c6f"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_phase6_contracts.py": {
-    "mtime": 1787477340.5494635,
-    "hash": "9cc595e85596e62d28535b30ee55d15b"
+    "mtime": 1787493344.41814,
+    "hash": "9f2b421346520a7ed943afc1924bdd64"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_phase7_hardening.py": {
     "mtime": 1782755427.0,
@@ -562,6 +578,10 @@
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_printing.py": {
     "mtime": 1787449668.283747,
     "hash": "ca3143b1bde6f62cfbe2d72412fa7c1a"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_proforma_ui_contracts.py": {
+    "mtime": 1787492757.8991091,
+    "hash": "ae9b516e38dd1f1d6dd679102b66734c"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_repair_job_workflow.py": {
     "mtime": 1784362692.1457548,
@@ -575,13 +595,17 @@
     "mtime": 1784512106.8267696,
     "hash": "e625e2c12f7da212862b7920ba4ad0c4"
   },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_sales_order_backend_contract.py": {
+    "mtime": 1787491357.3560407,
+    "hash": "329fc46cacace9800b4edc85f417469e"
+  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_workflow_compatibility.py": {
     "mtime": 1784635636.1422865,
     "hash": "7ad2d5877f0ec8e181cde7ff9d02b24b"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_workspace_dashboard.py": {
-    "mtime": 1785055929.4028914,
-    "hash": "2b004710dd9a4eec2a0055271c4e2f22"
+    "mtime": 1787493590.5942261,
+    "hash": "e0cec1729f138ed2fd60929d63e96072"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\__init__.py": {
     "mtime": 1782726628.0,
@@ -696,8 +720,8 @@
     "hash": "51640cda52ecfeec3f285eba855a6a68"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\js\\repair_job_billing.js": {
-    "mtime": 1785421239.3316774,
-    "hash": "c792274a4fe57b0ac7d288eb24aa6e0b"
+    "mtime": 1787486614.7220836,
+    "hash": "4afc8a0de865928f23314a56e8c66705"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\js\\sales_invoice.js": {
     "mtime": 1784365630.2188642,
@@ -779,9 +803,13 @@
     "mtime": 1785419815.650464,
     "hash": "b66beb5ea6e3f13414eca2db36aac886"
   },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\gauntlet-progress.md": {
+    "mtime": 1787494064.0483801,
+    "hash": "126992b03ead5d5f501291a4aed518a2"
+  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\IMPLEMENTATION_PLAN.md": {
-    "mtime": 1787477735.9652154,
-    "hash": "a9e496108fcb8ccd51e92a0946188d5c"
+    "mtime": 1787494075.729545,
+    "hash": "18e511ae75107d55c4290c068a6119d6"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\README.md": {
     "mtime": 1784804868.772587,
@@ -828,8 +856,8 @@
     "hash": "906a5a16d5321d0c247e55e8e1c7c385"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\templates\\includes\\auto_service_print\\estimate_summary.html": {
-    "mtime": 1785623151.820759,
-    "hash": "66a3d1102ff8ee744c7297107199ff78"
+    "mtime": 1787486529.3310244,
+    "hash": "63555b4af51711a83faebd89ea2b3696"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\templates\\includes\\auto_service_print\\gate_pass.html": {
     "mtime": 1784759751.4401412,
@@ -842,6 +870,10 @@
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\templates\\includes\\auto_service_print\\letterhead.html": {
     "mtime": 1785666856.2633653,
     "hash": "8d00948efede61c17dc82ef374bcd1c2"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\templates\\includes\\auto_service_print\\proforma_invoice.html": {
+    "mtime": 1787486673.090864,
+    "hash": "080b8c7855e24149147c25ff19bbc034"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\templates\\includes\\auto_service_print\\repair_summary.html": {
     "mtime": 1784759751.4424243,
@@ -864,7 +896,7 @@
     "hash": "6f35a8031cf209d06607d24911a4fd81"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\graphify-out\\converted\\item details_dcfcd323.md": {
-    "mtime": 1787477765.3520525,
+    "mtime": 1787494093.157091,
     "hash": "de84bcd09115e8bf57d65089fa130565"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\onboarding.html": {
@@ -891,6 +923,10 @@
     "mtime": 1787477340.5524635,
     "hash": "c1567daa47ea1de19d9da2b1c48cd3ec"
   },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\design\\repair-job-sales-order.md": {
+    "mtime": 1787487774.6651769,
+    "hash": "9490b5c5ba9e69a509f9e568f0544f0b"
+  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\import\\parts-catalog\\IMPORT_GUIDE.md": {
     "mtime": 1785490803.0758352,
     "hash": "f7942b0f323d8f3b684a1807d3c20d74"
@@ -900,12 +936,16 @@
     "hash": "96ab5e93e5b78f89dc001a2a50f7c394"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\specs\\automobile-repair-management.md": {
-    "mtime": 1784907713.4988766,
-    "hash": "c10501636c16dc762cf3f816dc49cea7"
+    "mtime": 1787487774.6715293,
+    "hash": "950ce041e6c65ea480eb65835cf95ee7"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\specs\\repair-job-quotation.md": {
-    "mtime": 1785667556.7276003,
-    "hash": "3364431deeeb06d43f9fca01d3c32cfd"
+    "mtime": 1787487774.67737,
+    "hash": "36029296ab7d7d3fae73d32003e18dc7"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\specs\\repair-job-sales-order-proforma.md": {
+    "mtime": 1787487784.364903,
+    "hash": "b104191e60206fe8351bff84e6463bb0"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\use-cases\\real-workflows.md": {
     "mtime": 1783433338.380118,

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 TRACE_CUSTOM_FIELD_NAMES = (
 	"Sales Invoice-repair_job",
+	"Sales Order-repair_job",
+	"Sales Order-repair_job_service",
 	"Quotation-repair_job",
 	"Quotation-repair_job_service",
 	"Material Request-repair_job",
@@ -29,6 +31,12 @@ TRACE_CUSTOM_FIELD_NAMES = (
 	"Sales Invoice Item-repair_component_doctype",
 	"Sales Invoice Item-repair_component_row",
 	"Sales Invoice Item-repair_service_line",
+	"Sales Order Item-repair_job",
+	"Sales Order Item-customer_vehicle",
+	"Sales Order Item-repair_job_service",
+	"Sales Order Item-repair_component_doctype",
+	"Sales Order Item-repair_component_row",
+	"Sales Order Item-repair_service_line",
 	"Quotation Item-repair_job",
 	"Quotation Item-customer_vehicle",
 	"Quotation Item-repair_job_service",
@@ -47,6 +55,26 @@ PARENT_TRACE_FIELDS = {
 		"read_only": 1,
 		"no_copy": 1,
 	},
+	"Sales Order": [
+		{
+			"fieldname": "repair_job",
+			"label": "Repair Job",
+			"fieldtype": "Link",
+			"options": "Repair Job",
+			"insert_after": "customer",
+			"read_only": 1,
+			"no_copy": 1,
+		},
+		{
+			"fieldname": "repair_job_service",
+			"label": "Repair Job Service",
+			"fieldtype": "Link",
+			"options": "Repair Job Service",
+			"insert_after": "repair_job",
+			"read_only": 1,
+			"no_copy": 1,
+		},
+	],
 	"Material Request": {
 		"fieldname": "repair_job",
 		"label": "Repair Job",
@@ -83,6 +111,7 @@ TRACE_CHILD_DOCTYPES = (
 	"Material Request Item",
 	"Stock Entry Detail",
 	"Sales Invoice Item",
+	"Sales Order Item",
 	"Quotation Item",
 )
 

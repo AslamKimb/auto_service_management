@@ -1,0 +1,23 @@
+{% set print_title = "Proforma Invoice" %}
+{% set print_status = doc.status or ("Submitted" if doc.docstatus == 1 else "Draft") %}
+<div class="asm-print">
+{% include "templates/includes/auto_service_print/common.html" %}
+<table class="asm-grid">
+  <tr><th>Customer</th><td>{{ doc.customer_name or doc.customer or "" }}</td><th>Proforma Invoice</th><td>{{ doc.name }}</td></tr>
+  <tr><th>Transaction Date</th><td>{{ doc.get_formatted("transaction_date") if doc.transaction_date else "" }}</td><th>Delivery Date</th><td>{{ doc.get_formatted("delivery_date") if doc.delivery_date else "" }}</td></tr>
+  {% if doc.repair_job %}<tr><th>Repair Job</th><td>{{ doc.repair_job }}</td><th>Currency</th><td>{{ doc.currency or "" }}</td></tr>{% endif %}
+</table>
+<div class="asm-section-title">Proforma Invoice Items</div>
+<table class="asm-lines">
+  <thead><tr><th>#</th><th>Item / Service</th><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+  <tbody>
+  {% for row in doc.items or [] %}
+    <tr><td>{{ row.idx }}</td><td>{{ row.item_code or "" }}</td><td>{{ row.description or "" }}</td><td>{{ row.qty or 0 }} {{ row.uom or "" }}</td><td class="asm-money">{{ frappe.utils.fmt_money(row.rate, currency=doc.currency) }}</td><td class="asm-money">{{ frappe.utils.fmt_money(row.amount, currency=doc.currency) }}</td></tr>
+  {% endfor %}
+    <tr><th colspan="5" class="asm-money">Net Total</th><th class="asm-money">{{ frappe.utils.fmt_money(doc.net_total, currency=doc.currency) }}</th></tr>
+    <tr><th colspan="5" class="asm-money">Grand Total</th><th class="asm-money">{{ frappe.utils.fmt_money(doc.grand_total, currency=doc.currency) }}</th></tr>
+  </tbody>
+</table>
+{% if doc.terms %}<div class="asm-section-title">Terms and Conditions</div><div class="asm-note">{{ doc.terms }}</div>{% endif %}
+<div class="asm-footer">This proforma invoice is a Sales Order. It is not a tax invoice.</div>
+</div>

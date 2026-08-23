@@ -25,6 +25,7 @@ LEGACY_COMPONENT_DOCTYPES = {
 	"Repair Service Line",
 	"Repair Job Invoice Row",
 	"Repair Job Payment Row",
+	"Repair Job Sales Order Row",
 	"Repair Job Service Row",
 	"Quality Check Road Test",
 }

@@ -1,0 +1,23 @@
+{
+ "name": "Repair Job Sales Order Row",
+ "module": "Auto Service Management",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "istable": true,
+ "editable_grid": 1,
+ "fields": [
+  {"fieldname": "repair_job", "fieldtype": "Link", "label": "Repair Job", "options": "Repair Job", "read_only": 1, "in_list_view": 1},
+  {"fieldname": "sales_order", "fieldtype": "Link", "label": "Proforma Invoice", "options": "Sales Order", "read_only": 1, "in_list_view": 1},
+  {"fieldname": "transaction_date", "fieldtype": "Date", "label": "Date", "read_only": 1, "in_list_view": 1},
+  {"fieldname": "delivery_date", "fieldtype": "Date", "label": "Delivery Date", "read_only": 1},
+  {"fieldname": "status", "fieldtype": "Data", "label": "Status", "read_only": 1, "in_list_view": 1},
+  {"fieldname": "docstatus", "fieldtype": "Int", "label": "Document Status", "read_only": 1},
+  {"fieldname": "grand_total", "fieldtype": "Currency", "label": "Grand Total", "options": "currency", "read_only": 1, "in_list_view": 1},
+  {"fieldname": "per_billed", "fieldtype": "Percent", "label": "Billed %", "read_only": 1, "in_list_view": 1},
+  {"fieldname": "billing_status", "fieldtype": "Data", "label": "Billing Status", "read_only": 1, "in_list_view": 1}
+ ],
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

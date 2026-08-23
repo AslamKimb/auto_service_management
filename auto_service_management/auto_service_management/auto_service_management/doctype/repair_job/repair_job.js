@@ -50,14 +50,6 @@ frappe.ui.form.on("Repair Job", {
 			});
 		}, "Services");
 
-		frm.add_custom_button(__("Create Quotation"), () => {
-			frm.call("create_quotation").then((response) => {
-				if (response.message) {
-					frappe.set_route("Form", "Quotation", response.message);
-				}
-			});
-		}, __("Create"));
-
 		setup_optional_widget("auto_service_billing", frm, {
 			fieldname: "billing_components_html",
 			method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_sales_invoice",
@@ -68,9 +60,17 @@ frappe.ui.form.on("Repair Job", {
 			method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_material_request",
 		});
 
-		add_quotation_actions(frm);
+		setup_optional_widget("auto_service_sales_orders", frm, {
+			repairJob: frm.doc.name,
+			fieldname: "sales_orders_html",
+			method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.make_sales_order",
+			title: __("Select components for Proforma Invoice (Sales Order)"),
+		});
 		frm.add_custom_button(__("Sales Invoices"), () => {
 			frappe.set_route("List", "Sales Invoice", { repair_job: frm.doc.name });
+		}, __("Related Documents"));
+		frm.add_custom_button(__("Sales Orders"), () => {
+			frappe.set_route("List", "Sales Order", { repair_job: frm.doc.name });
 		}, __("Related Documents"));
 		frm.add_custom_button(__("Material Requests"), () => {
 			frappe.set_route("List", "Material Request", { repair_job: frm.doc.name });
@@ -242,20 +242,6 @@ function add_related_document_button(frm, options) {
 	frm.add_custom_button(options.create_label, () => {
 		new_doc_with_values(options.doctype, options.route_options);
 	}, "Related Documents");
-}
-
-function add_quotation_actions(frm) {
-	const button = frm.add_custom_button(__("Quotations"), () => {
-		frappe.set_route("List", "Quotation", { repair_job: frm.doc.name });
-	}, __("Related Documents"));
-	frappe.call({
-		method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.get_quotation_summary",
-		args: { repair_job_name: frm.doc.name },
-		type: "GET",
-	}).then((response) => {
-		const count = response.message?.count || 0;
-		button?.text(`${__("Quotations")} (${count})`);
-	});
 }
 
 function new_doc_with_values(doctype, values) {

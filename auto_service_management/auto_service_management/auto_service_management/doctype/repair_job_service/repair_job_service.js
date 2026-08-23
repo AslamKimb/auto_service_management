@@ -40,16 +40,16 @@ frappe.ui.form.on('Repair Job Service', {
                 frappe.set_route('Form', 'Repair Job', frm.doc.repair_job);
             });
 
-            if (!frm.is_new()) {
-				frm.add_custom_button(__('Create Quotation'), function() {
-					frm.call('create_quotation').then(function(response) {
-						if (response.message) {
-							frappe.set_route('Form', 'Quotation', response.message);
-						}
-					});
-				}, __('Create'));
-				frm.add_custom_button(__('Quotations'), function() {
-					frappe.set_route('List', 'Quotation', {
+			if (!frm.is_new()) {
+				auto_service_sales_orders.setup(frm, {
+					repairJob: frm.doc.repair_job,
+					serviceName: frm.doc.name,
+					fieldname: 'sales_orders_html',
+					method: 'auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service.make_sales_order',
+					title: __('Select service components for Proforma Invoice (Sales Order)'),
+				});
+				frm.add_custom_button(__('Sales Orders'), function() {
+					frappe.set_route('List', 'Sales Order', {
 						repair_job: frm.doc.repair_job,
 						repair_job_service: frm.doc.name,
 					});

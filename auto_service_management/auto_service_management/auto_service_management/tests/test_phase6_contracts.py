@@ -380,7 +380,7 @@ class TestPhase6Contracts(UnitTestCase):
 		html = (PRINT_TEMPLATE_ROOT / "estimate_summary.html").read_text(encoding="utf-8")
 
 		self.assertIn(
-			"This quotation is valid for one month only unless the vehicle is not mobile. Payment can be done by CASH, through a bank, DFCU Bank: 01670016727489, OR MTN Mobile Money: 0392554255. We value and respect your time and will provide the best service to you.",
+			"This proforma invoice is valid for one month only unless the vehicle is not mobile. Payment can be done by CASH, through a bank, DFCU Bank: 01670016727489, OR MTN Mobile Money: 0392554255. We value and respect your time and will provide the best service to you.",
 			html,
 		)
 		for marker in ("row.item_code", "row.invoice_quantity", "row.invoice_rate", "row.invoice_amount", "row.row_doctype", "row.name"):

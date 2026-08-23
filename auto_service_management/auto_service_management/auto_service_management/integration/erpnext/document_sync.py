@@ -39,6 +39,50 @@ def validate_sales_invoice(doc, method=None):
 	_validate_invoice_service_submission(doc)
 
 
+def validate_sales_order(doc, method=None):
+	if not _has_repair_traces(doc):
+		return
+	if not doc.get("select_print_heading") and frappe.db.exists("Print Heading", "Proforma Invoice"):
+		doc.select_print_heading = "Proforma Invoice"
+	job = _validate_single_repair_job(doc)
+	if doc.customer != job.customer:
+		frappe.throw(_("Sales Order customer must match Repair Job {0}.").format(job.name))
+	if doc.get("company") and job.get("company") and doc.company != job.company:
+		frappe.throw(_("Sales Order company must match Repair Job {0}.").format(job.name))
+	_validate_component_links(doc, "Sales Order", "sales_order")
+	_validate_component_quantities(doc, labour_uses_billing_hours=True)
+	if getattr(doc, "docstatus", 0) == 1:
+		_validate_sales_order_submission(doc)
+
+
+def sync_sales_order(doc, method=None):
+	if not _has_repair_traces(doc):
+		return
+	job_names = _repair_job_names(doc)
+	if getattr(doc, "docstatus", 0) == 1:
+		_reconcile_component_links(doc, linked_field="sales_order", linked_item_field="sales_order_item")
+	for job_name in job_names:
+		sync_repair_job_related_tables(job_name)
+	_notify_repair_job_related_tables(job_names)
+
+
+def submit_sales_order(doc, method=None):
+	validate_sales_order(doc, method)
+	sync_sales_order(doc, method)
+
+
+def cancel_sales_order(doc, method=None):
+	job_names = _repair_job_names(doc)
+	_release_component_links(doc, "sales_order", "sales_order_item")
+	for job_name in job_names:
+		sync_repair_job_related_tables(job_name)
+	_notify_repair_job_related_tables(job_names)
+
+
+def trash_sales_order(doc, method=None):
+	cancel_sales_order(doc, method)
+
+
 def validate_material_request(doc, method=None):
 	if not _has_repair_traces(doc):
 		return
@@ -271,6 +315,39 @@ def _validate_invoice_service_submission(doc):
 				"Cancelled Repair Job Services cannot be submitted in a Sales Invoice: {0}."
 			).format(", ".join(sorted(invalid)))
 		)
+
+
+def _validate_sales_order_submission(doc):
+	for row in _trace_items(doc):
+		component = frappe.db.get_value(
+			row.repair_component_doctype,
+			row.repair_component_row,
+			["sales_order", "sales_invoice"],
+			as_dict=True,
+		)
+		if not component:
+			continue
+		linked_order = component.get("sales_order")
+		if linked_order and linked_order != doc.name and frappe.db.get_value("Sales Order", linked_order, "docstatus") == 1:
+			frappe.throw(_("Repair component {0} is already owned by submitted Sales Order {1}.").format(row.repair_component_row, linked_order))
+		linked_invoice = component.get("sales_invoice")
+		if linked_invoice and frappe.db.get_value("Sales Invoice", linked_invoice, "docstatus") == 1:
+			frappe.throw(_("Repair component {0} is already invoiced in Sales Invoice {1}.").format(row.repair_component_row, linked_invoice))
+		conflict = frappe.db.sql(
+			"""
+			SELECT soi.parent
+			FROM `tabSales Order Item` soi
+			INNER JOIN `tabSales Order` so ON so.name = soi.parent
+			WHERE so.docstatus = 1
+			AND soi.repair_component_doctype = %s
+			AND soi.repair_component_row = %s
+			AND soi.parent <> %s
+			LIMIT 1
+			""",
+			(row.repair_component_doctype, row.repair_component_row, doc.name),
+		)
+		if conflict:
+			frappe.throw(_("Repair component {0} is already owned by submitted Sales Order {1}.").format(row.repair_component_row, conflict[0][0]))
 
 
 def _validate_single_repair_job(doc):

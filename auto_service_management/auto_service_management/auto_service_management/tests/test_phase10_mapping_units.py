@@ -266,7 +266,7 @@ class TestPhase10MappingUnits(UnitTestCase):
 			)
 		)
 		self.assertIn('@frappe.whitelist(methods=["GET"])\ndef get_quotation_summary', job_source)
-		self.assertIn('@frappe.whitelist(methods=["POST"])\ndef make_quotation', service_source)
+		self.assertNotIn('@frappe.whitelist(methods=["POST"])\ndef make_quotation', service_source)
 
 	def test_sales_invoice_draft_submission_validation_skips_service_status_gate(self):
 		with (

@@ -197,34 +197,21 @@ def create_quotation(repair_job, *, service_names=None):
 # ---------------------------------------------------------------------------
 
 
-def create_sales_order(repair_job):
-	"""Create a Sales Order from the linked Quotation."""
-	if not repair_job.quotation:
-		frappe.throw(_("Create a Quotation before generating a Sales Order."))
-
+def create_sales_order(repair_job, *, service_names=None, component_refs=None):
+	"""Create a draft Sales Order/Proforma from selected Repair Job components."""
 	_require_create_permission("Sales Order")
-	settings = get_settings()
-	quotation = frappe.get_doc("Quotation", repair_job.quotation)
-
-	so = _make_doc(
-		{
-			"doctype": "Sales Order",
-			"customer": repair_job.customer,
-			"company": settings.company,
-			"selling_price_list": settings.selling_price_list or settings.price_list,
-			"items": quotation.items,
-			"po_no": repair_job.name,
-			"project": repair_job.project,
-		}
+	from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
+		map_sales_order,
 	)
-	so.insert(ignore_permissions=True)
-	frappe.db.set_value("Repair Job", repair_job.name, {"sales_order": so.name})
-	for _service, line in _eligible_components(
-		repair_job,
-		billable_only=True,
-	):
-		set_component_values(line, {"sales_order": so.name})
-	return so.name
+
+	args = getattr(frappe.flags, "args", None) or {}
+	order = map_sales_order(
+		repair_job.name,
+		service_names=service_names,
+		component_refs=component_refs or args.get("component_refs"),
+	)
+	order.insert(ignore_permissions=True)
+	return order.name
 
 
 # ---------------------------------------------------------------------------

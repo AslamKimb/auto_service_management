@@ -1,13 +1,13 @@
-{% set print_title = "Estimate Summary" %}
+{% set print_title = "Proforma Invoice" %}
 {% set print_status = doc.job_status %}
 <div class="asm-print">
 {% include "templates/includes/auto_service_print/common.html" %}
 <table class="asm-grid">
   <tr><th>Customer</th><td>{{ doc.customer or "" }}</td><th>Vehicle</th><td>{{ doc.customer_vehicle or "" }}</td></tr>
   <tr><th>Repair Job</th><td>{{ doc.name }}</td><th>Currency</th><td>{{ doc.currency or "" }}</td></tr>
-  <tr><th>Quotation</th><td>{{ doc.quotation or "" }}</td><th>Scope Revision</th><td>{{ doc.scope_revision or 0 }}</td></tr>
+  <tr><th>Proforma Invoice</th><td>{{ doc.sales_order or doc.quotation or "" }}</td><th>Scope Revision</th><td>{{ doc.scope_revision or 0 }}</td></tr>
 </table>
-<div class="asm-section-title">Approved Estimate Scope</div>
+<div class="asm-section-title">Approved Proforma Scope</div>
 <table class="asm-lines">
   <thead><tr><th>Component trace</th><th>Qty / Hours</th><th>Rate</th><th>Amount</th></tr></thead>
   <tbody>
@@ -17,11 +17,11 @@
     <tr><td>&nbsp;&nbsp;{{ row.item_code or row.service_type }} · {{ row.service_description }}<br><span class="asm-muted">Source: {{ row.row_doctype }} / {{ row.name }}</span></td><td>{{ row.invoice_quantity or row.quantity }}</td><td class="asm-money">{{ frappe.utils.fmt_money(row.invoice_rate or row.rate, currency=doc.currency) }}</td><td class="asm-money">{{ frappe.utils.fmt_money(row.invoice_amount or row.amount, currency=doc.currency) }}</td></tr>
     {% endfor %}
   {% endfor %}
-    <tr><th colspan="3" class="asm-money">Estimated Total</th><th class="asm-money">{{ frappe.utils.fmt_money(doc.total_amount, currency=doc.currency) }}</th></tr>
+    <tr><th colspan="3" class="asm-money">Proforma Total</th><th class="asm-money">{{ frappe.utils.fmt_money(doc.total_amount, currency=doc.currency) }}</th></tr>
   </tbody>
 </table>
-<div class="asm-note">This quotation is valid for one month only unless the vehicle is not mobile. Payment can be done by CASH, through a bank, DFCU Bank: 01670016727489, OR MTN Mobile Money: 0392554255. We value and respect your time and will provide the best service to you.</div>
+<div class="asm-note">This proforma invoice is valid for one month only unless the vehicle is not mobile. Payment can be done by CASH, through a bank, DFCU Bank: 01670016727489, OR MTN Mobile Money: 0392554255. We value and respect your time and will provide the best service to you.</div>
 <div class="asm-control"><strong>Authorization gate:</strong> work may proceed only for the authorized scope and amount. Changed or partial approvals require an updated authorization record.</div>
 <div class="asm-signatures"><div class="asm-signature"><div class="asm-signature-line">Customer approval</div></div><div class="asm-signature"><div class="asm-signature-line">Service Advisor</div></div><div class="asm-signature"><div class="asm-signature-line">Date</div></div></div>
-<div class="asm-footer">Estimate is subject to ERPNext pricing, stock availability, taxes, and payment terms.</div>
+<div class="asm-footer">Proforma Invoice is subject to ERPNext pricing, stock availability, taxes, and payment terms.</div>
 </div>
