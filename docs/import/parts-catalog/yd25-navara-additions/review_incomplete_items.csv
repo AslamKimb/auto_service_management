@@ -1,0 +1,2 @@
+vehicle_group,item_name,source_row,system_category,source_unit,quantity,exclusive_price,vat,inclusive_price,issue,recommended_action
+Nissan Navara – YD25 engine,AC pipe brazing,197,Air Conditioning System,PC,,350000.00,63000.00,413000.00,Missing quantity; source total is zero,Confirm quantity and whether this is stock or service before importing

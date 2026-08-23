@@ -1,0 +1,2 @@
+name,item_code,item_name,item_group,stock_uom,description,is_stock_item,is_sales_item,is_purchase_item,disabled
+,ASM-NISSAN-NAVARA-YD25-ENGINE-DE-IONISED-WATER,Nissan Navara – YD25 engine - De-ionised water,Services,PCS,Vehicle applicability: Nissan Navara – YD25 engine; System category: Service; Source section: Service; Source unit: PC,1,1,1,0

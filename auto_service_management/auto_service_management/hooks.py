@@ -14,6 +14,7 @@ app_include_js = ["repair_job_billing.bundle.js"]
 jinja = {
 	"methods": [
 		"auto_service_management.auto_service_management.printing.get_print_branding",
+		"auto_service_management.auto_service_management.printing.get_job_card_context",
 	],
 }
 

@@ -44,6 +44,14 @@
    "read_only": 1
   },
   {
+   "fieldname": "job_card_snapshot",
+   "fieldtype": "Long Text",
+   "label": "Job Card Snapshot",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1
+  },
+  {
    "fieldname": "repair_job_id_html",
    "fieldtype": "HTML",
    "label": "Repair Job ID"

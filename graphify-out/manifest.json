@@ -12,8 +12,8 @@
     "hash": "890e1066f9252a1b29f99e165a5c8369"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\hooks.py": {
-    "mtime": 1785666900.0875897,
-    "hash": "d9ae970fba1f5306c77361a17684fb44"
+    "mtime": 1787448666.1830297,
+    "hash": "f711458ebd30cefbe5b3bc784f65cc56"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\portal.py": {
     "mtime": 1784796863.5662997,
@@ -40,8 +40,8 @@
     "hash": "d25905d7311f300de543f147ef00cdb7"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\printing.py": {
-    "mtime": 1785670079.8233287,
-    "hash": "e04ad3ff2c57271b473407bdc48748bb"
+    "mtime": 1787477340.5388036,
+    "hash": "a07db1fe54d8c124027c1ff32dcd8736"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\user_defaults.py": {
     "mtime": 1782774771.0,
@@ -132,8 +132,8 @@
     "hash": "1732be82ef8fe59691cb4cdf99c1a01e"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\repair_job\\repair_job.py": {
-    "mtime": 1785623018.420287,
-    "hash": "3fc6cf9e956efeb53e24d5ca2a750da3"
+    "mtime": 1787448666.1845531,
+    "hash": "3514fc7667fdd468b1e2710d091745ec"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\repair_job_invoice_row\\repair_job_invoice_row.py": {
     "mtime": 1784231273.1322,
@@ -552,16 +552,16 @@
     "hash": "a7122ee0389e903561872afb56eb8c6f"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_phase6_contracts.py": {
-    "mtime": 1785670120.4677207,
-    "hash": "411887663891ed7fcdc405ee295e24ba"
+    "mtime": 1787477340.5494635,
+    "hash": "9cc595e85596e62d28535b30ee55d15b"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_phase7_hardening.py": {
     "mtime": 1782755427.0,
     "hash": "862f2500551e73eb28d7be873e595a85"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_printing.py": {
-    "mtime": 1785667492.6277788,
-    "hash": "433691132a3c76d3dc1067ed2a8d3cb6"
+    "mtime": 1787449668.283747,
+    "hash": "ca3143b1bde6f62cfbe2d72412fa7c1a"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_repair_job_workflow.py": {
     "mtime": 1784362692.1457548,
@@ -780,8 +780,8 @@
     "hash": "b66beb5ea6e3f13414eca2db36aac886"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\IMPLEMENTATION_PLAN.md": {
-    "mtime": 1785441762.940806,
-    "hash": "6582c56416d6276eeba22bfd55e7b87a"
+    "mtime": 1787477735.9652154,
+    "hash": "a9e496108fcb8ccd51e92a0946188d5c"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\README.md": {
     "mtime": 1784804868.772587,
@@ -836,8 +836,8 @@
     "hash": "f43f6112231e61cf3797a98403f1fd1f"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\templates\\includes\\auto_service_print\\job_card.html": {
-    "mtime": 1784759751.4360075,
-    "hash": "557f928b52ff715a24dec64e58190e45"
+    "mtime": 1787477340.5464435,
+    "hash": "5b9cee0c4895a964c5751471ac345e5c"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\templates\\includes\\auto_service_print\\letterhead.html": {
     "mtime": 1785666856.2633653,
@@ -864,7 +864,7 @@
     "hash": "6f35a8031cf209d06607d24911a4fd81"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\graphify-out\\converted\\item details_dcfcd323.md": {
-    "mtime": 1785677090.614508,
+    "mtime": 1787477765.3520525,
     "hash": "de84bcd09115e8bf57d65089fa130565"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\onboarding.html": {
@@ -887,9 +887,17 @@
     "mtime": 1784228862.694515,
     "hash": "5ed268ccd8f5817da825cdf32bc3ab60"
   },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\design\\job-card-print-format.md": {
+    "mtime": 1787477340.5524635,
+    "hash": "c1567daa47ea1de19d9da2b1c48cd3ec"
+  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\import\\parts-catalog\\IMPORT_GUIDE.md": {
     "mtime": 1785490803.0758352,
     "hash": "f7942b0f323d8f3b684a1807d3c20d74"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\import\\parts-catalog\\yd25-navara-additions\\IMPORT_GUIDE.md": {
+    "mtime": 1786396398.5566788,
+    "hash": "96ab5e93e5b78f89dc001a2a50f7c394"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\specs\\automobile-repair-management.md": {
     "mtime": 1784907713.4988766,
@@ -914,6 +922,14 @@
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\icons\\desktop_icons\\subtle\\car_workshop.svg": {
     "mtime": 1784749360.1046398,
     "hash": "a504122d9c195de313ad48dfa8e59fb3"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\images\\job_card_vehicle_diagram.svg": {
+    "mtime": 1787469319.0296812,
+    "hash": "7d5c77b6a0c70ace74b80c223e8db734"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\images\\vectorised-bb109a99.svg": {
+    "mtime": 1787469319.0296812,
+    "hash": "7d5c77b6a0c70ace74b80c223e8db734"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\images\\vehicle_silhouette.svg": {
     "mtime": 1782766169.0,

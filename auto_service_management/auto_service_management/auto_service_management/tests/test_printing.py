@@ -1,7 +1,14 @@
+import json
+from unittest.mock import patch
+
+import frappe
 from frappe.tests import UnitTestCase
 
+from auto_service_management.auto_service_management.doctype.repair_job.repair_job import RepairJob
 from auto_service_management.auto_service_management.printing import (
 	_builder_format_data,
+	_damage_markers,
+	get_job_card_context,
 	normalize_logo_url,
 	resolve_logo_url,
 )
@@ -38,3 +45,81 @@ class TestPrinting(UnitTestCase):
 		data = _builder_format_data()
 		self.assertIn('"fieldtype": "Custom HTML"', data)
 		self.assertIn("{{ doc.name }}", data)
+
+	def test_job_card_snapshot_is_write_once(self):
+		job = RepairJob(
+			{
+				"doctype": "Repair Job",
+				"customer": "Customer-1",
+				"customer_vehicle": "Vehicle-1",
+			}
+		)
+		snapshot = {"customer": {"name": "Frozen Customer"}, "vehicle": {"registration_number": "UAA 001A"}}
+		with patch(
+			"auto_service_management.auto_service_management.printing.build_job_card_snapshot",
+			return_value=snapshot,
+		) as builder:
+			job.capture_job_card_snapshot()
+			job.customer = "Customer-2"
+			job.capture_job_card_snapshot()
+
+		self.assertEqual(json.loads(job.job_card_snapshot), snapshot)
+		builder.assert_called_once_with("Customer-1", "Vehicle-1")
+
+	def test_job_card_context_prefers_snapshot_and_reads_terms(self):
+		doc = frappe._dict(
+			customer="Customer-1",
+			customer_vehicle="Vehicle-1",
+			job_card_snapshot=json.dumps(
+				{
+					"captured_at": "2026-08-23 10:00:00",
+					"customer": {"name": "Frozen Customer", "address": "Frozen Address"},
+					"vehicle": {"registration_number": "UAA 001A"},
+				}
+			),
+			walkaround_inspection=None,
+			creation="2026-08-22 10:00:00",
+		)
+		with (
+			patch(
+				"auto_service_management.auto_service_management.printing._customer_values",
+				return_value={"name": "Live Customer", "address": "Live Address", "account": "Customer-1"},
+			),
+			patch(
+				"auto_service_management.auto_service_management.printing._vehicle_values",
+				return_value={"registration_number": "UAA 999Z", "account": "Vehicle-1"},
+			),
+			patch(
+				"auto_service_management.auto_service_management.printing._damage_markers",
+				return_value=[],
+			),
+			patch("frappe.db.get_single_value", return_value="Approved workshop terms"),
+		):
+			context = get_job_card_context(doc)
+
+		self.assertEqual(context["customer"]["name"], "Frozen Customer")
+		self.assertEqual(context["customer"]["address"], "Frozen Address")
+		self.assertEqual(context["vehicle"]["registration_number"], "UAA 001A")
+		self.assertEqual(context["terms"], "Approved workshop terms")
+		self.assertEqual(context["received_on"], "2026-08-23 10:00:00")
+
+	def test_damage_markers_use_vehicle_damage_mark_fields(self):
+		with (
+			patch("frappe.db.exists", return_value=True),
+			patch(
+				"frappe.get_all",
+				return_value=[
+					frappe._dict(
+						damage_area="Front",
+						damage_type="Dent",
+						severity="Moderate",
+						description="Bonnet edge",
+					)
+				],
+			),
+		):
+			markers = _damage_markers("WI-1")
+
+		self.assertEqual(markers[0]["area"], "Front")
+		self.assertEqual(markers[0]["description"], "Bonnet edge")
+		self.assertEqual(markers[0]["number"], 1)

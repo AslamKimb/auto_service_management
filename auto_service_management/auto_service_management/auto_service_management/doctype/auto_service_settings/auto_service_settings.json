@@ -101,6 +101,12 @@
    "label": "Default Warranty Terms"
   },
   {
+   "fieldname": "job_card_terms",
+   "fieldtype": "Text",
+   "label": "Job Card Terms",
+   "description": "Plain-text terms shown on the printed Job Card. Leave blank to show signatures without terms."
+  },
+  {
    "fieldname": "gate_pass_section",
    "fieldtype": "Section Break",
    "label": "Gate Pass"

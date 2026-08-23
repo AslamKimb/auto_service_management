@@ -171,6 +171,46 @@ class TestPhase6Contracts(UnitTestCase):
 
 		self.assertIn("doc.fuel_level", html)
 
+	def test_job_card_print_has_complete_intake_and_diagram_contract(self):
+		html = (PRINT_TEMPLATE_ROOT / "job_card.html").read_text(encoding="utf-8")
+		for token in (
+			"get_job_card_context",
+			"Customer information",
+			"Vehicle information",
+			"customer.contact_person",
+			"vehicle.vin_chassis_number",
+			"vehicle.engine_number",
+			"job-card-final",
+			"vectorised-bb109a99.svg",
+			"damage_markers",
+			"Customer / Representative",
+			"Service Advisor accepted by",
+		):
+			self.assertIn(token, html)
+		self.assertNotIn("Motorcare", html)
+		asset = Path(__file__).parents[2] / "public" / "images" / "vectorised-bb109a99.svg"
+		self.assertTrue(asset.is_file())
+		self.assertIn("Top-down vehicle condition marking diagram", asset.read_text(encoding="utf-8"))
+
+	def test_job_card_snapshot_and_terms_fields_are_declared(self):
+		repair_job = json.loads(
+			(Path(__file__).parents[1] / "doctype" / "repair_job" / "repair_job.json").read_text(
+				encoding="utf-8"
+			)
+		)
+		settings = json.loads(
+			(Path(__file__).parents[1] / "doctype" / "auto_service_settings" / "auto_service_settings.json").read_text(
+				encoding="utf-8"
+			)
+		)
+		repair_fields = {field["fieldname"]: field for field in repair_job["fields"]}
+		settings_fields = {field["fieldname"]: field for field in settings["fields"]}
+		self.assertEqual(repair_fields["job_card_snapshot"]["fieldtype"], "Long Text")
+		self.assertEqual(repair_fields["job_card_snapshot"]["read_only"], 1)
+		self.assertEqual(settings_fields["job_card_terms"]["fieldtype"], "Text")
+		hooks = (Path(__file__).parents[2] / "hooks.py").read_text(encoding="utf-8")
+		self.assertIn("printing.get_job_card_context", hooks)
+
 	def test_repair_job_related_document_contract_uses_links_not_inline_fields(self):
 		module_root = Path(__file__).parents[1]
 		path = module_root / "doctype" / "repair_job" / "repair_job.json"

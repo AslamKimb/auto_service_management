@@ -1,6 +1,7 @@
 # Copyright (c) 2026, Aslam Kimbugwe and contributors
 # For license information, please see license.txt
 
+import json
 from datetime import datetime
 
 import frappe
@@ -509,6 +510,18 @@ class RepairJob(Document):
 			]
 			self.vehicle_details = " ".join(parts).strip()
 
+	def capture_job_card_snapshot(self):
+		"""Capture the linked customer and vehicle identity once at check-in."""
+		if self.job_card_snapshot or not self.customer or not self.customer_vehicle:
+			return
+		from auto_service_management.auto_service_management.printing import build_job_card_snapshot
+
+		self.job_card_snapshot = json.dumps(
+			build_job_card_snapshot(self.customer, self.customer_vehicle),
+			default=str,
+			sort_keys=True,
+		)
+
 	# ------------------------------------------------------------------ #
 	#  Actions - whitelisted workflow methods                            #
 	# ------------------------------------------------------------------ #
@@ -528,6 +541,7 @@ class RepairJob(Document):
 	def check_in(self):
 		"""Check in the vehicle. Creates the ERPNext Project on first check-in."""
 		self._require_write_permission()
+		self.capture_job_card_snapshot()
 		self._transition_to("Assessment")
 		self.save()
 		self._ensure_project()

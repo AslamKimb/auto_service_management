@@ -4,6 +4,18 @@ import json
 
 import frappe
 
+_DAMAGE_MARKER_POSITIONS = {
+	"Front": (50, 12),
+	"Rear": (50, 88),
+	"Left Side": (18, 50),
+	"Right Side": (82, 50),
+	"Roof": (50, 42),
+	"Undercarriage": (50, 68),
+	"Interior": (50, 56),
+	"Engine Bay": (50, 26),
+	"Other": (50, 50),
+}
+
 DMS_PRINT_FORMATS = (
 	("Customer Authorization", "Customer Authorization", "customer_authorization"),
 	("Estimate Summary", "Repair Job", "estimate_summary"),
@@ -31,6 +43,175 @@ def normalize_logo_url(value, base_url):
 	if value.startswith(("http://", "https://", "data:")):
 		return value
 	return f"{base_url.rstrip('/')}/{value.lstrip('/')}"
+
+
+def _text(value):
+	return str(value).strip() if value not in (None, "") else ""
+
+
+def _join_nonempty(*values):
+	return ", ".join(value for value in (_text(item) for item in values) if value)
+
+
+def _vehicle_values(vehicle_name):
+	vehicle = (
+		frappe.db.get_value(
+			"Customer Vehicle",
+			vehicle_name,
+			[
+				"registration_number",
+				"vin_chassis_number",
+				"engine_number",
+				"make",
+				"model",
+				"year_of_manufacture",
+				"color",
+			],
+			as_dict=True,
+		)
+		if vehicle_name
+		else None
+	) or frappe._dict()
+	model = (
+		frappe.db.get_value("Vehicle Model", vehicle.model, "model_name") if vehicle.model else ""
+	) or vehicle.model
+	return {
+		"account": _text(vehicle_name),
+		"registration_number": _text(vehicle.registration_number),
+		"vin_chassis_number": _text(vehicle.vin_chassis_number),
+		"engine_number": _text(vehicle.engine_number),
+		"make": _text(vehicle.make),
+		"model": _text(model),
+		"year_of_manufacture": _text(vehicle.year_of_manufacture),
+		"color": _text(vehicle.color),
+	}
+
+
+def _customer_values(customer_name):
+	customer = (
+		frappe.db.get_value(
+			"Customer",
+			customer_name,
+			[
+				"customer_name",
+				"tax_id",
+				"primary_address",
+				"customer_primary_contact",
+				"mobile_no",
+				"email_id",
+			],
+			as_dict=True,
+		)
+		if customer_name
+		else None
+	) or frappe._dict()
+	address = (
+		frappe.db.get_value(
+			"Address",
+			customer.primary_address,
+			["address_line1", "address_line2", "city", "state", "country", "pincode"],
+			as_dict=True,
+		)
+		if customer.primary_address
+		else None
+	) or frappe._dict()
+	contact = (
+		frappe.db.get_value(
+			"Contact",
+			customer.customer_primary_contact,
+			["first_name", "last_name", "phone", "mobile_no", "email_id"],
+			as_dict=True,
+		)
+		if customer.customer_primary_contact
+		else None
+	) or frappe._dict()
+	return {
+		"account": _text(customer_name),
+		"name": _text(customer.customer_name) or _text(customer_name),
+		"address": _join_nonempty(
+			address.address_line1,
+			address.address_line2,
+			address.city,
+			address.state,
+			address.country,
+			address.pincode,
+		),
+		"tax_id": _text(customer.tax_id),
+		"contact_person": _join_nonempty(contact.first_name, contact.last_name),
+		"phone": _text(contact.phone) or _text(customer.mobile_no),
+		"mobile": _text(contact.mobile_no) or _text(customer.mobile_no),
+		"email": _text(contact.email_id) or _text(customer.email_id),
+	}
+
+
+def build_job_card_snapshot(customer_name, vehicle_name):
+	"""Build serializable customer and vehicle values for a Repair Job snapshot."""
+	return {
+		"captured_at": str(frappe.utils.now_datetime()),
+		"customer": _customer_values(customer_name),
+		"vehicle": _vehicle_values(vehicle_name),
+	}
+
+
+def _parse_snapshot(value):
+	if not value:
+		return {}
+	try:
+		parsed = json.loads(value) if isinstance(value, str) else value
+	except (TypeError, ValueError):
+		return {}
+	return parsed if isinstance(parsed, dict) else {}
+
+
+def _damage_markers(walkaround_name):
+	if not walkaround_name or not frappe.db.exists("Walkaround Inspection", walkaround_name):
+		return []
+	marks = frappe.get_all(
+		"Vehicle Damage Mark",
+		filters={"parent": walkaround_name, "parenttype": "Walkaround Inspection"},
+		fields=["damage_area", "damage_type", "severity", "description"],
+		order_by="idx asc",
+	)
+	area_counts = {}
+	markers = []
+	for number, mark in enumerate(marks, start=1):
+		area = _text(mark.damage_area) or "Other"
+		count = area_counts.get(area, 0)
+		area_counts[area] = count + 1
+		left, top = _DAMAGE_MARKER_POSITIONS.get(area, _DAMAGE_MARKER_POSITIONS["Other"])
+		left += (count % 3 - 1) * 6
+		top += (count // 3) * 7
+		markers.append(
+			{
+				"number": number,
+				"area": area,
+				"damage_type": _text(mark.damage_type),
+				"severity": _text(mark.severity),
+				"description": _text(mark.description),
+				"left": max(7, min(93, left)),
+				"top": max(7, min(93, top)),
+			}
+		)
+	return markers
+
+
+def get_job_card_context(doc):
+	"""Return permission-scoped data for the Repair Job Job Card template."""
+	snapshot = _parse_snapshot(getattr(doc, "job_card_snapshot", None))
+	live_customer = _customer_values(getattr(doc, "customer", None))
+	live_vehicle = _vehicle_values(getattr(doc, "customer_vehicle", None))
+	snapshot_customer = snapshot.get("customer") or {}
+	snapshot_vehicle = snapshot.get("vehicle") or {}
+	customer = {**live_customer, **{key: value for key, value in snapshot_customer.items() if value}}
+	vehicle = {**live_vehicle, **{key: value for key, value in snapshot_vehicle.items() if value}}
+	return {
+		"customer": customer,
+		"vehicle": vehicle,
+		"received_on": snapshot.get("captured_at") or _text(getattr(doc, "creation", None)),
+		"terms": frappe.db.get_single_value("Auto Service Settings", "job_card_terms") or "",
+		"diagram_url": f"{frappe.utils.get_url().rstrip('/')}/assets/auto_service_management/images/vectorised-bb109a99.svg",
+		"damage_markers": _damage_markers(getattr(doc, "walkaround_inspection", None)),
+	}
 
 
 def resolve_logo_url(company_logo, app_logo, banner_image, base_url):
