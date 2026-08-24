@@ -51,6 +51,47 @@ Last update: 2026-08-24 integration and upgrade evidence
 | 2026-08-24 | Renderer/browser | VERIFY -> BLOCKED / UNVERIFIED | wkhtmltopdf fails with `HostNotFoundError` for local asset host; browser-control runtime cannot establish Chrome CDP. Native HTML/static contracts and generated bundle HTTP 200 remain green, but no live selector/PDF visual claim is made. | Await capability recovery before marking whole-system complete |
 | 2026-08-24 | Commit/push | READY -> PASSED | Commit `aba2444f5fd71e2aabd08b2ee49fc47b44455e3d` pushed to `origin/version-16`; local `HEAD` and remote ref match and the worktree is clean. | Delivery synchronized; visual gate remains blocked |
 
+## Current run — Repair Job Service Templates and Native History Drill-Down
+
+Goal: add current-model Repair Job Service Templates, editable template/service mapping, a Find Vehicle workspace route, and native Customer/Customer Vehicle repair-history navigation.
+
+Quality bar: G1 template schema and compatible selection; G2 snapshot mapping and current-price semantics; G3 native vehicle/customer history; G4 permissions, migrations, and regressions; G5 direct Desk inspection; G6 commit/push synchronization.
+
+Overall state: BLOCKED / UNVERIFIED
+Current wave: W2 — integrated verification
+Required modules: 2/2
+Active: Whole-system critic / closeout
+Blocked: authenticated Desk/browser visual inspection; no reusable session/CDP
+Whole-system gate: BLOCKED / UNVERIFIED
+Parallel now: closeout
+Sequential chains: M1/M2 -> fresh critics -> integration -> whole-system critic -> commit/push
+Free worker slots: 2
+Dispatch batch: M1 -> service_template_mapping; M2 -> history_navigation_workspace
+Last update: 2026-08-24 M1/M2 fresh critics passed; integration unlocked
+
+| ID | Output | Depends on | Quality gate | Owner | Round | Status | Last verdict | Largest gap | Evidence | Next action |
+|---|---|---|---|---|---:|---|---|---|---|---|
+| M1 | Repair Job Service Template DocTypes, mappers, service flow, and tests | None | G1/G2 | m1_templates | 2 | PASSED | PASS | Authenticated Desk template apply remains unverified | Fresh critic source review; synced v16 bench module 6/6; JSON, compile, Node, Ruff, and diff checks | Keep visual gate separate |
+| M2 | Vehicle/customer history dashboards, workspace routes, and tests | None | G3 | history_navigation_workspace | 2 | PASSED | PASS | Authenticated Desk dashboard drill-down remains unverified | Fresh critic source/runtime review; focused history 4/4, workspace 11/11, and both-site sidebar/shortcut rows | Keep visual gate separate |
+
+## Current run event log
+
+| When | Module | Transition | Evidence or decision | Unlocked / next |
+|---|---|---|---|---|
+| 2026-08-24 | RUN | SETUP -> BUILDING | Locked additive scope, native drill-down, refreshed ERPNext pricing, unsaved review flow, and retired-template non-goal. | M1/M2 builders |
+| 2026-08-24 | Design | BUILDING -> READY | Persisted `docs/design/repair-job-service-templates-and-history.md` with native Frappe forms, dialogs, dashboards, states, accessibility, and pricing rules. | Builders use the approved direction |
+| 2026-08-24 | M1/M2 | READY -> BUILDING | Disjoint builders dispatched; M1 owns template/service files, M2 owns customer/vehicle/workspace files; plan and tracker remain lead-owned. | Await both artifacts |
+| 2026-08-24 | M1 | BUILDING -> CRITIC | Builder returned template DocTypes, mappers, Repair Job/Service actions, and focused tests; static evidence passes, but the Frappe runner has no final result yet. | Fresh M1 critic; M2 remains in build |
+| 2026-08-24 | M1 | CRITIC -> FIX | Fresh critic FAIL: discount fields violate price-free templates; unsaved mapped docs have no guaranteed route name; test base is not available in Frappe v16. | Return largest gap to M1 builder; keep integration blocked |
+| 2026-08-24 | M2 | BUILDING -> CRITIC | Builder returned Customer/Customer Vehicle dashboard hooks, native Find Vehicle/Customers navigation, search/list fields, docs, and runtime dashboard smoke. | Fresh M2 critic; M1 fix remains blocking |
+| 2026-08-24 | M1 | CRITIC -> FIX | Fresh critic failed price-free/unsaved/v16-base guarantees; root corrected schemas, sync routing, server context/compatibility guards, and focused fixtures. | Fresh M1 critic |
+| 2026-08-24 | M1 | FIX -> PASSED | Fresh critic source contracts pass; synced Frappe v16 bench module passed 6/6. | Unlock integration |
+| 2026-08-24 | M2 | CRITIC -> PASSED | Fresh critic PASS: dashboard merge, native navigation, search/list fields, hooks, and synced DB rows verified. | Unlock integration |
+| 2026-08-24 | Integration | BUILDING | Added missing DocType package markers/controllers after migration orphan check; test-site schema now exposes all four current-model template DocTypes and dashboard hook. | Run integrated contract suite, dev migration, asset build, Graphify, whole-system critic |
+| 2026-08-24 | Integration | BUILDING -> PASSED | Phase 6 27/27, Phase 7 2/2, template 6/6, history 4/4, workspace 11/11; both sites reached 100% DocType sync; dev backup, asset build, Graphify refresh, HTTP 200 ping/asset, and idempotent desktop setup verified. | Whole-system visual gate |
+| 2026-08-24 | Full suite | VERIFY -> PARTIAL | Aggregate run: 133/133 unit tests green, 66/66 unspecified tests green, and 70 integration tests with one known wkhtmltopdf `HostNotFoundError` on Job Card local asset resolution. Navigation/materialization/permission stale contracts were updated to current requirements and their focused retests passed. | Preserve renderer/browser blocker honestly |
+| 2026-08-24 | Whole-system critic | CRITIC -> BLOCKED / UNVERIFIED | Fresh runtime recheck confirmed exact Find Vehicle → Customer Vehicle and Customers → Customer rows on both sites, current-model template schema, dashboards, and focused tests. Browser can render login page, but no authenticated Desk session/CDP is available; direct selector/dashboard/empty-state interaction is not observed. | Preserve blocker; commit/push with honest gate status |
+
 ## Previous run events
 
 | When | Module | Transition | Evidence or decision | Unlocked / next |

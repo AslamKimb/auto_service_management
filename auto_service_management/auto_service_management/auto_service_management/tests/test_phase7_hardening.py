@@ -3,7 +3,8 @@ from pathlib import Path
 from frappe.tests import UnitTestCase
 
 WORKSPACE_SHORTCUTS = {
-	"Vehicle Search",
+	"Find Vehicle",
+	"Customers",
 	"New Repair Job",
 	"Open Repair Jobs",
 	"Approval Queue",

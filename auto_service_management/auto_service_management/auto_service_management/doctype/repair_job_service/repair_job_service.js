@@ -40,6 +40,20 @@ frappe.ui.form.on('Repair Job Service', {
                 frappe.set_route('Form', 'Repair Job', frm.doc.repair_job);
             });
 
+            if (!frm.is_new()) {
+                frm.add_custom_button(__('Save as Service Template'), function() {
+                    frappe.call({
+                        method: 'auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service.make_repair_job_service_template',
+                        args: { source_name: frm.doc.name }, type: 'POST',
+                        callback(r) {
+                            const docs = r.message ? frappe.model.sync(r.message) : [];
+                            const template = docs[0];
+                            if (template?.name) frappe.set_route('Form', template.doctype, template.name);
+                        },
+                    });
+                }, __('Actions'));
+            }
+
 			if (!frm.is_new()) {
 				auto_service_sales_orders.setup(frm, {
 					repairJob: frm.doc.repair_job,

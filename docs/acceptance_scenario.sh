@@ -178,7 +178,7 @@ try:
     roles = {r.role for r in ws.get("roles", [])}
     assert len(shortcuts) == 11, f"Expected 11 shortcuts, got {len(shortcuts)}"
     expected_shortcuts = {
-        "Vehicle Search", "New Repair Job", "Open Repair Jobs",
+        "Find Vehicle", "Customers", "New Repair Job", "Open Repair Jobs",
         "Approval Queue", "Repair Queue", "Parts Queue",
         "QC Queue", "Invoice Queue", "Gate Passes",
         "Service History", "Reports",

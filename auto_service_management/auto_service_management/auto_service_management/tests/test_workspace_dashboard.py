@@ -81,8 +81,8 @@ class TestWorkspaceDashboardContracts(UnitTestCase):
 		declared_charts = {row["chart_name"] for row in workspace["charts"]}
 		declared_cards = {row["number_card_name"] for row in workspace["number_cards"]}
 
-		self.assertEqual(len(workspace["shortcuts"]), 11)
-		self.assertEqual(len(workspace["links"]), 36)
+		self.assertEqual(len(workspace["shortcuts"]), 12)
+		self.assertEqual(len(workspace["links"]), 37)
 		self.assertEqual(declared_charts, set(WORKSPACE_DASHBOARD_CHARTS))
 		self.assertEqual(
 			declared_cards,
@@ -124,7 +124,7 @@ class TestWorkspaceDashboardContracts(UnitTestCase):
 		self.assertEqual(tuple(WORKSPACE_SIDEBAR_SECTIONS), WORKSPACE_LINK_CARDS)
 		self.assertTrue(
 			any(
-				item["label"] == "Customer Vehicle"
+				item["label"] == "Find Vehicle"
 				and item["link_type"] == "DocType"
 				and item["link_to"] == "Customer Vehicle"
 				for item in WORKSPACE_SIDEBAR_SECTIONS["Intake & Setup"]

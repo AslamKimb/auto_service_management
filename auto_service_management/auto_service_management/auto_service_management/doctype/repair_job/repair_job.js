@@ -34,13 +34,50 @@ frappe.ui.form.on("Repair Job", {
 		frm.set_df_property("job_status", "read_only", 1);
 		add_workflow_action_buttons(frm);
 
-		frm.add_custom_button("Create Service", () => {
-			new_doc_with_values("Repair Job Service", {
-				repair_job: frm.doc.name,
-				customer: frm.doc.customer,
-				customer_vehicle: frm.doc.customer_vehicle,
-				diagnosis_report: frm.doc.diagnosis_report,
+		frm.add_custom_button("Create Repair Job Service", () => {
+			const create_blank_service = () => new_doc_with_values("Repair Job Service", {
+				repair_job: frm.doc.name, customer: frm.doc.customer,
+				customer_vehicle: frm.doc.customer_vehicle, diagnosis_report: frm.doc.diagnosis_report,
 				currency: frm.doc.currency,
+			});
+			frappe.call({
+				method: "auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service.get_compatible_repair_job_service_templates",
+				args: { repair_job: frm.doc.name }, type: "GET",
+				callback(r) {
+					const templates = r.message || [];
+					if (!templates.length) {
+						frappe.msgprint({
+							message: __("No active service templates match this vehicle. A blank service will open for you to complete."),
+							primary_action: { label: __("Create Blank Service"), action: create_blank_service },
+						});
+						return;
+					}
+					const template_names = templates.map(row => row.name);
+					const dialog = new frappe.ui.Dialog({
+						title: __("Create Repair Job Service"),
+						fields: [{
+							fieldname: "template", fieldtype: "Link", label: __("Template"),
+							options: "Repair Job Service Template", reqd: 1,
+							get_query: () => ({ filters: { name: ["in", template_names] } }),
+						}],
+						primary_action_label: __("Create"),
+						primary_action(values) {
+							frappe.call({
+								method: "auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service.make_repair_job_service",
+								args: { source_name: values.template, repair_job: frm.doc.name }, type: "POST",
+								callback(result) {
+									dialog.hide();
+									const docs = result.message ? frappe.model.sync(result.message) : [];
+									const service = docs[0];
+									if (service?.name) frappe.set_route("Form", service.doctype, service.name);
+								},
+							});
+						},
+					});
+					dialog.set_secondary_action_label(__("Create Blank Service"));
+					dialog.set_secondary_action(create_blank_service);
+					dialog.show();
+				},
 			});
 		}, "Services");
 

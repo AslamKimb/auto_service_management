@@ -1,0 +1,35 @@
+{
+ "name": "Repair Job Service Template",
+ "module": "Auto Service Management",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "autoname": "format:RJST-{YYYY}-{#####}",
+ "track_changes": 1,
+ "fields": [
+  {"fieldname": "template_name", "fieldtype": "Data", "label": "Template Name", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "is_active", "fieldtype": "Check", "label": "Active", "default": 1, "in_list_view": 1},
+  {"fieldname": "service_name", "fieldtype": "Data", "label": "Service Name", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "default_billable", "fieldtype": "Check", "label": "Default Billable", "default": 1},
+  {"fieldname": "description", "fieldtype": "Text Editor", "label": "Description"},
+  {"fieldname": "compatibility_section", "fieldtype": "Section Break", "label": "Vehicle Compatibility"},
+  {"fieldname": "vehicle_make", "fieldtype": "Link", "label": "Vehicle Make", "options": "Vehicle Make", "in_list_view": 1},
+  {"fieldname": "vehicle_model", "fieldtype": "Link", "label": "Vehicle Model", "options": "Vehicle Model", "in_list_view": 1},
+  {"fieldname": "compatibility_note", "fieldtype": "Small Text", "label": "Compatibility Note", "description": "Leave make and model blank to make this template available for every vehicle."},
+  {"fieldname": "components_section", "fieldtype": "Section Break", "label": "Template Components"},
+  {"fieldname": "parts", "fieldtype": "Table", "label": "Parts", "options": "Repair Job Service Template Part"},
+  {"fieldname": "labour", "fieldtype": "Table", "label": "Labour", "options": "Repair Job Service Template Labour"},
+  {"fieldname": "consumables", "fieldtype": "Table", "label": "Consumables", "options": "Repair Job Service Template Consumable"}
+ ],
+ "permissions": [
+  {"role": "Workshop Manager", "read": 1, "report": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "System Manager", "read": 1, "report": 1, "write": 1, "create": 1, "delete": 1, "export": 1, "import": 1, "print": 1, "email": 1, "select": 1},
+  {"role": "Service Advisor", "read": 1, "report": 1, "write": 1, "create": 1},
+  {"role": "Workshop Technician", "read": 1},
+  {"role": "Parts Interpreter", "read": 1, "report": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "template_name",
+ "search_fields": "template_name,service_name,vehicle_make,vehicle_model"
+}

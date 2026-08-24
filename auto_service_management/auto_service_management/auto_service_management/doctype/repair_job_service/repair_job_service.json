@@ -85,6 +85,13 @@
    "in_list_view": 1
   },
   {
+   "fieldname": "repair_job_service_template",
+   "fieldtype": "Link",
+   "label": "Service Template",
+   "options": "Repair Job Service Template",
+   "read_only": 1
+  },
+  {
    "fieldname": "is_completed",
    "fieldtype": "Check",
    "label": "Service Completed",

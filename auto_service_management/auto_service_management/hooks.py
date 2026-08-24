@@ -77,6 +77,12 @@ doctype_js = {
 	"Material Request": "public/js/material_request.js",
 }
 
+override_doctype_dashboards = {
+	"Customer": [
+		"auto_service_management.auto_service_management.dashboard_overrides.get_customer_dashboard"
+	],
+}
+
 override_whitelisted_methods = {
 	"erpnext.selling.doctype.quotation.quotation.make_sales_invoice":
 		"auto_service_management.auto_service_management.integration.quotation_mapping.make_sales_invoice",

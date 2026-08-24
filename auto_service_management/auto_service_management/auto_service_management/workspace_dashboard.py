@@ -22,6 +22,10 @@ WORKSPACE_DOC_TYPE_COVERAGE = {
 	"Workshop Bay": "Workshop Bays",
 	"Repair Job": "Repair Jobs",
 	"Repair Job Service": "Repair Job Services",
+	"Repair Job Service Template": "Repair Job Service Templates",
+	"Repair Job Service Template Part": "Repair Job Service Template Parts",
+	"Repair Job Service Template Labour": "Repair Job Service Template Labour",
+	"Repair Job Service Template Consumable": "Repair Job Service Template Consumables",
 	"Repair Job Service Part": "Repair Job Service Parts",
 	"Repair Job Service Labour": "Repair Job Service Labour",
 	"Repair Job Service Consumable": "Repair Job Service Consumables",
@@ -124,10 +128,16 @@ WORKSPACE_SIDEBAR_SECTIONS = {
 			"icon": "settings",
 		},
 		{
-			"label": "Customer Vehicle",
+			"label": "Find Vehicle",
 			"link_type": "DocType",
 			"link_to": "Customer Vehicle",
 			"icon": "car-front",
+		},
+		{
+			"label": "Customers",
+			"link_type": "DocType",
+			"link_to": "Customer",
+			"icon": "users",
 		},
 		{"label": "Workshop Bay", "link_type": "DocType", "link_to": "Workshop Bay", "icon": "warehouse"},
 		{

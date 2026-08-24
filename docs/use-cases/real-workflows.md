@@ -68,7 +68,7 @@ Supported branch outcomes:
 
 **Realistic simulation**
 
-At **8:07 AM**, Sarah Namata arrives at reception with her **2022 Toyota Hilux, registration UBA 417K**. She says the battery light came on the previous evening and the front brakes started making a grinding sound on the drive from Jinja town. The Service Advisor opens the `Workshop Management` workspace, uses `Vehicle Search`, and finds her existing `Customer Vehicle` record by registration number. Because the vehicle already exists in the system, the advisor does not create a new master; he opens `New Repair Job` and creates a fresh visit for this specific complaint.
+At **8:07 AM**, Sarah Namata arrives at reception with her **2022 Toyota Hilux, registration UBA 417K**. She says the battery light came on the previous evening and the front brakes started making a grinding sound on the drive from Jinja town. The Service Advisor opens the `Workshop Management` workspace, uses `Find Vehicle`, and finds her existing `Customer Vehicle` record by registration number. Because the vehicle already exists in the system, the advisor does not create a new master; he opens `New Repair Job` and creates a fresh visit for this specific complaint.
 
 Inside the `Repair Job`, the advisor records the real intake details that matter operationally: `customer`, `customer_vehicle`, `customer_concern = "Battery light on and grinding noise from front brakes"`, `odometer_in = 84,521 km`, fuel level at about a quarter tank, visit reason as walk-in corrective repair, promised pickup as same day if parts are available, and assigns the vehicle to **Bay 2**. The job starts in `Draft`. The moment the advisor performs `check_in()`, the job moves to `Checked In`, the app creates the linked ERPNext `Project`, and the visit is now visible in the live workshop queue rather than being stuck in front-desk memory or phone notes.
 
@@ -131,7 +131,7 @@ Draft -> Assessment -> Awaiting Approval -> In Repair -> Quality Check
 
 **Realistic simulation**
 
-At **9:02 AM**, a new customer, **Brian Ssemanda**, drives in with a **2019 Subaru Forester** that has never been serviced at this workshop before. He reports that the vehicle vibrates during braking and the steering feels slightly off-center after hitting a pothole on the Jinja road the previous week. When the Service Advisor opens `Vehicle Search`, nothing comes back for the registration number, VIN, engine number, or customer name. This is the signal that the workshop is not dealing with a repeat visit. The app has no vehicle history yet, so staff must create the base records properly before any repair work can begin.
+At **9:02 AM**, a new customer, **Brian Ssemanda**, drives in with a **2019 Subaru Forester** that has never been serviced at this workshop before. He reports that the vehicle vibrates during braking and the steering feels slightly off-center after hitting a pothole on the Jinja road the previous week. When the Service Advisor opens `Find Vehicle`, nothing comes back for the registration number, VIN, engine number, or customer name. This is the signal that the workshop is not dealing with a repeat visit. The app has no vehicle history yet, so staff must create the base records properly before any repair work can begin.
 
 The advisor starts by creating the `Customer` record with Brian’s basic account details. Only after the customer exists does he create the `Customer Vehicle` master. This step is more important than it looks because the vehicle master is what the rest of the workshop process will hang off. He records the registration number, make, model, year, VIN/chassis number, engine number, transmission type, fuel type, color, and current odometer. Because registration and VIN are key identifiers in the system, entering them correctly matters now; future searches, repeat visits, and service-history lookups will depend on this first capture being clean.
 
@@ -431,7 +431,7 @@ That makes the cancelled record useful operationally and defensible commercially
 
 The `Workshop Management` workspace is the everyday front door for the app. It gives staff direct shortcuts to the most common surfaces:
 
-- `Vehicle Search`
+- `Find Vehicle`
 - `New Repair Job`
 - `Open Repair Jobs`
 - `Approval Queue`

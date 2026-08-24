@@ -34,7 +34,8 @@ PRINT_FORMATS = {
 PRINT_TEMPLATE_ROOT = Path(__file__).parents[2] / "templates" / "includes" / "auto_service_print"
 
 WORKSPACE_SHORTCUTS = {
-	"Vehicle Search",
+	"Find Vehicle",
+	"Customers",
 	"New Repair Job",
 	"Open Repair Jobs",
 	"Approval Queue",

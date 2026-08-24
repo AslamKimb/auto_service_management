@@ -1012,7 +1012,7 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		self.assertTrue(frappe.db.exists("Desktop Icon", "DMS Reconciliation Sentinel"))
 
 		sidebar = frappe.get_doc("Workspace Sidebar", "Car Workshop")
-		self.assertEqual(len(sidebar.items), 44)
+		self.assertEqual(len(sidebar.items), 45)
 		self.assertEqual(
 			frappe.db.count("Workspace Sidebar", {"name": "Car Workshop"}),
 			1,
@@ -1063,7 +1063,9 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		)
 
 		link_labels = {item.label for item in sidebar.items if item.type == "Link"}
-		self.assertIn("Customer Vehicle", link_labels)
+		self.assertIn("Find Vehicle", link_labels)
+		self.assertIn("Customers", link_labels)
+		self.assertNotIn("Customer Vehicle", link_labels)
 		self.assertIn("Repair Job", link_labels)
 		self.assertIn("Gate Pass", link_labels)
 		self.assertIn("Jobs by Status", link_labels)
