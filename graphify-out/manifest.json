@@ -83,17 +83,41 @@
     "mtime": 1787527840.07446,
     "hash": "273f06c39184a42349fb45fcea01b296"
   },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\customer_lpo\\customer_lpo.py": {
+    "mtime": 1787607681.4716632,
+    "hash": "f07a3e06e74c9ab3e3d3bcd507271008"
+  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\customer_lpo\\test_customer_lpo.py": {
-    "mtime": 1787607474.542931,
-    "hash": "0e862eac23f4b33b5a46e05cf2bd0746"
+    "mtime": 1787607791.0852551,
+    "hash": "55d12c06580c0c5ab202b8763863a99e"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\customer_lpo\\__init__.py": {
+    "mtime": 1787607681.4605367,
+    "hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\customer_lpo_amendment\\customer_lpo_amendment.py": {
+    "mtime": 1787607681.499167,
+    "hash": "3a87a797e9e4687225479d8d68c662e6"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\customer_lpo_amendment\\test_customer_lpo_amendment.py": {
     "mtime": 1787607474.5457878,
     "hash": "095cd347026f30888332273b7e6936d4"
   },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\customer_lpo_amendment\\__init__.py": {
+    "mtime": 1787607681.4887452,
+    "hash": "68b329da9893e34099c7d8ad5cb9c940"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\customer_lpo_vehicle\\customer_lpo_vehicle.py": {
+    "mtime": 1787607681.4867294,
+    "hash": "7e988fff5aa7c31f4d6943661b50d398"
+  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\customer_lpo_vehicle\\test_customer_lpo_vehicle.py": {
     "mtime": 1787607474.5443542,
     "hash": "cb01c06743b27e5b2035000e2e553aed"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\customer_lpo_vehicle\\__init__.py": {
+    "mtime": 1787607681.472664,
+    "hash": "68b329da9893e34099c7d8ad5cb9c940"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\customer_vehicle\\customer_vehicle.js": {
     "mtime": 1784907624.038019,
@@ -314,6 +338,10 @@
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\workshop_bay\\workshop_bay.py": {
     "mtime": 1784620293.5021195,
     "hash": "fd5a94db7ea6d435108a29cdc021dc3c"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\integration\\customer_lpo_workflow.py": {
+    "mtime": 1787607778.8035574,
+    "hash": "705d581c7ba41701c2ee434db9cc3913"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\integration\\quotation_mapping.py": {
     "mtime": 1785626754.3161132,
@@ -1004,7 +1032,7 @@
     "hash": "6f35a8031cf209d06607d24911a4fd81"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\graphify-out\\converted\\item details_dcfcd323.md": {
-    "mtime": 1787607602.5568352,
+    "mtime": 1787607822.2290566,
     "hash": "de84bcd09115e8bf57d65089fa130565"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\onboarding.html": {
