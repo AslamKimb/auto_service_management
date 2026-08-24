@@ -208,9 +208,16 @@ function show_repair_job_id(frm) {
 function add_workflow_action_buttons(frm) {
 	const actions = {
 		Draft: [["Check In", "check_in"]],
-		Assessment: [["Complete Diagnosis", "complete_diagnosis"]],
-		"In Repair": [["Send to QC", "hold_for_qc"]],
-		"Quality Check": [["Pass QC", "pass_qc"]],
+		Assessment: [["Complete Assessment", "complete_diagnosis"]],
+		"Awaiting Approval": [["Start Work", "start_work"]],
+		"In Repair": [
+			["Send to QC", "hold_for_qc"],
+			["Continue to Billing", "mark_ready_for_invoice"],
+		],
+		"Quality Check": [
+			["Return to Repair", "return_to_repair"],
+			["Continue to Billing", "pass_qc"],
+		],
 	};
 	for (const [label, method] of actions[frm.doc.job_status] || []) {
 		frm.add_custom_button(__(label), () => {

@@ -92,7 +92,7 @@ try:
         "Repair Job", "Repair Service Line", "Repair Job Override",
         "Repair Job Log", "Walkaround Inspection", "Vehicle Damage Mark",
         "Diagnosis Report", "Customer Authorization", "Quality Check",
-        "Road Test Report", "Gate Pass", "Service History",
+        "Gate Pass", "Service History",
         "Fleet Service Campaign", "Fleet Service Campaign Job",
     ]
     missing = [dt for dt in expected_dt if not frappe.db.exists("DocType", dt)]
@@ -148,7 +148,7 @@ try:
     expected_editable = [f"DMS Editable - {pf}" for pf in expected_pf]
     expected_editable.extend(
         f"DMS Editable - {pf}"
-        for pf in ("Quotation", "Sales Invoice", "Sales Order", "Material Request", "Stock Entry", "Timesheet", "Payment Entry")
+        for pf in ("Quotation", "Sales Invoice", "Proforma Invoice", "Material Request", "Stock Entry", "Timesheet", "Payment Entry")
     )
     missing = [pf for pf in expected_pf + expected_editable if not frappe.db.exists("Print Format", pf)]
     assert not missing, f"Missing print formats: {missing}"
@@ -468,33 +468,33 @@ try:
     frappe.db.commit()
     job.reload()
 
-    quotation_name = job.create_quotation()
+    sales_order_name = job.create_sales_order()
     frappe.db.commit()
-    quotation = frappe.get_doc("Quotation", quotation_name)
-    quotation.submit()
+    sales_order = frappe.get_doc("Sales Order", sales_order_name)
+    sales_order.submit()
     frappe.db.commit()
-    second_quotation_name = job.create_quotation()
+    second_sales_order_name = job.create_sales_order()
     frappe.db.commit()
-    second_quotation = frappe.get_doc("Quotation", second_quotation_name)
-    quotation_rows = frappe.get_all(
-        "Quotation",
+    second_sales_order = frappe.get_doc("Sales Order", second_sales_order_name)
+    sales_order_rows = frappe.get_all(
+        "Sales Order",
         filters={"repair_job": job.name},
-        fields=["name", "valid_till"],
+        fields=["name", "transaction_date"],
         order_by="creation asc",
     )
-    assert len(quotation_rows) == 2, f"Expected two quotations, got {len(quotation_rows)}"
-    assert quotation_rows[0].name != quotation_rows[1].name, "Repeated quotation overwrote history"
-    assert quotation.valid_till == frappe.utils.add_months(quotation.transaction_date, 1)
-    assert quotation.items, "Quotation has no billable lines"
-    assert all(item.repair_job == job.name for item in quotation.items)
-    from auto_service_management.auto_service_management.integration.quotation_mapping import (
+    assert len(sales_order_rows) == 2, f"Expected two Sales Orders, got {len(sales_order_rows)}"
+    assert sales_order_rows[0].name != sales_order_rows[1].name, "Repeated Sales Order overwrote history"
+    assert sales_order.items, "Sales Order has no billable lines"
+    assert all(item.repair_job == job.name for item in sales_order.items)
+    from auto_service_management.auto_service_management.integration.sales_order_mapping import (
         make_sales_invoice,
     )
 
-    mapped_invoice = make_sales_invoice(quotation.name)
+    mapped_invoice = make_sales_invoice(sales_order.name)
     mapped_invoice.insert(ignore_permissions=True)
-    assert mapped_invoice.items, "Native quotation-to-invoice mapping produced no lines"
+    assert mapped_invoice.items, "Native Sales Order-to-invoice mapping produced no lines"
     assert all(item.repair_job == job.name for item in mapped_invoice.items)
+    assert all(item.so_detail for item in mapped_invoice.items), "Sales Order item trace was not preserved"
     frappe.db.commit()
 
     sales_invoice_name = job.create_sales_invoice()
@@ -539,8 +539,8 @@ try:
     print(f"  Customer Authorization: {authorization.name}")
     print(f"  Quality Check: {quality_check.name}")
     print(f"  Sales Invoice: {sales_invoice.name}")
-    print(f"  Quotations: {quotation.name}, {second_quotation.name}")
-    print(f"  Native Quotation Invoice: {mapped_invoice.name}")
+    print(f"  Proforma Invoices (Sales Orders): {sales_order.name}, {second_sales_order.name}")
+    print(f"  Native Sales Order Invoice: {mapped_invoice.name}")
     print(f"  Gate Pass: {gate_pass.name}")
     if service_history:
         print(f"  Service History: {service_history.name}")
@@ -554,13 +554,53 @@ try:
     assert job.job_status == "Closed", f"Expected Closed, got {job.job_status}"
     assert job.total_amount == 470000, f"Expected total 470000, got {job.total_amount}"
     assert sales_invoice.docstatus == 1, "Sales Invoice was not submitted"
-    assert len(quotation_rows) == 2, "Quotation count did not include repeated quotations"
+    assert len(sales_order_rows) == 2, "Sales Order count did not include repeated proforma invoices"
     assert mapped_invoice.repair_job == job.name, "Native invoice lost Repair Job trace"
     assert gate_pass.status == "Used", f"Expected Used gate pass, got {gate_pass.status}"
     assert service_history is not None, "Service History was not created"
     assert len(logs) >= 10, f"Expected at least 10 logs, got {len(logs)}"
 
-    # PDF rendering for all 6 print formats
+    # Minimal path: optional inspection, diagnosis, authorization, QC, and road-test
+    # records are all omitted while the Repair Job still advances to Billing.
+    # Failed QC never regresses automatically; rework uses the explicit Return to Repair action.
+    minimal_job = frappe.get_doc(
+        {
+            "doctype": "Repair Job",
+            "customer": customer.name,
+            "customer_vehicle": vehicle.name,
+            "description": "Optional evidence path",
+            "priority": "Normal",
+            "promised_date": frappe.utils.add_days(frappe.utils.today(), 7),
+            "odometer_in": 84522,
+        }
+    )
+    minimal_job.insert(ignore_permissions=True)
+    minimal_job.check_in()
+    minimal_job.append(
+        "service_lines",
+        {
+            "service_type": "Labour",
+            "service_description": "Minimal optional-evidence path",
+            "item_code": labour_item_code,
+            "quantity": 1,
+            "rate": 120000,
+            "status": "Approved",
+        },
+    )
+    minimal_job.save(ignore_permissions=True)
+    minimal_job.complete_diagnosis()
+    minimal_job.start_work()
+    minimal_job.mark_ready_for_invoice()
+    minimal_job.reload()
+    assert minimal_job.job_status == "Billing", f"Optional-evidence path stopped at {minimal_job.job_status}"
+    assert not any(
+        minimal_job.get(fieldname)
+        for fieldname in ("walkaround_inspection", "diagnosis_report", "customer_authorization", "quality_check")
+    ), "Optional evidence unexpectedly became required on the minimal path"
+    frappe.db.commit()
+    print(f"  Minimal optional-evidence path: {minimal_job.name} -> {minimal_job.job_status}")
+
+    # PDF rendering for the core formats and the Sales Order Proforma Invoice
     print("")
     print("  PDF Rendering:")
     documents = [
@@ -568,6 +608,7 @@ try:
         ("Walkaround Inspection", walkaround.name, "Walkaround Inspection"),
         ("Customer Authorization", authorization.name, "Customer Authorization"),
         ("Repair Job", job.name, "Estimate Summary"),
+        ("Sales Order", sales_order.name, "Proforma Invoice"),
         ("Gate Pass", gate_pass.name, "Gate Pass"),
         ("Repair Job", job.name, "Repair Summary"),
     ]
@@ -576,8 +617,11 @@ try:
         pdf, html = render_pdf(doctype, doc_name, print_format_name)
         print(f"    Rendered {print_format_name}: {len(pdf)} bytes")
         if print_format_name == "Estimate Summary":
-            assert "This quotation is valid for one month only unless the vehicle is not mobile." in html
+            assert "This proforma invoice is valid for one month only unless the vehicle is not mobile." in html
             assert "Source:" in html
+        if print_format_name == "Proforma Invoice":
+            assert "Proforma Invoice" in html
+            assert sales_order.name in html
 
     company_logo = frappe.db.get_value("Company", settings.company, "company_logo")
     website = frappe.get_single("Website Settings")

@@ -75,16 +75,33 @@ services:
           grep -qx "$$app_name" sites/apps.txt 2>/dev/null || printf '%s\n' "$$app_name" >> sites/apps.txt
         }
 
+        pin_app() {
+          app_name="$$1"
+          app_commit="$$2"
+          app_branch="$$3"
+          app_url="$$4"
+          app_path="apps/$$app_name"
+          test -d "$$app_path/.git"
+          echo "=== Pinning $$app_name to $$app_commit ==="
+          if [ "$(git -C "$$app_path" rev-parse HEAD)" != "$$app_commit" ]; then
+            git -C "$$app_path" fetch --no-tags "$$app_url" "$$app_branch"
+            git -C "$$app_path" checkout --detach "$$app_commit"
+          fi
+          test "$(git -C "$$app_path" rev-parse HEAD)" = "$$app_commit"
+        }
+
         get_remote_app() {
           app_name="$$1"
           app_url="$$2"
           app_branch="$$3"
+          app_commit="$$4"
           if [ -d "apps/$$app_name" ]; then
             echo "=== $$app_name already present ==="
           else
             echo "=== Getting $$app_name ==="
             bench get-app "$$app_url" --branch "$$app_branch"
           fi
+          pin_app "$$app_name" "$$app_commit" "$$app_branch" "$$app_url"
           ensure_apps_txt_entry "$$app_name"
         }
 
@@ -100,7 +117,12 @@ services:
           rm -rf "$$dest_dir"
           mv "$$tmp_dir" "$$dest_dir"
           echo "=== Editable install for Python 3.14 compatibility ==="
-          env/bin/pip install -e apps/auto_service_management --no-deps
+          # The app is a PEP 517/660 Flit project, while the base bench image
+          # does not ship flit_core. Install the tiny build backend explicitly
+          # and disable build isolation so setup cannot download a duplicate
+          # toolchain into the nearly-full editable bench volume.
+          env/bin/pip install --no-cache-dir "flit_core>=3.4,<4"
+          env/bin/pip install -e apps/auto_service_management --no-deps --no-build-isolation
           ensure_apps_txt_entry auto_service_management
           test -f apps/auto_service_management/auto_service_management/__init__.py
         }
@@ -137,9 +159,10 @@ services:
           fi
         }
 
-        get_remote_app erpnext https://github.com/frappe/erpnext version-16
-        get_remote_app hrms https://github.com/frappe/hrms version-16
-        get_remote_app uganda_compliance https://github.com/erpchampions/uganda_compliance hotfix-v-16
+        pin_app frappe 6a329d068416768ec47ccd3326b9cc95a8d7bf99 version-16 https://github.com/frappe/frappe
+        get_remote_app erpnext https://github.com/frappe/erpnext version-16 11e0ba0a1c45f217e2e73e885f699102d06da325
+        get_remote_app hrms https://github.com/frappe/hrms version-16 f281e8b172ac8836ad89c59df65a922101103097
+        get_remote_app uganda_compliance https://github.com/erpchampions/uganda_compliance hotfix-v-16 33743cd596c6e8c079945478d0e5b52e461fe770
         install_local_auto_service
 
         echo "=== Configuring site ==="

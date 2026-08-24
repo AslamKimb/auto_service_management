@@ -5,9 +5,6 @@ import json
 from datetime import datetime
 
 import frappe
-from frappe import _
-from frappe.model.document import Document
-
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
 	STOCK_COMPONENT_TYPES,
 	component_has_downstream,
@@ -18,6 +15,8 @@ from auto_service_management.auto_service_management.doctype.repair_job_service.
 from auto_service_management.auto_service_management.workflow_compatibility import (
 	sync_repair_job_compatibility_views,
 )
+from frappe import _
+from frappe.model.document import Document
 
 # ---------------------------------------------------------------------------
 # State machine - spec-aligned workflow
@@ -574,6 +573,7 @@ class RepairJob(Document):
 	def check_in(self):
 		"""Check in the vehicle. Creates the ERPNext Project on first check-in."""
 		self._require_write_permission()
+		self.reload()
 		self.capture_job_card_snapshot()
 		self._transition_to("Assessment")
 		self.save()
@@ -583,7 +583,7 @@ class RepairJob(Document):
 	@frappe.whitelist(methods=["POST"])
 	def start_diagnosis(self):
 		self._require_write_permission()
-		self._require_primary_document("walkaround_inspection", "Walkaround Inspection")
+		self.reload()
 		self._transition_to("Assessment")
 		self.save()
 		self._write_log("start_diagnosis")
@@ -591,7 +591,7 @@ class RepairJob(Document):
 	@frappe.whitelist(methods=["POST"])
 	def prepare_estimate(self):
 		self._require_write_permission()
-		self._require_submitted_diagnosis()
+		self.reload()
 		self._transition_to("Awaiting Approval")
 		self.save()
 		self._write_log("estimate_prepared")
@@ -599,7 +599,11 @@ class RepairJob(Document):
 	@frappe.whitelist(methods=["POST"])
 	def complete_diagnosis(self):
 		self._require_write_permission()
-		self._require_submitted_diagnosis()
+		# Desk actions may be invoked from a stale form snapshot after an
+		# optional evidence row or compatibility mirror has been saved. Reload
+		# before applying the transition so Frappe's optimistic timestamp check
+		# protects the current document rather than rejecting a valid action.
+		self.reload()
 		if self._get_services():
 			target_status = "Awaiting Approval"
 		else:
@@ -612,7 +616,7 @@ class RepairJob(Document):
 	@frappe.whitelist(methods=["POST"])
 	def request_authorization(self):
 		self._require_write_permission()
-		self._require_submitted_diagnosis()
+		self.reload()
 		if self.job_status != "Awaiting Approval":
 			self._transition_to("Awaiting Approval")
 			self.save()
@@ -622,17 +626,20 @@ class RepairJob(Document):
 	@frappe.whitelist(methods=["POST"])
 	def authorize(self):
 		self._require_write_permission()
-		self._require_approved_authorization()
 		self.reload()
+		# Authorization evidence is optional and may arrive late. Do not let an
+		# approval action regress a job that has already advanced past repair.
+		if self.job_status not in {"Assessment", "Awaiting Approval"}:
+			return self.name
 		self._transition_to("In Repair")
 		self.save()
 		self._write_log("authorized")
 
 	@frappe.whitelist(methods=["POST"])
 	def start_work(self):
-		"""Begin repair work. Requires authorization."""
+		"""Begin repair work without requiring an authorization document."""
 		self._require_write_permission()
-		self._require_approved_authorization()
+		self.reload()
 		self._transition_to("In Repair")
 		self.save()
 		self._write_log("start_work")
@@ -640,6 +647,7 @@ class RepairJob(Document):
 	@frappe.whitelist(methods=["POST"])
 	def hold_for_qc(self):
 		self._require_write_permission()
+		self.reload()
 		self._transition_to("Quality Check")
 		self.save()
 		self._write_log("hold_for_qc")
@@ -647,16 +655,27 @@ class RepairJob(Document):
 	@frappe.whitelist(methods=["POST"])
 	def pass_qc(self):
 		self._require_write_permission()
-		self._require_passed_quality_check()
-		self._require_passed_road_test_if_needed()
+		self.reload()
 		self._transition_to("Billing")
 		self.save()
 		self._sync_invoice_state()
 		self._write_log("pass_qc")
 
 	@frappe.whitelist(methods=["POST"])
+	def return_to_repair(self):
+		"""Explicitly return a job from Quality Check to In Repair."""
+		self._require_write_permission()
+		self.reload()
+		if self.job_status != "Quality Check":
+			frappe.throw(_("Repair Job must be in Quality Check before returning to repair."))
+		self._transition_to("In Repair")
+		self.save()
+		self._write_log("return_to_repair")
+
+	@frappe.whitelist(methods=["POST"])
 	def mark_ready_for_invoice(self):
 		self._require_write_permission()
+		self.reload()
 		if not self._get_services():
 			frappe.throw(_("At least one Repair Job Service is required before invoicing."))
 		self._transition_to("Billing")
@@ -667,6 +686,7 @@ class RepairJob(Document):
 	@frappe.whitelist(methods=["POST"])
 	def release(self):
 		self._require_write_permission()
+		self.reload()
 		self._sync_invoice_state()
 		from auto_service_management.auto_service_management.integration.erpnext.document_sync import (
 			validate_job_invoices_for_gate_pass,
@@ -681,12 +701,14 @@ class RepairJob(Document):
 	def close(self):
 		"""Close the job. Creates Service History and updates vehicle."""
 		self._require_write_permission()
+		self.reload()
 		self._finalize_closure()
 		self._write_log("closed")
 
 	@frappe.whitelist(methods=["POST"])
 	def close_as_diagnosis_only(self):
 		self._require_write_permission()
+		self.reload()
 		self.closure_type = "Diagnosis Only"
 		self._finalize_closure()
 		self._write_log("closed_diagnosis_only")
@@ -694,6 +716,7 @@ class RepairJob(Document):
 	@frappe.whitelist(methods=["POST"])
 	def cancel(self):
 		self._require_write_permission()
+		self.reload()
 		self._transition_to("Cancelled")
 		self.save()
 		self._write_log("cancelled")
@@ -870,45 +893,6 @@ class RepairJob(Document):
 		if not getattr(self, fieldname, None):
 			frappe.throw(_("{0} must be linked to this Repair Job before continuing.").format(label))
 
-	def _require_submitted_diagnosis(self):
-		self.resolve_primary_related_documents()
-		if not self.diagnosis_report:
-			self.diagnosis_report = frappe.db.get_value(
-				"Diagnosis Report", {"repair_job": self.name, "docstatus": ["!=", 2]}, "name"
-			)
-		if not self.diagnosis_report:
-			frappe.throw(_("Diagnosis Report must be linked to this Repair Job before continuing."))
-		if frappe.db.get_value("Diagnosis Report", self.diagnosis_report, "docstatus") != 1:
-			frappe.throw(_("Diagnosis Report must be submitted before continuing."))
-
-	def _require_approved_authorization(self):
-		self._require_primary_document("customer_authorization", "Customer Authorization")
-		authorization = frappe.get_doc("Customer Authorization", self.customer_authorization)
-		if getattr(authorization, "docstatus", 0) != 1:
-			frappe.throw(_("Customer Authorization must be approved before continuing."))
-
-	def _require_passed_quality_check(self):
-		self._require_primary_document("quality_check", "Quality Check")
-		quality_check = frappe.get_doc("Quality Check", self.quality_check)
-		if quality_check.status != "Passed":
-			frappe.throw(_("Quality Check must be in Passed status before continuing."))
-
-	def _require_passed_road_test_if_needed(self):
-		if not self.diagnosis_report:
-			return
-		road_test_required = frappe.db.get_value(
-			"Diagnosis Report", self.diagnosis_report, "road_test_required"
-		)
-		if not road_test_required:
-			return
-		self._require_primary_document("quality_check", "Quality Check")
-		quality_check = frappe.get_doc("Quality Check", self.quality_check)
-		road_tests = quality_check.get("road_tests") or []
-		if not road_tests:
-			frappe.throw(_("At least one road test must be recorded on the Quality Check before continuing."))
-		if not any(_road_test_is_passed(road_test) for road_test in road_tests):
-			frappe.throw(_("At least one recorded road test must pass before continuing."))
-
 	def _require_issued_gate_pass(self):
 		self._require_primary_document("gate_pass", "Gate Pass")
 		gate_pass = frappe.get_doc("Gate Pass", self.gate_pass)
@@ -1050,24 +1034,6 @@ class RepairJob(Document):
 			history.insert(ignore_permissions=True)
 		else:
 			history.save(ignore_permissions=True)
-
-
-def _road_test_is_passed(road_test):
-	if getattr(road_test, "status", None) == "Passed":
-		return True
-	if getattr(road_test, "passed", None):
-		return True
-	if getattr(road_test, "road_test_passed", None):
-		return True
-	check_fields = (
-		"braking_ok",
-		"steering_ok",
-		"engine_performance_ok",
-		"transmission_ok",
-		"no_warning_lights",
-	)
-	return all(bool(getattr(road_test, field, None)) for field in check_fields)
-
 
 def _db_has_column(doctype, fieldname):
 	has_column = getattr(frappe.db, "has_column", None)

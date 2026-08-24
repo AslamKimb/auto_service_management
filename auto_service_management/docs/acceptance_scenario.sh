@@ -92,7 +92,7 @@ try:
         "Repair Job", "Repair Service Line", "Repair Job Override",
         "Repair Job Log", "Walkaround Inspection", "Vehicle Damage Mark",
         "Diagnosis Report", "Customer Authorization", "Quality Check",
-        "Road Test Report", "Gate Pass", "Service History",
+        "Gate Pass", "Service History",
         "Fleet Service Campaign", "Fleet Service Campaign Job",
     ]
     missing = [dt for dt in expected_dt if not frappe.db.exists("DocType", dt)]

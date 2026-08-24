@@ -2,14 +2,13 @@
 # For license information, please see license.txt
 
 import frappe
-from frappe import _
-from frappe.model.document import Document
-from frappe.utils import getdate
-
 from auto_service_management.auto_service_management.workflow_compatibility import (
 	recompute_repair_job_state,
 	sync_customer_authorization_snapshot,
 )
+from frappe import _
+from frappe.model.document import Document
+from frappe.utils import getdate
 
 
 class CustomerAuthorization(Document):
@@ -41,16 +40,8 @@ class CustomerAuthorization(Document):
 		self.check_permission("write")
 
 	def validate_repair_job_state(self):
-		"""Authorization is needed before work can begin."""
-		if self.repair_job:
-			status = frappe.db.get_value("Repair Job", self.repair_job, "job_status")
-			if status not in ("Assessment", "Awaiting Approval"):
-				frappe.throw(
-					_(
-						"Customer Authorization can only be created when the Repair Job "
-						"is in 'Assessment' or 'Awaiting Approval' state. Current: {0}"
-					).format(status)
-				)
+		"""Keep authorization evidence optional at every Repair Job status."""
+		return
 
 	def validate_unique_for_repair_job(self):
 		if not self.repair_job:
@@ -91,7 +82,8 @@ class CustomerAuthorization(Document):
 					"Repair Job", self.repair_job, "customer_authorization", self.name, update_modified=False
 				)
 			job.reload()
-			job.authorize()
+			if job.job_status in {"Assessment", "Awaiting Approval"}:
+				job.authorize()
 		recompute_repair_job_state(self.repair_job)
 
 	@frappe.whitelist(methods=["POST"])

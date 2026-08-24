@@ -2,12 +2,11 @@
 # For license information, please see license.txt
 
 import frappe
-from frappe.model.document import Document
-
 from auto_service_management.auto_service_management.workflow_compatibility import (
 	recompute_repair_job_state,
 	sync_quality_check_road_tests,
 )
+from frappe.model.document import Document
 
 
 class QualityCheck(Document):
@@ -23,10 +22,8 @@ class QualityCheck(Document):
 		recompute_repair_job_state(self.repair_job)
 
 	def validate_repair_job_state(self):
-		if self.repair_job:
-			job_status = frappe.db.get_value("Repair Job", self.repair_job, "job_status")
-			if job_status not in {"In Repair", "Quality Check", "Billing"}:
-				frappe.throw("Quality Check requires the Repair Job to be in repair or billing review.")
+		"""Keep QC and road-test evidence optional at every Repair Job status."""
+		return
 
 	def sync_with_repair_job(self):
 		if not self.repair_job:

@@ -41,14 +41,8 @@ class DiagnosisReport(Document):
 			self.customer_complaint = job.customer_concern
 
 	def validate_repair_job_state(self):
-		"""Diagnosis can only happen after check-in."""
-		if self.repair_job:
-			status = frappe.db.get_value("Repair Job", self.repair_job, "job_status")
-			if status not in ("Assessment", "Awaiting Approval", "In Repair"):
-				frappe.throw(
-					f"Diagnosis Report requires the Repair Job to be in "
-					f"'Assessment', 'Awaiting Approval', or 'In Repair' state. Current: {status}"
-				)
+		"""Keep diagnosis evidence optional at every Repair Job status."""
+		return
 
 	def validate_unique_for_repair_job(self):
 		if not self.repair_job:

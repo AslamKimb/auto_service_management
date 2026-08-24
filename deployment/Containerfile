@@ -16,9 +16,9 @@ COPY --chown=frappe:frappe bench-data/bench-home/frappe-bench/apps/uganda_compli
 COPY --chown=frappe:frappe auto_service_management /opt/auto_service_management
 COPY --chown=frappe:frappe deployment/apps.json /opt/frappe/apps.json
 
-ARG FRAPPE_COMMIT=9a8daf343db69a0127f470bad8be0af192cd80c8
-ARG ERPNEXT_COMMIT=d1d3b241ae7bc21d18cf830a4bacd568e21a2a19
-ARG HRMS_COMMIT=6aa125b976469cb1c342afa3ef07d381c88677e0
+ARG FRAPPE_COMMIT=6a329d068416768ec47ccd3326b9cc95a8d7bf99
+ARG ERPNEXT_COMMIT=11e0ba0a1c45f217e2e73e885f699102d06da325
+ARG HRMS_COMMIT=f281e8b172ac8836ad89c59df65a922101103097
 ARG UGANDA_COMPLIANCE_COMMIT=33743cd596c6e8c079945478d0e5b52e461fe770
 RUN for app in frappe erpnext hrms uganda_compliance; do \
       git -C "/opt/vendor/${app}" reset --hard HEAD; \

@@ -82,7 +82,7 @@
     {
       "fieldname": "road_test_required",
       "fieldtype": "Check",
-      "label": "Road Test Required"
+      "label": "Road Test Recommended"
     },
     {
       "fieldname": "column_break_3",

@@ -335,9 +335,9 @@ class TestWalkaroundInspection(IntegrationTestCase):
 	def tearDown(self):
 		frappe.db.rollback()
 
-	def test_walkaround_requires_checked_in_or_diagnosis(self):
+	def test_walkaround_is_optional_evidence_at_draft(self):
 		job_name = _create_repair_job(self.customer, self.vehicle)
-		# Job is in Draft — walkaround should be blocked
+		# Optional evidence may be captured before or after the workflow advances.
 		wi = frappe.get_doc(
 			{
 				"doctype": "Walkaround Inspection",
@@ -347,7 +347,9 @@ class TestWalkaroundInspection(IntegrationTestCase):
 				"inspected_by": "Administrator",
 			}
 		)
-		self.assertRaises(frappe.ValidationError, wi.insert)
+		wi.insert(ignore_permissions=True)
+		self.assertTrue(wi.name)
+		self.assertEqual("Assessment", frappe.db.get_value("Repair Job", job_name, "job_status"))
 
 	def test_walkaround_allowed_after_check_in(self):
 		job_name = _create_repair_job(self.customer, self.vehicle)
@@ -402,7 +404,7 @@ class TestCustomerAuthorization(IntegrationTestCase):
 	def tearDown(self):
 		frappe.db.rollback()
 
-	def test_authorization_requires_estimate_prepared_state(self):
+	def test_authorization_is_optional_evidence_at_draft(self):
 		job_name = _create_repair_job(self.customer, self.vehicle)
 		auth = frappe.get_doc(
 			{
@@ -413,7 +415,9 @@ class TestCustomerAuthorization(IntegrationTestCase):
 				"authorization_date": frappe.utils.now_datetime(),
 			}
 		)
-		self.assertRaises(frappe.ValidationError, auth.insert)
+		auth.insert(ignore_permissions=True)
+		self.assertTrue(auth.name)
+		self.assertEqual("Draft", frappe.db.get_value("Repair Job", job_name, "job_status"))
 
 	def test_authorization_approve_updates_job(self):
 		job_name = _create_repair_job(self.customer, self.vehicle)
@@ -435,6 +439,20 @@ class TestCustomerAuthorization(IntegrationTestCase):
 		job = frappe.get_doc("Repair Job", job_name)
 		self.assertEqual(job.customer_authorization, auth.name)
 		self.assertEqual(job.job_status, "In Repair")
+
+	def test_late_authorization_approval_does_not_regress_job(self):
+		job_name = _create_repair_job(self.customer, self.vehicle)
+		job = frappe.get_doc("Repair Job", job_name)
+		with patch.object(type(job), "_ensure_project"):
+			job.check_in()
+		job = frappe.get_doc("Repair Job", job_name)
+		job.complete_diagnosis()
+		self.assertEqual("Billing", job.reload().job_status)
+
+		auth = _insert_authorization(job_name)
+		auth.approve()
+
+		self.assertEqual("Billing", frappe.db.get_value("Repair Job", job_name, "job_status"))
 
 	def test_authorization_duplicate_for_same_job_is_blocked(self):
 		job_name = _create_repair_job(self.customer, self.vehicle)

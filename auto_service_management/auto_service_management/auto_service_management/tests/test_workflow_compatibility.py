@@ -1,16 +1,16 @@
 # Copyright (c) 2026, Aslam Kimbugwe and contributors
 # For license information, please see license.txt
 
+import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
-import unittest
 
 from auto_service_management.auto_service_management.workflow_compatibility import (
-	bump_repair_job_scope_revision,
+	_derive_repair_job_status,
 	build_quality_check_road_test_rows,
 	build_repair_job_service_rows,
+	bump_repair_job_scope_revision,
 	recompute_repair_job_state,
-	_derive_repair_job_status,
 	sync_repair_job_compatibility_views,
 )
 
@@ -191,6 +191,93 @@ class TestWorkflowCompatibility(unittest.TestCase):
 			side_effect=lambda repair_job_name, doctype: authorization if doctype == "Customer Authorization" else None,
 		):
 			self.assertEqual("In Repair", _derive_repair_job_status(job))
+
+	def test_optional_quality_failure_never_regresses_a_later_status(self):
+		job = SimpleNamespace(name="RJ-1", job_status="Billing")
+		quality_check = SimpleNamespace(status="Failed")
+
+		with patch(
+			"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
+			side_effect=lambda repair_job_name, doctype: quality_check if doctype == "Quality Check" else None,
+		):
+			self.assertEqual("Billing", _derive_repair_job_status(job))
+
+	def test_cancelled_optional_quality_does_not_advance_or_regress(self):
+		quality_check = SimpleNamespace(status="Passed", docstatus=2)
+
+		with patch(
+			"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
+			side_effect=lambda repair_job_name, doctype: quality_check if doctype == "Quality Check" else None,
+		):
+			self.assertEqual(
+				"In Repair",
+				_derive_repair_job_status(SimpleNamespace(name="RJ-1", job_status="In Repair")),
+			)
+
+	def test_optional_pending_quality_check_does_not_advance_from_repair(self):
+		quality_check = SimpleNamespace(status="Pending")
+
+		with patch(
+			"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
+			side_effect=lambda repair_job_name, doctype: quality_check if doctype == "Quality Check" else None,
+		):
+			self.assertEqual(
+				"In Repair",
+				_derive_repair_job_status(SimpleNamespace(name="RJ-1", job_status="In Repair")),
+			)
+			self.assertEqual(
+				"Billing",
+				_derive_repair_job_status(SimpleNamespace(name="RJ-1", job_status="Billing")),
+			)
+
+	def test_optional_authorization_only_advances_from_approval_states(self):
+		authorization = SimpleNamespace(docstatus=1)
+
+		with patch(
+			"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
+			side_effect=lambda repair_job_name, doctype: authorization if doctype == "Customer Authorization" else None,
+		):
+			self.assertEqual(
+				"In Repair",
+				_derive_repair_job_status(SimpleNamespace(name="RJ-1", job_status="Awaiting Approval")),
+			)
+			self.assertEqual(
+				"Billing",
+				_derive_repair_job_status(SimpleNamespace(name="RJ-1", job_status="Billing")),
+			)
+
+	def test_optional_diagnosis_only_advances_from_assessment(self):
+		diagnosis = SimpleNamespace(docstatus=1)
+
+		with patch(
+			"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
+			side_effect=lambda repair_job_name, doctype: diagnosis if doctype == "Diagnosis Report" else None,
+		), patch(
+			"auto_service_management.auto_service_management.workflow_compatibility._has_any_service_rows",
+			return_value=False,
+		):
+			self.assertEqual(
+				"Billing",
+				_derive_repair_job_status(SimpleNamespace(name="RJ-1", job_status="Assessment")),
+			)
+			self.assertEqual(
+				"Billing",
+				_derive_repair_job_status(SimpleNamespace(name="RJ-1", job_status="Billing")),
+			)
+
+	def test_optional_walkaround_only_advances_from_draft(self):
+		with patch(
+			"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
+			side_effect=lambda repair_job_name, doctype: object() if doctype == "Walkaround Inspection" else None,
+		):
+			self.assertEqual(
+				"Assessment",
+				_derive_repair_job_status(SimpleNamespace(name="RJ-1", job_status="Draft")),
+			)
+			self.assertEqual(
+				"Billing",
+				_derive_repair_job_status(SimpleNamespace(name="RJ-1", job_status="Billing")),
+			)
 
 	def test_recompute_repair_job_state_saves_new_status(self):
 		job = _FakeDoc("Repair Job", "RJ-1", job_status="Billing")

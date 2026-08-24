@@ -1,28 +1,56 @@
-# Gauntlet Loop — Repair Job Sales Order Proforma
+# Gauntlet Loop — Repair Job Sales Order Proforma and Optional Workflow
 
-Goal: replace app-facing Repair Job quotation creation with selectable Sales Orders, preserve both invoice paths, show all linked Sales Orders on Repair Job, and print all Sales Orders as Proforma Invoice.
+## Previous run record
 
-Quality bar: no app quotation creation actions; selected billable service components map into a reviewable Sales Order; duplicate drafts are allowed but only one overlapping order may be submitted/billed; direct and native Sales Invoice paths preserve Repair Job/Sales Order traceability; related Sales Orders remain visible; HTML/PDF print output says Proforma Invoice; focused and full tests, migration, asset build, and live Desk inspection pass.
+The prior Sales Order / Proforma Invoice run established the protected-state controls, backend/UI critics, and the remaining browser/PDF inspection boundary. Its evidence is retained below so this run does not erase history.
 
-Overall state: CRITIC
-Current wave: W1 — backend and native UI/print builders
-Required modules: 2 / 3
-Active: M3 (integration and whole-system verification)
-Blocked: browser/PDF inspection gate
-Whole-system gate: PENDING
-Parallel now: M1, M2
-Sequential chains: M1 + M2 -> fresh critics -> integration -> whole-system critic
+| ID | Output | Status | Evidence / remaining gate |
+|---|---|---|---|
+| M1 | Backend mapper, schema, lifecycle, sync | PASSED | Backend contract 4/4, Phase10 mapping 37/37, reversed native invoice trace pass. |
+| M2 | Native Desk selector, actions, Proforma print behavior | PASSED | Focused contracts 3/3, Node/compile/JSON checks pass. |
+| M3 | Integration and whole-system verification | CRITIC / UNVERIFIED | Browser CDP/PDF inspection remained unavailable; full suite had one pre-existing Job Card SVG metadata assertion. |
+
+## Current run — Optional Repair Workflow and Stable v16 Upgrade
+
+Goal: Make Repair Job evidence optional and non-regressive, update the editable stack to the compatible stable Frappe v16 set, and prove the result end to end.
+
+Quality bar: G1 workflow behavior; G2 UI/native links; G3 upgrade compatibility; G4 regression suite; G5 live Desk inspection; G6 commit/push synchronization.
+
+Overall state: BLOCKED / UNVERIFIED
+Current wave: W1 — integration and closeout
+Required modules: 3/3
+Active: integration
+Blocked: live browser/render inspection remains capability-gated; wkhtmltopdf cannot resolve the local asset host
+Blocked: whole-system visual gate only
+Whole-system gate: BLOCKED / UNVERIFIED
+Parallel now: M1, M2, M3
+Sequential chains: M1/M2/M3 → fresh critics → integration → site migration → system critic → commit/push
 Free worker slots: 3
-Dispatch batch: M1 -> backend_sales_order; M2 -> ui_print_proforma
-Last update: M1 and M2 fresh critics passed; integration checks green; browser CDP/PDF inspection remains blocked
+Dispatch batch: M1 -> backend_optional_workflow; M2 -> desk_docs_optional_flow; M3 -> stable_v16_pins
+Last update: 2026-08-24 integration and upgrade evidence
 
 | ID | Output | Depends on | Quality gate | Owner | Round | Status | Last verdict | Largest gap | Evidence | Next action |
 |---|---|---|---|---|---:|---|---|---|---|---|
-| M1 | Backend mapper, schema, lifecycle, sync | None | Component/order/invoice contract tests | backend_sales_order | 1 | PASSED | PASS | Live end-to-end document creation still belongs to M3 | Current-source hashes match; backend contract 4/4, Phase10 mapping 37/37, reversed native invoice-row trace regression pass; no quotation creation controller/UI action | Integration and whole-system gate |
-| M2 | Native Desk selector, actions, Proforma print behavior | M1 interface names only | JS, print, HTML/PDF contracts | ui_print_proforma | 1 | PASSED | PASS | Live Desk/PDF still pending integration gate | focused contracts 3/3, node/compile/JSON pass, fresh critic confirms render targets and no stale quotation UI | Unlock M3 after M1 critic |
-| M3 | Integration and whole-system verification | M1 + M2 | Full app, migration, browser, PDF | lead + fresh critics | 1 | CRITIC | UNVERIFIED | Browser CDP handshake blocks live selector/PDF inspection; full app suite has one unrelated legacy Job Card SVG metadata assertion still failing | Test-site schema/heading verified directly; dev GET returned 3 selectable components; live Repair Job Create menu was observed with Proforma Invoice (Sales Order) and no Quotation; asset build passed; 129/130 unit tests and all 66 integration tests reached completion, with only the pre-existing Job Card asset-contract failure | Restore CDP, inspect selector/draft/PDF, then decide whether to repair or separately track the Job Card contract |
+| M1 | Optional Repair Job backend workflow and tests | None | G1 | backend_optional_workflow | 1 | PASSED | PASS | Browser/PDF presentation remains outside backend gate | optional evidence integration 3/3, workflow compatibility 14/14, late authorization 1/1, compileall/Ruff, POST-only Return to Repair, and preserved guards pass | Keep visual gate separate |
+| M2 | Desk actions, native links, docs, and acceptance contracts | None | G2 | desk_docs_optional_flow | 2 | PASSED | PASS | Live browser/render inspection remains unverified | Bash, Node, JSON, static button/link/no-quotation/no-stale-Road-Test checks pass; bounded fix removed stale assertion | Integrate and run live checks |
+| M3 | Stable v16 dependency pins and upgrade checks | None | G3 | stable_v16_pins | 1 | PASSED | PASS | Browser/PDF presentation remains capability-gated | test/dev backups, migrations exit 0, exact Frappe/ERPNext/HRMS/Uganda SHAs, bench version, build, proxy asset HTTP 200, and direct backend ping HTTP 200 | Keep image gate closed |
 
-## Events
+## Event Log
+
+| When | Module | Transition | Evidence or decision | Unlocked / next |
+|---|---|---|---|---|
+| 2026-08-24 | RUN | SETUP -> BUILDING | Graph report read; graph query mapped Repair Job, Sales Order mapping, and workflow communities. Three disjoint builders dispatched. | Fresh critics after each builder |
+| 2026-08-24 | M3 | BUILDING -> CRITIC -> PASSED | Fresh critic PASS: exact stable v16 commits, Compose/YAML/shell, Containerfile, upstream resolution, and dirty-repo safety simulation passed. | Await M1/M2 builders and critics |
+| 2026-08-24 | M1 | BUILDING -> CRITIC | Builder returned backend artifact; workflow compatibility 14/14 and compileall pass; optional integration suite remains unverified. | Fresh backend critic |
+| 2026-08-24 | M2 | BUILDING -> CRITIC | Builder returned Desk/docs artifact; static contracts and parsing pass; browser render explicitly blocked. | Fresh UI/docs critic |
+| 2026-08-24 | M1 | CRITIC -> PASSED | Fresh backend critic PASS: compileall, 9 focused workflow tests, optional-status matrix, explicit POST rework action, and preserved controls verified. | Integrate after M2 passes |
+| 2026-08-24 | M2 | CRITIC -> FIX | Fresh critic found stale standalone `Road Test Report` assertion in acceptance script; builder removed it and reran static checks. | Fresh M2 critic retest |
+| 2026-08-24 | M2 | FIX -> CRITIC -> PASSED | Fresh static critic PASS: bash, Node, JSON, required buttons, native form links, no quotation actions, and no stale standalone Road Test Report assertion. | Integration wave |
+| 2026-08-24 | Integration | RUNNING -> PASSED | Test-site migration reached 100% DocType sync and exited 0; optional evidence 3/3; workflow compatibility 14/14; Sales Order/Proforma/Phase10 contracts 44/44; dev migration later exited 0; exact stable v16 versions verified. | Live runtime and whole-system gate |
+| 2026-08-24 | Integration | FAIL -> FIX -> PASSED | Full-suite timestamp errors were reproduced as stale Repair Job action snapshots. Controller actions now reload persisted docs; late-authorization regression passed 1/1, and the PDF test progressed past the timestamp failure. | Record renderer blocker honestly |
+| 2026-08-24 | Renderer/browser | VERIFY -> BLOCKED / UNVERIFIED | wkhtmltopdf fails with `HostNotFoundError` for local asset host; browser-control runtime cannot establish Chrome CDP. Native HTML/static contracts and generated bundle HTTP 200 remain green, but no live selector/PDF visual claim is made. | Await capability recovery before marking whole-system complete |
+
+## Previous run events
 
 | When | Module | Transition | Evidence or decision | Unlocked / next |
 |---|---|---|---|---|

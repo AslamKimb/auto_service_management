@@ -7,6 +7,13 @@
 		return frappe.format(value || 0, { fieldtype: "Currency" });
 	}
 
+	function form_link(doctype, name, fallback) {
+		if (!name) {
+			return fallback || "—";
+		}
+		return frappe.utils.get_form_link(doctype, name, true, esc(name));
+	}
+
 	function load_data(options) {
 		return frappe.call({
 			method: "auto_service_management.auto_service_management.integration.erpnext.component_mapping.get_sales_invoice_components",
@@ -23,9 +30,7 @@
 		if (!field) return;
 		const counts = data.counts || {};
 		const rows = (data.components || []).map((row) => {
-			const invoice = row.sales_invoice
-				? `<a href="/app/sales-invoice/${encodeURIComponent(row.sales_invoice)}">${esc(row.sales_invoice)}</a>`
-				: "—";
+			const invoice = form_link("Sales Invoice", row.sales_invoice);
 			return `<tr><td>${esc(row.service_name)}</td><td>${esc(row.component_type)}</td><td>${esc(row.description)}</td><td>${row.quantity || 0}</td><td>${amount(row.amount)}</td><td><span class="indicator-pill ${row.invoice_state === "Invoiced" ? "green" : row.invoice_state === "Reserved" ? "orange" : row.invoice_state === "Unbilled" ? "red" : "gray"}">${esc(row.invoice_state)}</span></td><td>${invoice}</td></tr>`;
 		}).join("");
 		field.$wrapper.html(`<div class="text-muted small mb-2">Unbilled: <b>${counts["Unbilled"] || 0}</b> · Reserved: <b>${counts["Reserved"] || 0}</b> · Invoiced: <b>${counts["Invoiced"] || 0}</b></div><div class="table-responsive"><table class="table table-bordered table-sm"><thead><tr><th>Service</th><th>Type</th><th>Component</th><th>Qty</th><th>Amount</th><th>Billing State</th><th>Invoice</th></tr></thead><tbody>${rows || `<tr><td colspan="7" class="text-muted">No service components found.</td></tr>`}</tbody></table></div>`);
@@ -87,9 +92,7 @@
 	}
 
 	function sales_order_link(name) {
-		return name
-			? `<a href="/app/sales-order/${encodeURIComponent(name)}">${esc(name)}</a>`
-			: `<span class="text-muted">${__("Not created")}</span>`;
+		return form_link("Sales Order", name, `<span class="text-muted">${__("Not created")}</span>`);
 	}
 
 	function render_sales_order_summary(frm, fieldname, data) {
@@ -187,9 +190,7 @@
 	}
 
 	function material_request_link(name) {
-		return name
-			? `<a href="/app/material-request/${encodeURIComponent(name)}">${esc(name)}</a>`
-			: __("Not Requested");
+		return form_link("Material Request", name, __("Not Requested"));
 	}
 
 	function render_request_history(history) {

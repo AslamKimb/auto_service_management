@@ -18,7 +18,7 @@ The repository research file `Automotive DMS.md` explains legacy dealership work
 4. Model fleet work through `Fleet Service Campaign`, which groups separate Repair Jobs.
 5. Use a dedicated, submittable `Repair Job Override` for controlled exceptions.
 6. Use a non-submittable `Repair Job` with an automatic workflow; the workflow state changes are derived from server-side validation and `job_status` is the sole business status.
-7. Treat ERPNext-generated quotation, invoice, tax, stock, payment, and credit figures as authoritative.
+7. Treat ERPNext-generated Sales Order/Proforma Invoice, invoice, tax, stock, payment, and credit figures as authoritative.
 8. Do not use `Repair Job Service` status as an eligibility gate; downstream actions must derive from submitted content and parent job state.
 
 ## Domain Model
@@ -39,11 +39,11 @@ Each `Repair Job Service` owns Parts, Labour, and Consumables child tables. Serv
 
 ### Workshop Transactions
 
-- **Vehicle Walkaround Inspection** with Vehicle Damage Mark children, photos, signatures, odometer, fuel, condition notes, and customer presence. Optional unless intake damage capture is needed.
-- **Diagnosis Report** with findings, recommendations, estimated hours, required parts, and status. Optional for straight-through repair cycles and required for diagnosis-led closures.
-- **Customer Authorization** with method, approved amount, evidence/signature, notes, and approval state. Required before repair work begins unless the job is diagnosis-only.
-- **Quality Check** with completion, fitment, fluid, warning-light, cleaning, road-test, notes, and Passed/Failed/Rework status. Required for repair jobs and optional only for diagnosis-only closures.
-- **Road Test** evidence is captured as a child table on Quality Check, not as a separate status-bearing DocType.
+- **Vehicle Walkaround Inspection** with Vehicle Damage Mark children, photos, signatures, odometer, fuel, condition notes, and customer presence. Optional evidence that can be added whenever intake condition needs to be recorded.
+- **Diagnosis Report** with findings, recommendations, estimated hours, recommended parts, and status. Optional evidence for every workflow path, including straight-through repair cycles and diagnosis-led closures.
+- **Customer Authorization** with method, approved amount, evidence/signature, notes, and approval state. Optional evidence; saving or approving one may advance an earlier job but never blocks repair work or regresses a later job.
+- **Quality Check** with completion, fitment, fluid, warning-light, cleaning, road-test, notes, and Passed/Failed/Rework status. Optional evidence; a passed check may advance an earlier job, while missing, failed, or cancelled checks never block or regress it.
+- **Road Test** evidence is captured as a child table on Quality Check, not as a separate status-bearing DocType. The road-test flag is a recommendation, not a workflow requirement.
 - **Gate Pass** with repair job, vehicle, invoice, recipient, identity reference, release/security users, issue/use timestamps, and status.
 - **Repair Job Override** with exception type, reason, requestor, approver, decision timestamp, and linked evidence. Only Workshop Manager or Auto Service Admin can approve.
 - **Repair Job Log** is server-created and read-only to users. It stores user, time, action, old/new values, remarks, and source document.
@@ -56,26 +56,26 @@ Draft → Assessment → Awaiting Approval → In Repair → Quality Check → B
 The workflow is automatic:
 
 - `Draft` means the Repair Job has not been checked in.
-- `Assessment` means the job is checked in and intake or diagnosis is still incomplete.
-- `Awaiting Approval` means the service scope is complete but a current full-job authorization is missing.
-- `In Repair` means the current scope is authorized and QC has not passed.
-- `Quality Check` means QC has opened and is pending a result.
-- `Billing` means QC passed, or the job is diagnosis-only, but invoice coverage or payment clearance is still incomplete.
+- `Assessment` means the job is checked in and the advisor may complete the assessment with or without optional evidence records.
+- `Awaiting Approval` is an advisory stage for a service scope that may benefit from customer authorization; authorization is not a transition gate.
+- `In Repair` means workshop execution is active. The job can enter this stage without a Customer Authorization record.
+- `Quality Check` means an optional quality review is open and pending a result; it is not required before billing.
+- `Billing` means the job is ready for invoice coverage or payment clearance. It can be reached directly from In Repair, or advanced to by a passed Quality Check.
 - `Ready for Release` means every billable component is fully invoiced and financially cleared.
 - `Closed` means the Gate Pass was used and the Repair Job is submitted.
 - `Cancelled` means a validated pre-closure cancellation was recorded with a reason.
 
-Diagnosis-only jobs can move from `Assessment` directly to `Billing` after diagnosis is submitted. A job can move back from `Quality Check` to `In Repair` when QC fails or rework is required. A job can move from `Billing` back to `Awaiting Approval` when the scope changes and current authorization is no longer valid.
+Diagnosis-only jobs can move from `Assessment` directly to `Billing`, with or without a Diagnosis Report. A job can be returned explicitly from `Quality Check` to `In Repair` when rework is required. Failed, missing, rejected, or late optional records do not automatically move a job backwards. Scope changes may be recorded for audit, but they do not regress a later Repair Job status.
 
-Required gates:
+Workflow and release gates:
 
 - Checked In creates the Project once.
-- Diagnosis requires check-in.
-- In Repair requires approved Customer Authorization or an approved authorization override.
-- Quality Check requires at least one Task or an approved exception.
-- Billing requires passed QC, or diagnosis-only completion, and unresolved invoice or payment coverage.
+- Optional inspection, diagnosis, authorization, quality, and road-test records may be created at any Repair Job status, subject to normal document permissions and link validation.
+- Complete Assessment, Start Work, and Continue to Billing do not require those optional records.
+- A positive optional record may advance an earlier compatible stage, but no optional record may block or regress a later stage.
+- Billing requires billable service content only when an invoice is being created; it does not require passed QC or road-test evidence.
 - Ready for Release requires every billable component to be covered by submitted invoices and either payment within tolerance, approved customer credit release, or a credit override.
-- Road test evidence is required only when QC marks it required.
+- Road-test evidence is recommended for risk-sensitive work when the workshop chooses to capture it.
 - Gate Pass requires the job to be Ready for Release and the invoice/payment coverage rules to remain satisfied.
 - Credit release additionally requires configured payment terms and no credit-limit breach.
 - Closing requires an issued/used Gate Pass and creates Service History once.
@@ -84,7 +84,7 @@ Required gates:
 
 - `Repair Job` is non-submittable and closes through the app-owned workflow.
 - `Repair Job Service` is the service-level document used for billing, stock, and labour lines; it does not depend on a user-facing status field for eligibility.
-- `Customer Authorization`, `Diagnosis Report`, `Quality Check`, and `Gate Pass` are submittable workshop control documents.
+- `Customer Authorization`, `Diagnosis Report`, `Quality Check`, and `Gate Pass` are submittable workshop records; the first three are optional evidence and the Gate Pass remains a release control.
 - `Walkaround Inspection` is a submittable inspection record; `Road Test` evidence, `Repair Job Override`, `Quotation`, `Sales Order`, `Material Request`, `Stock Entry`, and `Timesheet` are optional or conditional records.
 - `Sales Invoice` may be created more than once per Repair Job; payment status is derived from submitted invoices and their Payment Entries, not from invoice creation alone.
 - `Service History` is generated automatically at closure and is not manually submitted.
@@ -115,7 +115,7 @@ Provide reports for Open Repair Jobs, Daily Workshop Load, Jobs by Status, Jobs 
 
 ## Acceptance Scenario
 
-The release passes when a Service Advisor can find or create a Customer Vehicle, create a numbered Repair Job and Project, record intake/inspection/authorization/diagnosis, add priced service lines, create Tasks, capture Timesheets, audit important changes, pass QC and conditional road-test evidence, create one or more Sales Invoices, apply payment or controlled credit policy, issue and use a Gate Pass, close the job, and verify Service History and vehicle odometer/service dates.
+The release passes when a Service Advisor can find or create a Customer Vehicle, create a numbered Repair Job and Project, optionally record intake/inspection/authorization/diagnosis/QC/road-test evidence, add priced service lines, create Tasks, capture Timesheets, audit important changes, proceed directly through the workflow without those optional records, create one or more Sales Invoices, apply payment or controlled credit policy, issue and use a Gate Pass, close the job, and verify Service History and vehicle odometer/service dates.
 
 ## Non-Functional Requirements
 

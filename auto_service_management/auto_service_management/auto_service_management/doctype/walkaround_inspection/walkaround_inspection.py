@@ -32,14 +32,8 @@ class WalkaroundInspection(Document):
 			frappe.throw("Walkaround Inspection vehicle must match the linked Repair Job vehicle.")
 
 	def validate_repair_job_link(self):
-		"""Ensure linked Repair Job is in an appropriate state."""
-		if self.repair_job:
-			job = frappe.get_doc("Repair Job", self.repair_job)
-			if job.job_status not in ("Assessment",):
-				frappe.throw(
-					f"Walkaround Inspection can only be created for Repair Jobs "
-					f"in 'Assessment' state. Current: {job.job_status}"
-				)
+		"""Keep the link valid; inspection evidence is optional at every status."""
+		return
 
 	def validate_unique_for_repair_job(self):
 		if not self.repair_job:

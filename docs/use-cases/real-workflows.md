@@ -31,7 +31,7 @@ graph TD
     H --> I["Material Request"]
     I --> J["Stock Entry"]
     B --> K["Quality Check"]
-    K --> L["Road Test Report"]
+    K --> L["Road-test rows (optional)"]
     B --> M["Sales Invoice"]
     B --> N["Gate Pass"]
     B --> O["Service History"]
@@ -43,19 +43,16 @@ The `Repair Job` state machine is the backbone of the app:
 
 ```text
 Draft
-  -> Checked In
-  -> Walkaround Inspection
-  -> Diagnosis
-  -> Estimate Prepared
-  -> Waiting for Customer Approval
-  -> Approved
+  -> Assessment
+  -> Awaiting Approval (optional advisory stage)
   -> In Repair
-  -> Quality Check
-  -> Ready for Invoice
-  -> Invoiced
-  -> Gate Pass Issued
+  -> Quality Check (optional)
+  -> Billing
+  -> Ready for Release
   -> Closed
 ```
+
+Walkaround inspection, diagnosis, customer authorization, quality check, and road-test rows are optional supporting evidence. A positive record may advance an earlier compatible stage, but an absent, failed, cancelled, or late record never blocks or regresses the Repair Job. Staff can use `Continue to Billing` directly from `In Repair`, and `Return to Repair` is an explicit action when rework is needed.
 
 Supported branch outcomes:
 
@@ -75,7 +72,7 @@ At **8:07 AM**, Sarah Namata arrives at reception with her **2022 Toyota Hilux, 
 
 Inside the `Repair Job`, the advisor records the real intake details that matter operationally: `customer`, `customer_vehicle`, `customer_concern = "Battery light on and grinding noise from front brakes"`, `odometer_in = 84,521 km`, fuel level at about a quarter tank, visit reason as walk-in corrective repair, promised pickup as same day if parts are available, and assigns the vehicle to **Bay 2**. The job starts in `Draft`. The moment the advisor performs `check_in()`, the job moves to `Checked In`, the app creates the linked ERPNext `Project`, and the visit is now visible in the live workshop queue rather than being stuck in front-desk memory or phone notes.
 
-At **8:18 AM**, the technician receives the job card and performs the intake inspection with the customer present. He creates a `Walkaround Inspection` record, confirms the odometer, notes the existing scratches on the rear bumper, marks the left-front wheel area as the source of the noise concern, and records that the customer left one ignition key and the spare wheel in the vehicle. Saving the inspection moves the job into `Walkaround Inspection`. This matters because the workshop now has a shared, timestamped condition record before any spanner work begins.
+At **8:18 AM**, the technician receives the job card and performs the optional intake inspection with the customer present. He creates a `Walkaround Inspection` record, confirms the odometer, notes the existing scratches on the rear bumper, marks the left-front wheel area as the source of the noise concern, and records that the customer left one ignition key and the spare wheel in the vehicle. The record enriches the job with a shared, timestamped condition record; the workflow remains usable when the workshop chooses to skip it.
 
 At **8:34 AM**, the technician opens the job and starts diagnosis. In app terms, the `Repair Job` moves to `Diagnosis`, and the technician creates a `Diagnosis Report`. His findings are practical and billable: the front brake pads are worn below safe thickness, both front brake discs are scored and need machining, and the alternator belt is cracked and slipping, which explains the intermittent charging warning. He estimates **2.8 labour hours** in total: **1.2 hours** for front brake service, **0.6 hours** for disc removal and refit around machining, and **1.0 hour** for alternator belt replacement plus charging-system test. The diagnosis does not yet commit the workshop to perform the work; it turns the complaint into a structured recommendation the advisor can price and explain.
 
@@ -90,9 +87,9 @@ At **8:49 AM**, the Service Advisor and Parts Interpreter build the commercial s
 | `Labour` | Belt replacement and charging test | 1.0 hr | `Pending Approval` | Technician time tied to the fix |
 | `Consumable` | Brake cleaner and shop supplies | 1 | `Pending Approval` | Small materials consumed during the job |
 
-The advisor then runs `prepare_estimate()` and `request_authorization()`. The job moves from `Diagnosis` to `Estimate Prepared` and then to `Waiting for Customer Approval`. This is the point where the app stops the story from becoming informal. Instead of a technician verbally saying "we also changed a belt," every intended charge now exists as a visible line with quantity, type, and approval status.
+The advisor then runs `prepare_estimate()` and may run `request_authorization()`. The job can use `Awaiting Approval` as an advisory stage while the customer considers the scope, but authorization is optional evidence rather than a hard gate. Instead of a technician verbally saying "we also changed a belt," every intended charge now exists as a visible line with quantity, type, and approval status.
 
-At **9:06 AM**, the advisor calls Sarah, explains the findings, and sends the estimate summary. She approves the full repair up to the quoted amount. The advisor records a `Customer Authorization` with the approval method as phone plus WhatsApp confirmation, approved amount matching the estimate, and supporting notes that the customer requested the old belt and brake pads to be shown at pickup. When the authorization is approved and the advisor runs `authorize()`, every remaining pending line becomes approved, the job enters `Approved`, `customer_authorized` is set, and the system now permits workshop execution.
+At **9:06 AM**, the advisor calls Sarah, explains the findings, and sends the estimate summary. She approves the full repair up to the quoted amount. The advisor records a `Customer Authorization` with the approval method as phone plus WhatsApp confirmation, approved amount matching the estimate, and supporting notes that the customer requested the old belt and brake pads to be shown at pickup. When the authorization is approved and the advisor runs `authorize()`, every remaining pending line becomes approved and the positive evidence may advance an earlier job; workshop execution remains available even when no authorization record exists.
 
 At **9:19 AM**, the technician starts work with `start_work()`, moving the job to `In Repair`. The Parts Interpreter uses the approved parts lines to create a `Material Request`, then issues stock through a `Stock Entry` for the **front brake pad set**, **alternator belt**, and **consumables**. This is where the app keeps workshop activity tied to real ERPNext stock movement. The parts are not just mentioned in a story; they are requested, issued, and later traceable through `Parts Used by Repair Job`.
 
@@ -106,7 +103,7 @@ Work happens in real time, and the job record reflects it. From **9:25 AM to 10:
 
 Total labour captured on the job: **2.8 hours**.
 
-Once the repair work is done, the technician or advisor marks the approved lines complete with `complete_service_lines()`. The job is then placed on `hold_for_qc()`, which moves it to `Quality Check`. At **10:55 AM**, the Workshop Manager creates the `Quality Check` record and confirms brake pedal feel, absence of warning lights, wheel nut tightness, fluid condition, and basic housekeeping. Because this job does not need a separate high-risk road test workflow, the manager passes QC immediately. The `Repair Job` moves to `Ready for Invoice`.
+Once the repair work is done, the technician or advisor marks the completed lines with `complete_service_lines()`. The job may be placed on `hold_for_qc()`, which moves it to `Quality Check`, or the advisor can use `Continue to Billing` directly from `In Repair`. At **10:55 AM**, the Workshop Manager creates the optional `Quality Check` record and confirms brake pedal feel, absence of warning lights, wheel nut tightness, fluid condition, and basic housekeeping. Because this job does not need a separate high-risk road test workflow, the manager passes QC immediately. The positive check advances the `Repair Job` toward Billing, but no QC record is required for billing.
 
 At **11:08 AM**, the Cashier opens the invoice queue and runs `create_sales_invoice()`. ERPNext calculates the authoritative totals, taxes, and final bill from the approved and completed lines. The job status becomes `Invoiced`, and the invoice is linked back to the `Repair Job`. Sarah pays at the counter, so there is no credit-release exception in this scenario. That is important: the workshop has finished the repair, but the vehicle is still not free to leave until release control is completed.
 
@@ -117,14 +114,13 @@ Finally, at **11:27 AM**, the advisor closes the visit. Running `close()` moves 
 **Status journey**
 
 ```text
-Draft -> Checked In -> Walkaround Inspection -> Diagnosis -> Estimate Prepared
--> Waiting for Customer Approval -> Approved -> In Repair -> Quality Check
--> Ready for Invoice -> Invoiced -> Gate Pass Issued -> Closed
+Draft -> Assessment -> Awaiting Approval -> In Repair -> Quality Check
+-> Billing -> Ready for Release -> Closed
 ```
 
 **What matters operationally**
 
-- Intake is not optional. The app requires customer, vehicle, `odometer_in`, and reason for visit before a `Repair Job` can be created.
+- Core intake identity is required: customer, vehicle, `odometer_in`, and reason for visit must exist before a `Repair Job` can be created. Walkaround, diagnosis, authorization, QC, and road-test records remain optional.
 - The diagnosis becomes service lines before the workshop starts work, so labour hours, parts used, and subcontracted work are all auditable.
 - Pricing, taxes, invoice totals, and stock/accounting effects come from ERPNext, not from workshop-side guesswork.
 - Gate release is a separate control step from invoicing. A created invoice alone does not mean the vehicle can leave.
@@ -167,7 +163,7 @@ The Service Advisor creates the `Repair Job`, records the complaint, `odometer_i
 
 At **10:34 AM**, the technician starts diagnosis and creates the `Diagnosis Report`. He runs initial checks, reads the fault code, and finds that the likely root cause is a weak oxygen sensor response combined with a dirty throttle body. He records the findings and recommended corrective work, including the likely sensor replacement and intake cleaning. The advisor now has something concrete to explain to the customer: not just “check engine light,” but a documented diagnosis with a repair recommendation and cost implication.
 
-The advisor prepares the estimate and calls the customer. She listens to the explanation, asks for the quotation to be sent, and says she wants to think about it before spending money on the actual repair. In this branch, the workshop does not force the job through approval and repair just because diagnosis is complete. Instead, it separates the completed diagnostic effort from the declined corrective work.
+The advisor prepares the estimate and calls the customer. She listens to the explanation, asks for the Proforma Invoice (Sales Order) to be sent, and says she wants to think about it before spending money on the actual repair. In this branch, the workshop does not force the job through approval and repair just because diagnosis is complete. Instead, it separates the completed diagnostic effort from the declined corrective work.
 
 To reflect that correctly in the app, the advisor keeps the actual repair recommendations out of active approval status and adds only the diagnosis charge as a completed billable line on the job. The `Repair Job` then moves to `Ready for Invoice` for diagnosis work only. This is the key control point: the workshop is billing for professional diagnostic effort that was completed, not for parts or labour the customer did not authorize.
 
@@ -272,7 +268,7 @@ Later, when the corporate accounts team asks what was done in the batch, the wor
 **What the app enforces**
 
 - A fleet campaign groups jobs; it does not merge them into one repair record.
-- Each vehicle still needs its own `Repair Job`, `Walkaround Inspection`, diagnosis, approval path, billing, and release controls.
+- Each vehicle still needs its own `Repair Job`, billable scope, billing, and release controls. Walkaround, diagnosis, authorization, QC, and road-test records are optional evidence attached to that job.
 - Jobs from the wrong customer are rejected from the campaign.
 - Duplicate job entries inside the same campaign are rejected.
 - Saving the campaign synchronizes the campaign link back onto each selected `Repair Job`, so reporting and drill-down stay consistent.
@@ -330,7 +326,7 @@ In practical terms, the story of this job is complete in two layers:
 - The app’s hard gate at `Gate Pass` level is that a linked `Sales Invoice` must exist and must already be submitted.
 - Credit release changes how the vehicle is allowed to leave; it does not remove the need for invoice traceability, payment terms, or post-release follow-up.
 
-### 8. QC Failure and Rework
+### 8. QC Failure and Explicit Rework
 
 **Situation:** Work is completed, but the manager or inspector is not satisfied with the result.
 
@@ -340,7 +336,7 @@ At **3:18 PM**, a **Toyota Prado** that came in for front suspension work reache
 
 The Workshop Manager opens the `Repair Job`, creates the `Quality Check` record, and starts the final inspection. He checks fitment, hardware tightness, general cleaning, warning lights, and the road feel around the workshop compound. During that inspection he notices that the left-front side still produces a slight metallic knock when the vehicle is rocked and turned at low speed. The original complaint is not fully resolved.
 
-This is exactly the kind of case the app is meant to surface instead of hiding. The manager does not wave the job through just because most of the work is done. He records the failed outcome in `Quality Check`, notes the remaining noise, and sends the `Repair Job` back to `In Repair`. Operationally, this matters because the workshop now has an honest record that the first repair pass was not accepted as complete.
+This is exactly the kind of case the app is meant to surface instead of hiding. The manager does not wave the job through just because most of the work is done. He records the failed outcome in the optional `Quality Check`, notes the remaining noise, and uses the explicit `Return to Repair` action to send the `Repair Job` back to `In Repair`. The failed record itself never performs an automatic status regression; the user chooses the rework transition deliberately.
 
 The technician receives the job back and investigates again. On the second check, he finds that one upper control-arm fastening point was not fully corrected during the first repair pass, and a washer stack needed adjustment. He completes the rework, rechecks the suspension movement, and updates the job so the outstanding issue has been addressed. Nothing about this rework is informal. The same job record shows that the vehicle went to QC, failed, returned to active repair, and then came back again for inspection.
 
@@ -365,9 +361,9 @@ In Repair -> Quality Check -> In Repair -> Quality Check -> Ready for Invoice
 **What the app makes visible**
 
 - Rework is part of the traceable workflow, not something hidden off-record.
-- The job cannot honestly be treated as invoice-ready until QC is passed.
+- A failed QC remains visible evidence, but the workflow does not automatically regress or block Billing. The manager can use `Return to Repair` for rework or `Continue to Billing` when the business decision is to proceed.
 
-### 9. Road-Test-Required Job
+### 9. Road-Test-Recommended Job
 
 **Situation:** The job involves repair work where workshop leadership wants a test drive before release, such as steering, braking, or transmission complaints.
 
@@ -375,11 +371,11 @@ In Repair -> Quality Check -> In Repair -> Quality Check -> Ready for Invoice
 
 At **2:10 PM**, a **Subaru Outback** is nearing completion after coming in with two serious complaints: the steering pulled left under braking, and the vehicle felt unstable at highway speed. The workshop has already completed the mechanical work: front brake service, wheel alignment correction, and replacement of worn suspension bushes identified during diagnosis. The technician marks the repair lines complete, and the advisor moves the job into `Quality Check`.
 
-During QC, the Workshop Manager confirms the obvious workshop-floor checks: pedal feel is firm, no warning lights are showing, fasteners are secure, fluid levels are correct, and the underbody has been rechecked after repair. But because this job involves steering and braking behavior under motion, those static checks are not enough. The manager marks that a road test is required before the job can be treated as ready for invoice.
+During QC, the Workshop Manager confirms the obvious workshop-floor checks: pedal feel is firm, no warning lights are showing, fasteners are secure, fluid levels are correct, and the underbody has been rechecked after repair. Because this job involves steering and braking behavior under motion, the manager recommends adding road-test rows to the QC record. The recommendation supports good workshop practice but is not a workflow requirement.
 
-This is where the app prevents a common workshop shortcut. Staff cannot rely on “it feels fine on the lift” for a high-risk complaint that only fully reveals itself while the vehicle is moving. Instead, the assigned staff member creates a `Road Test Report` linked to the same `Repair Job`. The report captures the route used, the start and end odometer readings, and the observed behavior under real driving conditions.
+The assigned staff member may add road-test rows inside the same `Quality Check` record. The rows capture the route used, the start and end odometer readings, and the observed behavior under real driving conditions.
 
-At **2:28 PM**, the technician and manager take the vehicle on a controlled test route that includes low-speed turns, moderate braking, and a short straight section where steering-centre stability can be checked. Inside the `Road Test Report`, they document:
+At **2:28 PM**, the technician and manager take the vehicle on a controlled test route that includes low-speed turns, moderate braking, and a short straight section where steering-centre stability can be checked. Inside the QC road-test rows, they document:
 
 - route taken around the industrial area and nearby tarmac section
 - odometer start and end
@@ -387,17 +383,17 @@ At **2:28 PM**, the technician and manager take the vehicle on a controlled test
 - steering-centre behavior
 - whether any vibration, pulling, or warning lights remain
 
-On the first pass, the vehicle tracks straight and braking feel is strong, but there is still a slight steering offset after the wheel returns from a corner. Because that observation is documented in the `Road Test Report`, the workshop has evidence that the job is not yet fully validated for release. The vehicle goes back for a final steering-wheel-centre correction and alignment adjustment.
+On the first pass, the vehicle tracks straight and braking feel is strong, but there is still a slight steering offset after the wheel returns from a corner. Because that observation is documented in the QC road-test rows, the workshop has useful evidence for its rework decision. The vehicle goes back for a final steering-wheel-centre correction and alignment adjustment.
 
-At **3:05 PM**, the team performs a second road test and updates the `Road Test Report` outcome. This time, steering returns cleanly to centre, braking remains stable, and no warning lights or abnormal noises appear. Only now does workshop leadership treat the repair as fully verified. The road test is not a courtesy spin around the block; it is the final proof that the original complaint has been resolved under real operating conditions.
+At **3:05 PM**, the team performs a second road test and updates the QC road-test rows. This time, steering returns cleanly to centre, braking remains stable, and no warning lights or abnormal noises appear. The evidence supports workshop confidence, but the Repair Job could still proceed if the optional road test were omitted.
 
-With the road test passed, the `Repair Job` can move forward confidently toward invoicing and release. If the customer later asks what was done to confirm the fix, staff can point to more than a verbal assurance. They can show that the vehicle was road-tested, where it was driven, what was observed, and why the workshop believed it was safe and correct to release.
+With the recommended road test passed, the `Repair Job` can move forward confidently toward invoicing and release. If the customer later asks what was done to confirm the fix, staff can point to more than a verbal assurance. They can show that the vehicle was road-tested, where it was driven, and what was observed. If the road test is omitted, the job can still progress because the evidence is advisory.
 
 **Why this case belongs in the workflow**
 
-- `Road Test Report` is a first-class workshop transaction in the app, not an informal note outside the job record.
+- Road-test rows inside `Quality Check` are first-class workshop evidence, not an informal note outside the job record.
 - It gives the team an auditable record for high-risk repairs, especially where static inspection is not enough.
-- When QC marks road test as required, the road test outcome becomes part of the release decision, not an optional extra.
+- When the team recommends a road test, its outcome informs the release decision; the record remains optional and never blocks the next workflow step.
 
 ### 10. Cancellation Before Completion
 
@@ -470,7 +466,7 @@ The reporting layer turns day-to-day records into operational control:
 
 1. It never creates a `Repair Job` without customer, vehicle, `odometer_in`, and reason for visit.
 2. It never allows illegal status jumps outside the defined workflow transitions.
-3. It never creates a `Diagnosis Report` before the job has reached the check-in and walkaround phase.
+3. It never blocks a workflow transition because optional Walkaround, Diagnosis, Authorization, Quality Check, or road-test evidence is absent, failed, cancelled, or late.
 4. It never allows a `Gate Pass` to be issued unless a linked `Sales Invoice` exists and is submitted.
 5. It never creates `Service History` twice for the same `Repair Job`.
 6. It never treats fleet work as one giant merged job; each vehicle keeps its own repair record.

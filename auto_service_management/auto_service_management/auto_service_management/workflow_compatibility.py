@@ -504,31 +504,28 @@ def _derive_repair_job_status(job):
 		return "Ready for Release"
 
 	quality_check = _get_linked_doc(job.name, "Quality Check")
-	if quality_check:
+	if quality_check and getattr(quality_check, "docstatus", 0) != 2:
 		qc_status = getattr(quality_check, "status", None)
-		if qc_status in {"Failed", "Rework"}:
-			return "In Repair"
-		if qc_status == "Passed":
+		# QC is advisory. A failed/rework/cancelled or late QC record must
+		# never regress a job that has already reached a later state.
+		if qc_status == "Passed" and current in {"In Repair", "Quality Check"}:
 			return "Billing"
-		return "Quality Check"
 
 	authorization = _get_linked_doc(job.name, "Customer Authorization")
-	if authorization:
-		if getattr(authorization, "docstatus", 0) == 1:
+	if authorization and getattr(authorization, "docstatus", 0) == 1:
+		if current in {"Assessment", "Awaiting Approval"}:
 			return "In Repair"
-		return "Awaiting Approval"
 
 	diagnosis = _get_linked_doc(job.name, "Diagnosis Report")
-	if diagnosis:
-		if getattr(diagnosis, "docstatus", 0) != 1:
-			return "Assessment"
+	if diagnosis and getattr(diagnosis, "docstatus", 0) == 1 and current == "Assessment":
 		if _has_any_service_rows(job.name):
 			return "Awaiting Approval"
 		return "Billing"
 
-	if _get_linked_doc(job.name, "Walkaround Inspection"):
+	walkaround = _get_linked_doc(job.name, "Walkaround Inspection")
+	if walkaround and getattr(walkaround, "docstatus", 0) != 2 and current == "Draft":
 		return "Assessment"
-	if getattr(job, "project", None):
+	if getattr(job, "project", None) and current == "Draft":
 		return "Assessment"
 
 	if current in CANONICAL_JOB_STATUSES:
@@ -552,6 +549,8 @@ def _get_job_field(repair_job_name: str, fieldname: str):
 
 def _get_linked_doc(repair_job_name: str, doctype: str):
 	filters = {"repair_job": repair_job_name}
+	if doctype in {"Walkaround Inspection", "Diagnosis Report", "Customer Authorization", "Quality Check"}:
+		filters["docstatus"] = ["!=", 2]
 	if doctype == "Gate Pass" and _db_has_column("Gate Pass", "purpose"):
 		filters["purpose"] = "Final Release"
 	name = frappe.db.get_value(doctype, filters, "name")
