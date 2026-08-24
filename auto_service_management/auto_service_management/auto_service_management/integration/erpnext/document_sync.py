@@ -23,16 +23,25 @@ TRACE_COMPONENT_DOCTYPES = ACTIVE_COMPONENT_DOCTYPES | {
 	"Repair Job Service Subcontracted Service",
 }
 PROTECTED_JOB_STATUSES = {"Closed", "Cancelled"}
+CAMPAIGN_SALES_ITEM_TRACE_FIELDS = (
+	"repair_job",
+	"customer_vehicle",
+	"repair_job_service",
+	"repair_component_doctype",
+	"repair_component_row",
+	"project",
+)
 
 
 def validate_sales_invoice(doc, method=None):
 	if not _has_repair_traces(doc):
 		return
-	job = _validate_single_repair_job(doc)
-	if doc.customer != job.customer:
-		frappe.throw(_("Sales Invoice customer must match Repair Job {0}.").format(job.name))
-	if doc.get("company") and job.get("company") and doc.company != job.company:
-		frappe.throw(_("Sales Invoice company must match Repair Job {0}.").format(job.name))
+	jobs = _validate_sales_document_scope(doc)
+	for job in jobs:
+		if doc.customer != job.customer:
+			frappe.throw(_("Sales Invoice customer must match Repair Job {0}.").format(job.name))
+		if doc.get("company") and job.get("company") and doc.company != job.company:
+			frappe.throw(_("Sales Invoice company must match Repair Job {0}.").format(job.name))
 	doc.update_stock = 0
 	_validate_component_links(doc, "Sales Invoice", "sales_invoice")
 	_validate_component_quantities(doc, labour_uses_billing_hours=True)
@@ -44,11 +53,12 @@ def validate_sales_order(doc, method=None):
 		return
 	if not doc.get("select_print_heading") and frappe.db.exists("Print Heading", "Proforma Invoice"):
 		doc.select_print_heading = "Proforma Invoice"
-	job = _validate_single_repair_job(doc)
-	if doc.customer != job.customer:
-		frappe.throw(_("Sales Order customer must match Repair Job {0}.").format(job.name))
-	if doc.get("company") and job.get("company") and doc.company != job.company:
-		frappe.throw(_("Sales Order company must match Repair Job {0}.").format(job.name))
+	jobs = _validate_sales_document_scope(doc)
+	for job in jobs:
+		if doc.customer != job.customer:
+			frappe.throw(_("Sales Order customer must match Repair Job {0}.").format(job.name))
+		if doc.get("company") and job.get("company") and doc.company != job.company:
+			frappe.throw(_("Sales Order company must match Repair Job {0}.").format(job.name))
 	_validate_component_links(doc, "Sales Order", "sales_order")
 	_validate_component_quantities(doc, labour_uses_billing_hours=True)
 	if getattr(doc, "docstatus", 0) == 1:
@@ -184,9 +194,7 @@ def validate_job_invoices_for_gate_pass(repair_job_name: str) -> list[str]:
 	settings = frappe.get_single("Auto Service Settings")
 	policy = settings.get("gate_pass_payment_policy") or "Full Payment Required"
 	invoices = get_repair_job_sales_invoices(repair_job_name)
-	_missing_invoices = [
-		invoice for invoice in invoices if not frappe.db.exists("Sales Invoice", invoice)
-	]
+	_missing_invoices = [invoice for invoice in invoices if not frappe.db.exists("Sales Invoice", invoice)]
 	if _missing_invoices:
 		frappe.throw(
 			_("Linked Sales Invoice {0} no longer exists. Refresh Repair Job billing links.").format(
@@ -311,9 +319,9 @@ def _validate_invoice_service_submission(doc):
 	invalid = [service.service_name or service.name for service in services if service.docstatus == 2]
 	if invalid:
 		frappe.throw(
-			_(
-				"Cancelled Repair Job Services cannot be submitted in a Sales Invoice: {0}."
-			).format(", ".join(sorted(invalid)))
+			_("Cancelled Repair Job Services cannot be submitted in a Sales Invoice: {0}.").format(
+				", ".join(sorted(invalid))
+			)
 		)
 
 
@@ -328,11 +336,23 @@ def _validate_sales_order_submission(doc):
 		if not component:
 			continue
 		linked_order = component.get("sales_order")
-		if linked_order and linked_order != doc.name and frappe.db.get_value("Sales Order", linked_order, "docstatus") == 1:
-			frappe.throw(_("Repair component {0} is already owned by submitted Sales Order {1}.").format(row.repair_component_row, linked_order))
+		if (
+			linked_order
+			and linked_order != doc.name
+			and frappe.db.get_value("Sales Order", linked_order, "docstatus") == 1
+		):
+			frappe.throw(
+				_("Repair component {0} is already owned by submitted Sales Order {1}.").format(
+					row.repair_component_row, linked_order
+				)
+			)
 		linked_invoice = component.get("sales_invoice")
 		if linked_invoice and frappe.db.get_value("Sales Invoice", linked_invoice, "docstatus") == 1:
-			frappe.throw(_("Repair component {0} is already invoiced in Sales Invoice {1}.").format(row.repair_component_row, linked_invoice))
+			frappe.throw(
+				_("Repair component {0} is already invoiced in Sales Invoice {1}.").format(
+					row.repair_component_row, linked_invoice
+				)
+			)
 		conflict = frappe.db.sql(
 			"""
 			SELECT soi.parent
@@ -347,7 +367,11 @@ def _validate_sales_order_submission(doc):
 			(row.repair_component_doctype, row.repair_component_row, doc.name),
 		)
 		if conflict:
-			frappe.throw(_("Repair component {0} is already owned by submitted Sales Order {1}.").format(row.repair_component_row, conflict[0][0]))
+			frappe.throw(
+				_("Repair component {0} is already owned by submitted Sales Order {1}.").format(
+					row.repair_component_row, conflict[0][0]
+				)
+			)
 
 
 def _validate_single_repair_job(doc):
@@ -359,6 +383,211 @@ def _validate_single_repair_job(doc):
 		frappe.throw(_("The parent Repair Job must match all component rows."))
 	doc.repair_job = job_name
 	return frappe.get_doc("Repair Job", job_name)
+
+
+def _validate_sales_document_scope(doc):
+	"""Return the Repair Jobs represented by a single-job or campaign sales document."""
+	campaign_name = doc.get("fleet_service_campaign")
+	if not campaign_name:
+		return [_validate_single_repair_job(doc)]
+
+	if doc.get("repair_job"):
+		frappe.throw(_("A campaign sales document cannot also have a parent Repair Job."))
+	if doc.get("repair_job_service"):
+		frappe.throw(_("A campaign sales document cannot have a parent Repair Job Service source."))
+	if doc.get("project"):
+		frappe.throw(_("A campaign sales document cannot have a parent Project."))
+
+	_validate_campaign_item_traces(doc)
+	_validate_campaign_component_authority(doc)
+	job_names = {row.repair_job for row in _trace_items(doc) if getattr(row, "repair_job", None)}
+	if not job_names:
+		frappe.throw(_("A campaign sales document must contain Repair Job component rows."))
+
+	campaign = frappe.get_doc("Fleet Service Campaign", campaign_name)
+	if doc.get("customer") and doc.customer != campaign.customer:
+		frappe.throw(
+			_("Sales document customer must match Fleet Service Campaign {0}.").format(campaign.name)
+		)
+
+	jobs = []
+	for job_name in sorted(job_names):
+		job = frappe.get_doc("Repair Job", job_name)
+		if job.get("fleet_service_campaign") != campaign.name:
+			frappe.throw(
+				_("Repair Job {0} does not belong to Fleet Service Campaign {1}.").format(
+					job.name,
+					campaign.name,
+				)
+			)
+		if job.customer != campaign.customer:
+			frappe.throw(
+				_("Repair Job {0} customer does not match Fleet Service Campaign {1}.").format(
+					job.name,
+					campaign.name,
+				)
+			)
+		jobs.append(job)
+
+	doc.repair_job = None
+	if hasattr(doc, "repair_job_service"):
+		doc.repair_job_service = None
+	return jobs
+
+
+def _validate_campaign_item_traces(doc):
+	items = doc.get("items") or []
+	if not items:
+		frappe.throw(_("A campaign sales document must contain Repair Job component rows."))
+	for index, row in enumerate(items, start=1):
+		missing = [
+			fieldname for fieldname in CAMPAIGN_SALES_ITEM_TRACE_FIELDS if not getattr(row, fieldname, None)
+		]
+		if missing:
+			frappe.throw(
+				_("Sales document item {0} is missing campaign trace fields: {1}.").format(
+					getattr(row, "idx", None) or index,
+					", ".join(missing),
+				)
+			)
+
+
+def _validate_campaign_component_authority(doc):
+	for index, row in enumerate(doc.get("items") or [], start=1):
+		authority = _resolve_campaign_component_authority(row)
+		for fieldname in CAMPAIGN_SALES_ITEM_TRACE_FIELDS:
+			if getattr(row, fieldname, None) != authority.get(fieldname):
+				frappe.throw(
+					_("Sales document item {0} has an invalid authoritative {1} trace.").format(
+						getattr(row, "idx", None) or index,
+						fieldname,
+					)
+				)
+
+		invoice = _submitted_component_document(
+			row,
+			"Sales Invoice",
+			"Sales Invoice Item",
+			exclude_parent=doc.get("name"),
+		)
+		if not invoice and authority.sales_invoice:
+			if frappe.db.get_value("Sales Invoice", authority.sales_invoice, "docstatus") == 1:
+				invoice = frappe._dict(
+					parent=authority.sales_invoice,
+					item=authority.sales_invoice_item,
+				)
+		if invoice:
+			frappe.throw(
+				_("Repair component {0} is already invoiced in submitted Sales Invoice {1}.").format(
+					row.repair_component_row,
+					invoice.parent,
+				)
+			)
+
+		order = _submitted_component_document(
+			row,
+			"Sales Order",
+			"Sales Order Item",
+			exclude_parent=doc.get("name") if doc.get("doctype") == "Sales Order" else None,
+		)
+		if not order and authority.sales_order:
+			if frappe.db.get_value("Sales Order", authority.sales_order, "docstatus") == 1:
+				order = frappe._dict(parent=authority.sales_order, item=authority.sales_order_item)
+		if not order:
+			continue
+		if doc.get("doctype") == "Sales Invoice":
+			is_native_order_invoice = (
+				getattr(row, "sales_order", None) == order.parent
+				and getattr(row, "so_detail", None) == order.item
+			)
+			if is_native_order_invoice:
+				continue
+		frappe.throw(
+			_("Repair component {0} is already committed to submitted Sales Order {1}.").format(
+				row.repair_component_row,
+				order.parent,
+			)
+		)
+
+
+def _resolve_campaign_component_authority(row):
+	component_doctype = row.repair_component_doctype
+	component_name = row.repair_component_row
+	if component_doctype not in ACTIVE_COMPONENT_DOCTYPES:
+		frappe.throw(_("Component type {0} is not active.").format(component_doctype))
+	component = frappe.db.get_value(
+		component_doctype,
+		component_name,
+		[
+			"name",
+			"repair_job",
+			"repair_job_service",
+			"customer_vehicle",
+			"sales_order",
+			"sales_order_item",
+			"sales_invoice",
+			"sales_invoice_item",
+		],
+		as_dict=True,
+	)
+	if not component:
+		frappe.throw(_("Repair component {0} no longer exists.").format(component_name))
+	service = frappe.db.get_value(
+		"Repair Job Service",
+		component.repair_job_service,
+		["name", "repair_job", "customer_vehicle"],
+		as_dict=True,
+	)
+	if not service:
+		frappe.throw(_("Repair Job Service {0} no longer exists.").format(component.repair_job_service))
+	job = frappe.db.get_value(
+		"Repair Job",
+		service.repair_job,
+		["name", "customer_vehicle", "project"],
+		as_dict=True,
+	)
+	if not job:
+		frappe.throw(_("Repair Job {0} no longer exists.").format(service.repair_job))
+	if component.repair_job != job.name or component.customer_vehicle != job.customer_vehicle:
+		frappe.throw(_("Repair component {0} has inconsistent Repair Job context.").format(component.name))
+	if service.customer_vehicle != job.customer_vehicle:
+		frappe.throw(_("Repair Job Service {0} has inconsistent vehicle context.").format(service.name))
+	return frappe._dict(
+		repair_job=job.name,
+		customer_vehicle=job.customer_vehicle,
+		repair_job_service=service.name,
+		repair_component_doctype=component_doctype,
+		repair_component_row=component.name,
+		project=job.project,
+		sales_order=component.sales_order,
+		sales_order_item=component.sales_order_item,
+		sales_invoice=component.sales_invoice,
+		sales_invoice_item=component.sales_invoice_item,
+	)
+
+
+def _submitted_component_document(
+	row,
+	parent_doctype,
+	item_doctype,
+	*,
+	exclude_parent=None,
+):
+	items = frappe.get_all(
+		item_doctype,
+		filters={
+			"repair_component_doctype": row.repair_component_doctype,
+			"repair_component_row": row.repair_component_row,
+		},
+		fields=["name", "parent"],
+		limit_page_length=0,
+	)
+	for item in items:
+		if exclude_parent and item.parent == exclude_parent:
+			continue
+		if frappe.db.get_value(parent_doctype, item.parent, "docstatus") == 1:
+			return frappe._dict(parent=item.parent, item=item.name)
+	return None
 
 
 def _validate_component_links(doc, linked_doctype, linked_field):
@@ -562,4 +791,4 @@ def _trace_items(doc):
 
 
 def _has_repair_traces(doc):
-	return bool(doc.get("repair_job") or _trace_items(doc))
+	return bool(doc.get("repair_job") or doc.get("fleet_service_campaign") or _trace_items(doc))

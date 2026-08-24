@@ -13,7 +13,7 @@ frappe.ui.form.on("Repair Job Service Template", {
 		}
 	},
 	refresh(frm) {
-		if (frm.is_new()) return;
+		if (frm.is_new() || !frappe.model.can_create("Repair Job Service")) return;
 		frm.add_custom_button(__("Create Repair Job Service"), () => {
 			frappe.call({
 				method: "auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service.make_repair_job_service",

@@ -287,22 +287,26 @@
   {
    "role": "Workshop Manager",
    "read": 1,
-   "report": 1
+   "report": 1,
+   "select": 1
   },
   {
    "role": "System Manager",
    "read": 1,
-   "report": 1
+   "report": 1,
+   "select": 1
   },
   {
    "role": "Service Advisor",
    "read": 1,
-   "report": 1
+   "report": 1,
+   "select": 1
   },
   {
    "role": "Parts Interpreter",
    "read": 1,
-   "report": 1
+   "report": 1,
+   "select": 1
   }
  ],
  "sort_field": "modified",

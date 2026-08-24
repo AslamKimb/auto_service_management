@@ -2,8 +2,10 @@ from __future__ import annotations
 
 TRACE_CUSTOM_FIELD_NAMES = (
 	"Sales Invoice-repair_job",
+	"Sales Invoice-fleet_service_campaign",
 	"Sales Order-repair_job",
 	"Sales Order-repair_job_service",
+	"Sales Order-fleet_service_campaign",
 	"Quotation-repair_job",
 	"Quotation-repair_job_service",
 	"Material Request-repair_job",
@@ -46,15 +48,26 @@ TRACE_CUSTOM_FIELD_NAMES = (
 )
 
 PARENT_TRACE_FIELDS = {
-	"Sales Invoice": {
-		"fieldname": "repair_job",
-		"label": "Repair Job",
-		"fieldtype": "Link",
-		"options": "Repair Job",
-		"insert_after": "customer",
-		"read_only": 1,
-		"no_copy": 1,
-	},
+	"Sales Invoice": [
+		{
+			"fieldname": "repair_job",
+			"label": "Repair Job",
+			"fieldtype": "Link",
+			"options": "Repair Job",
+			"insert_after": "customer",
+			"read_only": 1,
+			"no_copy": 1,
+		},
+		{
+			"fieldname": "fleet_service_campaign",
+			"label": "Fleet Service Campaign",
+			"fieldtype": "Link",
+			"options": "Fleet Service Campaign",
+			"insert_after": "repair_job",
+			"read_only": 1,
+			"no_copy": 1,
+		},
+	],
 	"Sales Order": [
 		{
 			"fieldname": "repair_job",
@@ -71,6 +84,15 @@ PARENT_TRACE_FIELDS = {
 			"fieldtype": "Link",
 			"options": "Repair Job Service",
 			"insert_after": "repair_job",
+			"read_only": 1,
+			"no_copy": 1,
+		},
+		{
+			"fieldname": "fleet_service_campaign",
+			"label": "Fleet Service Campaign",
+			"fieldtype": "Link",
+			"options": "Fleet Service Campaign",
+			"insert_after": "repair_job_service",
 			"read_only": 1,
 			"no_copy": 1,
 		},

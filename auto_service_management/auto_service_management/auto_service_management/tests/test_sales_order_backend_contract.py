@@ -41,7 +41,10 @@ class TestSalesOrderBackendContract(unittest.TestCase):
 	def test_trace_custom_fields_include_sales_order_parent_and_items(self):
 		fields = custom_fields.get_trace_custom_fields()
 		self.assertEqual(len(fields["Sales Order Item"]), len(custom_fields.TRACE_FIELDS))
-		self.assertEqual({row["fieldname"] for row in fields["Sales Order"]}, {"repair_job", "repair_job_service"})
+		self.assertEqual(
+			{row["fieldname"] for row in fields["Sales Order"]},
+			{"repair_job", "repair_job_service", "fleet_service_campaign"},
+		)
 
 	def test_repair_job_has_related_sales_order_child_table(self):
 		path = ROOT / "auto_service_management" / "doctype" / "repair_job" / "repair_job.json"

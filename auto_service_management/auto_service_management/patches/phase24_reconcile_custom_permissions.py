@@ -21,6 +21,17 @@ PERMISSION_FIELDS = (
 	"if_owner",
 )
 
+TEMPLATE_PERMISSION_MATRIX_ROLES = frozenset(
+	{
+		"Workshop Manager",
+		"Service Advisor",
+		"Workshop Technician",
+		"Parts Interpreter",
+		"Cashier",
+		"Security Gate Officer",
+	}
+)
+
 
 def execute():
 	"""Ensure app-owned DocTypes don't lose standard access when custom perms exist."""
@@ -49,6 +60,9 @@ def execute():
 			)
 		}
 		for row in custom_rows:
+			if _conflicts_with_template_role_matrix(doctype, row):
+				frappe.delete_doc("Custom DocPerm", row.name, force=True, ignore_permissions=True)
+				continue
 			standard = standard_rows.get((row.role, row.permlevel))
 			if standard and _permission_values(row) == _permission_values(standard):
 				frappe.delete_doc("Custom DocPerm", row.name, force=True, ignore_permissions=True)
@@ -58,3 +72,11 @@ def execute():
 
 def _permission_values(row):
 	return {field: int(row.get(field) or 0) for field in PERMISSION_FIELDS}
+
+
+def _conflicts_with_template_role_matrix(doctype, row):
+	return (
+		doctype == "Repair Job Service Template"
+		and row.role in TEMPLATE_PERMISSION_MATRIX_ROLES
+		and int(row.permlevel or 0) == 0
+	)

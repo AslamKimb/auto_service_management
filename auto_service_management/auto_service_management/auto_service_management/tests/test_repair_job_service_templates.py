@@ -180,7 +180,8 @@ class TestRepairJobServiceTemplates(unittest.TestCase):
 		]
 		fake_frappe = SimpleNamespace(
 			get_doc=lambda *_args: job,
-			get_all=lambda *_args, **_kwargs: rows,
+			has_permission=lambda *_args, **_kwargs: True,
+			get_list=lambda *_args, **_kwargs: rows,
 			db=SimpleNamespace(
 				get_value=lambda *_args, **_kwargs: frappe._dict(make="Toyota", model="Toyota - Prado")
 			),

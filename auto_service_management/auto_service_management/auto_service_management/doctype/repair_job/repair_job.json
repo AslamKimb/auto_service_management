@@ -9,6 +9,11 @@
  "is_submittable": 0,
  "fields": [
   {
+   "fieldname": "details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Details"
+  },
+  {
    "fieldname": "customer_section",
    "fieldtype": "Section Break",
    "label": "Customer and Vehicle"
@@ -137,6 +142,57 @@
    "read_only": 1
   },
   {
+   "fieldname": "intake_notes_section",
+   "fieldtype": "Section Break",
+   "label": "Intake Notes",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "column_break_related_documents",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer_concern",
+   "fieldtype": "Text Editor",
+   "label": "Customer Concern",
+   "reqd": 1
+  },
+  {
+   "fieldname": "services_tab",
+   "fieldtype": "Tab Break",
+   "label": "Services"
+  },
+  {
+   "fieldname": "services_section",
+   "fieldtype": "Section Break",
+   "label": "Services"
+  },
+  {
+   "fieldname": "services_help",
+   "fieldtype": "HTML",
+   "label": "Services Help",
+   "options": "<p class=\"text-muted\">Create customer-facing services from this job. Each service owns its parts, labour, consumables, and billing components.</p>"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Total Amount",
+   "options": "currency",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "repair_job_services",
+   "fieldtype": "Table",
+   "label": "Repair Job Services",
+   "options": "Repair Job Service Row"
+  },
+  {
+   "fieldname": "workshop_tab",
+   "fieldtype": "Tab Break",
+   "label": "Workshop"
+  },
+  {
    "fieldname": "related_documents_section",
    "fieldtype": "Section Break",
    "label": "Related Documents",
@@ -173,105 +229,6 @@
    "options": "Gate Pass"
   },
   {
-   "fieldname": "intake_notes_section",
-   "fieldtype": "Section Break",
-   "label": "Intake Notes",
-   "collapsible": 1
-  },
-  {
-   "fieldname": "column_break_related_documents",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "customer_concern",
-   "fieldtype": "Text Editor",
-   "label": "Customer Concern",
-   "reqd": 1
-  },
-  {
-   "fieldname": "services_section",
-   "fieldtype": "Section Break",
-   "label": "Services"
-  },
-  {
-   "fieldname": "services_help",
-   "fieldtype": "HTML",
-   "label": "Services Help",
-   "options": "<p class=\"text-muted\">Create customer-facing services from this job. Each service owns its parts, labour, consumables, and billing components.</p>"
-  },
-  {
-   "fieldname": "total_amount",
-   "fieldtype": "Currency",
-   "label": "Total Amount",
-   "options": "currency",
-   "read_only": 1,
-   "in_list_view": 1
-  },
-  {
-   "fieldname": "repair_job_services",
-   "fieldtype": "Table",
-   "label": "Repair Job Services",
-   "options": "Repair Job Service Row"
-  },
-  {
-   "fieldname": "sales_invoices",
-   "fieldtype": "Table",
-   "label": "Sales Invoices",
-   "options": "Repair Job Invoice Row"
-  },
-  {
-   "fieldname": "sales_orders",
-   "fieldtype": "Table",
-   "label": "Proforma Invoices (Sales Orders)",
-   "options": "Repair Job Sales Order Row",
-   "read_only": 1
-  },
-  {
-   "fieldname": "payment_entries",
-   "fieldtype": "Table",
-   "label": "Payment Entries",
-   "options": "Repair Job Payment Row"
-  },
-  {
-   "fieldname": "currency",
-   "fieldtype": "Link",
-   "label": "Currency",
-   "options": "Currency",
-   "read_only": 1
-  },
-  {
-   "fieldtype": "Section Break",
-   "collapsible": 1,
-   "label": "Billing and Release",
-   "fieldname": "billing_section"
-  },
-  {
-   "fieldname": "payment_status",
-   "fieldtype": "Select",
-   "label": "Payment Status",
-   "options": "\nNot Invoiced\nUnpaid\nPartially Paid\nPaid",
-   "default": "Not Invoiced"
-  },
-  {
-   "fieldname": "billing_components_html",
-   "fieldtype": "HTML",
-   "label": "Component Billing Status"
-  },
-  {
-   "fieldname": "sales_orders_html",
-   "fieldtype": "HTML",
-   "label": "Proforma Invoice Component Status"
-  },
-  {
-   "fieldname": "material_requests_html",
-   "fieldtype": "HTML",
-   "label": "Material Request Status"
-  },
-  {
-   "fieldname": "column_break_billing",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "odometer_out",
    "fieldtype": "Float",
    "label": "Odometer Out (km)"
@@ -303,11 +260,80 @@
    "read_only": 1
   },
   {
+   "fieldname": "billing_tab",
+   "fieldtype": "Tab Break",
+   "label": "Billing"
+  },
+  {
+   "fieldname": "billing_section",
+   "fieldtype": "Section Break",
+   "label": "Billing and Release",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_invoices",
+   "fieldtype": "Table",
+   "label": "Sales Invoices",
+   "options": "Repair Job Invoice Row"
+  },
+  {
+   "fieldname": "sales_orders",
+   "fieldtype": "Table",
+   "label": "Proforma Invoices (Sales Orders)",
+   "options": "Repair Job Sales Order Row",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_entries",
+   "fieldtype": "Table",
+   "label": "Payment Entries",
+   "options": "Repair Job Payment Row"
+  },
+  {
+   "fieldname": "payment_status",
+   "fieldtype": "Select",
+   "label": "Payment Status",
+   "options": "\nNot Invoiced\nUnpaid\nPartially Paid\nPaid",
+   "default": "Not Invoiced"
+  },
+  {
+   "fieldname": "billing_components_html",
+   "fieldtype": "HTML",
+   "label": "Component Billing Status"
+  },
+  {
+   "fieldname": "sales_orders_html",
+   "fieldtype": "HTML",
+   "label": "Proforma Invoice Component Status"
+  },
+  {
+   "fieldname": "material_requests_html",
+   "fieldtype": "HTML",
+   "label": "Material Request Status"
+  },
+  {
+   "fieldname": "column_break_billing",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "payment_total",
    "fieldtype": "Currency",
    "label": "Payment Total",
    "options": "currency",
    "read_only": 1
+  },
+  {
+   "fieldname": "connections_tab",
+   "fieldtype": "Tab Break",
+   "label": "Connections",
+   "show_dashboard": 1
   }
  ],
  "permissions": [

@@ -5,17 +5,18 @@
 <table class="asm-grid">
   <tr><th>Customer</th><td>{{ doc.customer_name or doc.customer or "" }}</td><th>Proforma Invoice</th><td>{{ doc.name }}</td></tr>
   <tr><th>Transaction Date</th><td>{{ doc.get_formatted("transaction_date") if doc.transaction_date else "" }}</td><th>Delivery Date</th><td>{{ doc.get_formatted("delivery_date") if doc.delivery_date else "" }}</td></tr>
+  {% if doc.fleet_service_campaign %}<tr><th>Fleet Service Campaign</th><td>{{ doc.fleet_service_campaign }}</td><th>Currency</th><td>{{ doc.currency or "" }}</td></tr>{% endif %}
   {% if doc.repair_job %}<tr><th>Repair Job</th><td>{{ doc.repair_job }}</td><th>Currency</th><td>{{ doc.currency or "" }}</td></tr>{% endif %}
 </table>
 <div class="asm-section-title">Proforma Invoice Items</div>
 <table class="asm-lines">
-  <thead><tr><th>#</th><th>Item / Service</th><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+  <thead><tr><th>#</th><th>Item / Service</th><th>Description</th>{% if doc.fleet_service_campaign %}<th>Repair Job / Vehicle</th>{% endif %}<th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
   <tbody>
   {% for row in doc.items or [] %}
-    <tr><td>{{ row.idx }}</td><td>{{ row.item_code or "" }}</td><td>{{ row.description or "" }}</td><td>{{ row.qty or 0 }} {{ row.uom or "" }}</td><td class="asm-money">{{ frappe.utils.fmt_money(row.rate, currency=doc.currency) }}</td><td class="asm-money">{{ frappe.utils.fmt_money(row.amount, currency=doc.currency) }}</td></tr>
+    <tr><td>{{ row.idx }}</td><td>{{ row.item_code or "" }}</td><td>{{ row.description or "" }}</td>{% if doc.fleet_service_campaign %}<td><strong>{{ row.repair_job or "" }}</strong>{% if row.customer_vehicle %}<br><span class="asm-muted">{{ row.customer_vehicle }}</span>{% endif %}</td>{% endif %}<td>{{ row.qty or 0 }} {{ row.uom or "" }}</td><td class="asm-money">{{ frappe.utils.fmt_money(row.rate, currency=doc.currency) }}</td><td class="asm-money">{{ frappe.utils.fmt_money(row.amount, currency=doc.currency) }}</td></tr>
   {% endfor %}
-    <tr><th colspan="5" class="asm-money">Net Total</th><th class="asm-money">{{ frappe.utils.fmt_money(doc.net_total, currency=doc.currency) }}</th></tr>
-    <tr><th colspan="5" class="asm-money">Grand Total</th><th class="asm-money">{{ frappe.utils.fmt_money(doc.grand_total, currency=doc.currency) }}</th></tr>
+    <tr><th colspan="{{ 6 if doc.fleet_service_campaign else 5 }}" class="asm-money">Net Total</th><th class="asm-money">{{ frappe.utils.fmt_money(doc.net_total, currency=doc.currency) }}</th></tr>
+    <tr><th colspan="{{ 6 if doc.fleet_service_campaign else 5 }}" class="asm-money">Grand Total</th><th class="asm-money">{{ frappe.utils.fmt_money(doc.grand_total, currency=doc.currency) }}</th></tr>
   </tbody>
 </table>
 {% if doc.terms %}<div class="asm-section-title">Terms and Conditions</div><div class="asm-note">{{ doc.terms }}</div>{% endif %}

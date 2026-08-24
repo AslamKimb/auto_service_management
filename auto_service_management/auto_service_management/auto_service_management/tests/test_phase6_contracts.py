@@ -431,7 +431,11 @@ class TestPhase6Contracts(UnitTestCase):
 		with (
 			patch(
 				"auto_service_management.auto_service_management.reporting.runner.frappe.has_permission",
-				side_effect=[True, False],
+				side_effect=lambda _doctype, ptype: {
+					"read": True,
+					"select": False,
+					"report": True,
+				}[ptype],
 			),
 			patch(
 				"auto_service_management.auto_service_management.reporting.runner.frappe.get_list",
@@ -448,12 +452,12 @@ class TestPhase6Contracts(UnitTestCase):
 		self.assertEqual(call.kwargs["filters"]["customer"], "CUST-0001")
 		self.assertEqual(call.kwargs["order_by"], "promised_date asc, modified desc")
 
-	def test_report_runner_rejects_when_read_and_report_permissions_are_missing(self):
+	def test_report_runner_rejects_when_required_permissions_are_missing(self):
 		from auto_service_management.auto_service_management.reporting.runner import run_report
 
 		with patch(
 			"auto_service_management.auto_service_management.reporting.runner.frappe.has_permission",
-			side_effect=[False, False],
+			return_value=False,
 		):
 			with self.assertRaises(Exception):
 				run_report("Open Repair Jobs", {})

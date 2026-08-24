@@ -34,7 +34,9 @@ frappe.ui.form.on("Repair Job", {
 		frm.set_df_property("job_status", "read_only", 1);
 		add_workflow_action_buttons(frm);
 
-		frm.add_custom_button("Create Repair Job Service", () => {
+		if (frappe.model.can_read("Repair Job Service Template")
+			&& frappe.model.can_create("Repair Job Service")) {
+			frm.add_custom_button("Create Repair Job Service", () => {
 			const create_blank_service = () => new_doc_with_values("Repair Job Service", {
 				repair_job: frm.doc.name, customer: frm.doc.customer,
 				customer_vehicle: frm.doc.customer_vehicle, diagnosis_report: frm.doc.diagnosis_report,
@@ -79,7 +81,8 @@ frappe.ui.form.on("Repair Job", {
 					dialog.show();
 				},
 			});
-		}, "Services");
+			}, "Services");
+		}
 
 		frm.add_custom_button("Open Services", () => {
 			frappe.set_route("List", "Repair Job Service", {

@@ -4,6 +4,8 @@ CONTROL_REPORTS = {
 	"Repair Revenue by Period": ReportDefinition(
 		source_doctype="Repair Job Invoice Row",
 		permission_doctype="Repair Job",
+		parent_field="repair_job",
+		permission_parent_doctype="Repair Job",
 		columns=(
 			column("Closed On", "closed_on", "Datetime", width=170),
 			column("Repair Job", "repair_job", "Link", "Repair Job"),
@@ -36,6 +38,8 @@ CONTROL_REPORTS = {
 	"Corporate Credit Releases": ReportDefinition(
 		source_doctype="Repair Job Invoice Row",
 		permission_doctype="Repair Job",
+		parent_field="repair_job",
+		permission_parent_doctype="Repair Job",
 		columns=(
 			column("Repair Job", "repair_job", "Link", "Repair Job"),
 			column("Customer", "customer", "Link", "Customer"),

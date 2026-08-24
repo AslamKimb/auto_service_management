@@ -5,6 +5,9 @@ import json
 from datetime import datetime
 
 import frappe
+from frappe import _
+from frappe.model.document import Document
+
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
 	STOCK_COMPONENT_TYPES,
 	component_has_downstream,
@@ -15,8 +18,6 @@ from auto_service_management.auto_service_management.doctype.repair_job_service.
 from auto_service_management.auto_service_management.workflow_compatibility import (
 	sync_repair_job_compatibility_views,
 )
-from frappe import _
-from frappe.model.document import Document
 
 # ---------------------------------------------------------------------------
 # State machine - spec-aligned workflow
@@ -139,6 +140,7 @@ class RepairJob(Document):
 
 	def validate(self):
 		self.validate_intake_requirements()
+		self.validate_fleet_service_campaign()
 		self.validate_primary_related_documents()
 		self.validate_status_transition()
 		self.calculate_totals()
@@ -222,6 +224,76 @@ class RepairJob(Document):
 			return
 		if self.has_value_changed("job_status"):
 			self.log_state_change()
+
+	def on_update(self):
+		self.sync_fleet_campaign_membership()
+
+	def validate_fleet_service_campaign(self):
+		previous_campaign = self._previous_fleet_service_campaign()
+		current_campaign = self.fleet_service_campaign
+		if previous_campaign == current_campaign:
+			if current_campaign:
+				self._validate_campaign_customer(frappe.get_doc("Fleet Service Campaign", current_campaign))
+			return
+
+		if previous_campaign:
+			frappe.get_doc("Fleet Service Campaign", previous_campaign).check_permission("write")
+		if not current_campaign:
+			return
+
+		campaign = frappe.get_doc("Fleet Service Campaign", current_campaign)
+		campaign.check_permission("write")
+		campaign.require_active_job_link_status()
+		self._validate_campaign_customer(campaign)
+
+	def sync_fleet_campaign_membership(self):
+		if getattr(self.flags, "skip_fleet_campaign_sync", False):
+			return
+		previous_campaign = self._previous_fleet_service_campaign()
+		current_campaign = self.fleet_service_campaign
+		if previous_campaign == current_campaign:
+			return
+		if previous_campaign:
+			self._update_campaign_membership(previous_campaign, include=False)
+		if current_campaign:
+			self._update_campaign_membership(current_campaign, include=True)
+
+	def _previous_fleet_service_campaign(self):
+		old_doc = self.get_doc_before_save()
+		return old_doc.fleet_service_campaign if old_doc else None
+
+	def _validate_campaign_customer(self, campaign):
+		if campaign.customer != self.customer:
+			frappe.throw(
+				_("Fleet Service Campaign {0} belongs to customer {1}, not {2}.").format(
+					campaign.name,
+					campaign.customer,
+					self.customer,
+				)
+			)
+
+	def _update_campaign_membership(self, campaign_name, *, include):
+		campaign = frappe.get_doc("Fleet Service Campaign", campaign_name)
+		campaign.check_permission("write")
+		matching_rows = [
+			row for row in campaign.get("fleet_jobs") or [] if row.repair_job == self.name
+		]
+		changed = False
+		if include and not matching_rows:
+			campaign.append("fleet_jobs", {"repair_job": self.name})
+			changed = True
+		elif include and len(matching_rows) > 1:
+			for duplicate in matching_rows[1:]:
+				campaign.remove(duplicate)
+			changed = True
+		elif not include and matching_rows:
+			for row in matching_rows:
+				campaign.remove(row)
+			changed = True
+		if not changed:
+			return
+		campaign.flags.skip_job_link_sync = True
+		campaign.save()
 
 	# ------------------------------------------------------------------ #
 	#  Status workflow                                                    #

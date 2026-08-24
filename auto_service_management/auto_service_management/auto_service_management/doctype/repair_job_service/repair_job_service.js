@@ -40,7 +40,7 @@ frappe.ui.form.on('Repair Job Service', {
                 frappe.set_route('Form', 'Repair Job', frm.doc.repair_job);
             });
 
-            if (!frm.is_new()) {
+            if (!frm.is_new() && frappe.model.can_create("Repair Job Service Template")) {
                 frm.add_custom_button(__('Save as Service Template'), function() {
                     frappe.call({
                         method: 'auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service.make_repair_job_service_template',

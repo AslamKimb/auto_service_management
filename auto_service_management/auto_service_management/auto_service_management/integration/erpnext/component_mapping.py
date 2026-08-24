@@ -146,7 +146,9 @@ def map_sales_order(
 			continue
 		components.append((service, component))
 	if not components:
-		frappe.throw(_("No billable Parts, Consumables, or Labour components are available on this Repair Job."))
+		frappe.throw(
+			_("No billable Parts, Consumables, or Labour components are available on this Repair Job.")
+		)
 
 	settings = frappe.get_single("Auto Service Settings")
 	_validate_company(target, settings.company)
@@ -159,7 +161,9 @@ def map_sales_order(
 		target.repair_job_service = next(iter(service_names))
 	target.transaction_date = target.get("transaction_date") or today()
 	target.delivery_date = target.get("delivery_date") or (
-		frappe.utils.getdate(repair_job.promised_date) if repair_job.promised_date else target.transaction_date
+		frappe.utils.getdate(repair_job.promised_date)
+		if repair_job.promised_date
+		else target.transaction_date
 	)
 	for service, component in components:
 		target.append("items", _sales_order_item(repair_job, service, component))
@@ -182,28 +186,36 @@ def get_sales_order_components(repair_job_name: str, service_name: str | None = 
 	for service, component in iter_repair_job_components(
 		repair_job.name, include_excluded=False, service_names=service_names
 	):
-		state = "Not Billable" if not component.billable else "Invoiced" if _component_invoice_state(component) == "Invoiced" else _component_sales_order_state(component)
+		state = (
+			"Not Billable"
+			if not component.billable
+			else "Invoiced"
+			if _component_invoice_state(component) == "Invoiced"
+			else _component_sales_order_state(component)
+		)
 		counts[state] += 1
-		rows.append({
-			"repair_job_service": service.name,
-			"service_name": service.service_name or service.name,
-			"component_doctype": component.row_doctype,
-			"component_name": component.name,
-			"component_type": component.component_type,
-			"description": component.service_description or component.item_code or component.name,
-			"item_code": component.item_code,
-			"quantity": flt(component.invoice_quantity),
-			"rate": flt(component.invoice_rate),
-			"amount": flt(component.invoice_amount),
-			"billable": bool(component.billable),
-			"sales_invoice": component.sales_invoice,
-			"sales_order": component.sales_order,
-			"sales_order_item": component.sales_order_item,
-			"order_state": state,
-			"sales_order_state": state,
-			"history": history.get((component.row_doctype, component.name), []),
-			"selectable": state == "Available",
-		})
+		rows.append(
+			{
+				"repair_job_service": service.name,
+				"service_name": service.service_name or service.name,
+				"component_doctype": component.row_doctype,
+				"component_name": component.name,
+				"component_type": component.component_type,
+				"description": component.service_description or component.item_code or component.name,
+				"item_code": component.item_code,
+				"quantity": flt(component.invoice_quantity),
+				"rate": flt(component.invoice_rate),
+				"amount": flt(component.invoice_amount),
+				"billable": bool(component.billable),
+				"sales_invoice": component.sales_invoice,
+				"sales_order": component.sales_order,
+				"sales_order_item": component.sales_order_item,
+				"order_state": state,
+				"sales_order_state": state,
+				"history": history.get((component.row_doctype, component.name), []),
+				"selectable": state == "Available",
+			}
+		)
 	return {"repair_job": repair_job.name, "components": rows, "counts": counts}
 
 
@@ -312,6 +324,179 @@ def get_sales_invoice_components(
 		)
 
 	return {"repair_job": repair_job.name, "components": rows, "counts": counts, "totals": totals}
+
+
+@frappe.whitelist(methods=["POST"])
+def map_campaign_sales_order(
+	campaign_name: str,
+	*,
+	target_doc: str | dict | None = None,
+	component_refs: Iterable[dict] | str | None = None,
+) -> Document:
+	"""Map explicitly eligible components from linked Repair Jobs into one draft Sales Order."""
+	campaign = _get_campaign(campaign_name, permission="write")
+	_validate_campaign_billing_status(campaign)
+	requested_refs = _normalize_component_refs(component_refs)
+	_validate_campaign_component_refs(campaign, requested_refs)
+	target = _get_target_doc("Sales Order", target_doc)
+	_validate_target_campaign(target, campaign)
+	current_refs = _component_refs(target)
+
+	components = []
+	for repair_job, service, component in _iter_campaign_components(campaign, billable_only=True):
+		ref = (component.row_doctype, component.name)
+		if requested_refs is not None and ref not in requested_refs:
+			continue
+		if ref in current_refs:
+			continue
+		if _component_invoice_state(component) != "Unbilled":
+			continue
+		if _component_sales_order_state(component) != "Available":
+			continue
+		components.append((repair_job, service, component))
+	_assert_requested_campaign_refs_mapped(requested_refs, components, _("Sales Order"))
+	if not components:
+		frappe.throw(_("No available billable components are available for this Fleet Service Campaign."))
+
+	settings = frappe.get_single("Auto Service Settings")
+	_validate_company(target, settings.company)
+	_set_if_empty(target, "customer", campaign.customer)
+	_set_if_empty(target, "company", settings.company)
+	_set_if_empty(target, "selling_price_list", settings.selling_price_list or settings.price_list)
+	_set_if_empty(target, "currency", settings.default_currency)
+	target.repair_job = None
+	if hasattr(target, "repair_job_service"):
+		target.repair_job_service = None
+	target.project = None
+	target.fleet_service_campaign = campaign.name
+	target.transaction_date = target.get("transaction_date") or today()
+	target.delivery_date = target.get("delivery_date") or (
+		frappe.utils.getdate(campaign.campaign_end) if campaign.campaign_end else target.transaction_date
+	)
+	for repair_job, service, component in components:
+		target.append("items", _sales_order_item(repair_job, service, component))
+	target.run_method("set_missing_values")
+	target.run_method("calculate_taxes_and_totals")
+	return target
+
+
+@frappe.whitelist(methods=["POST"])
+def map_campaign_sales_invoice(
+	campaign_name: str,
+	*,
+	target_doc: str | dict | None = None,
+	component_refs: Iterable[dict] | str | None = None,
+) -> Document:
+	"""Map unbilled, unordered campaign components into a direct draft Sales Invoice."""
+	campaign = _get_campaign(campaign_name, permission="write")
+	_validate_campaign_billing_status(campaign)
+	requested_refs = _normalize_component_refs(component_refs)
+	_validate_campaign_component_refs(campaign, requested_refs)
+	target = _get_target_doc("Sales Invoice", target_doc)
+	_validate_target_campaign(target, campaign)
+	current_refs = _component_refs(target)
+
+	components = []
+	for repair_job, service, component in _iter_campaign_components(campaign, billable_only=True):
+		ref = (component.row_doctype, component.name)
+		if requested_refs is not None and ref not in requested_refs:
+			continue
+		if ref in current_refs:
+			continue
+		if _campaign_invoice_state(component) != "Unbilled":
+			continue
+		components.append((repair_job, service, component))
+	_assert_requested_campaign_refs_mapped(requested_refs, components, _("Sales Invoice"))
+	if not components:
+		frappe.throw(_("No directly invoiceable components are available for this Fleet Service Campaign."))
+
+	settings = frappe.get_single("Auto Service Settings")
+	_validate_company(target, settings.company)
+	_set_if_empty(target, "customer", campaign.customer)
+	_set_if_empty(target, "company", settings.company)
+	_set_if_empty(target, "selling_price_list", settings.selling_price_list or settings.price_list)
+	_set_if_empty(target, "currency", settings.default_currency)
+	target.repair_job = None
+	target.project = None
+	target.fleet_service_campaign = campaign.name
+	target.update_stock = 0
+	target.is_pos = 0
+	for repair_job, service, component in components:
+		target.append("items", _sales_invoice_item(repair_job, service, component))
+	target.run_method("set_missing_values")
+	target.run_method("calculate_taxes_and_totals")
+	return target
+
+
+@frappe.whitelist(methods=["GET"])
+def get_campaign_sales_order_components(campaign_name: str) -> dict:
+	"""Return campaign components and their consolidated Sales Order eligibility."""
+	campaign = _get_campaign(campaign_name)
+	rows = []
+	counts = {
+		"Available": 0,
+		"Draft": 0,
+		"Submitted": 0,
+		"Cancelled": 0,
+		"Reserved": 0,
+		"Invoiced": 0,
+		"Not Billable": 0,
+	}
+	history_by_job = {}
+	for repair_job, service, component in _iter_campaign_components(campaign):
+		if repair_job.name not in history_by_job:
+			history_by_job[repair_job.name] = _sales_order_component_history(repair_job.name)
+		invoice_state = _component_invoice_state(component)
+		state = (
+			"Not Billable"
+			if not component.billable
+			else invoice_state
+			if invoice_state != "Unbilled"
+			else _component_sales_order_state(component)
+		)
+		counts[state] = counts.get(state, 0) + 1
+		rows.append(
+			{
+				**_campaign_component_payload(repair_job, service, component),
+				"sales_invoice": component.sales_invoice,
+				"sales_order": component.sales_order,
+				"sales_order_item": component.sales_order_item,
+				"order_state": state,
+				"sales_order_state": state,
+				"history": history_by_job[repair_job.name].get((component.row_doctype, component.name), []),
+				"selectable": state == "Available",
+			}
+		)
+	return {"fleet_service_campaign": campaign.name, "components": rows, "counts": counts}
+
+
+@frappe.whitelist(methods=["GET"])
+def get_campaign_sales_invoice_components(campaign_name: str) -> dict:
+	"""Return campaign components eligible for a direct Sales Invoice."""
+	campaign = _get_campaign(campaign_name)
+	rows = []
+	counts = {"Unbilled": 0, "Ordered": 0, "Reserved": 0, "Invoiced": 0, "Not Billable": 0}
+	totals = {key: 0 for key in counts}
+	for repair_job, service, component in _iter_campaign_components(campaign):
+		state = _campaign_invoice_state(component)
+		amount = flt(component.invoice_amount)
+		counts[state] = counts.get(state, 0) + 1
+		totals[state] = totals.get(state, 0) + amount
+		rows.append(
+			{
+				**_campaign_component_payload(repair_job, service, component),
+				"invoice_state": state,
+				"sales_invoice": component.sales_invoice,
+				"sales_order": component.sales_order,
+				"selectable": state == "Unbilled",
+			}
+		)
+	return {
+		"fleet_service_campaign": campaign.name,
+		"components": rows,
+		"counts": counts,
+		"totals": totals,
+	}
 
 
 def map_material_request(
@@ -519,6 +704,107 @@ def _get_repair_job(name: str):
 	return repair_job
 
 
+def _get_campaign(name: str, *, permission: str = "read"):
+	campaign = frappe.get_doc("Fleet Service Campaign", name)
+	campaign.check_permission(permission)
+	return campaign
+
+
+def _get_campaign_repair_jobs(campaign):
+	job_names = frappe.get_all(
+		"Repair Job",
+		filters={"fleet_service_campaign": campaign.name},
+		pluck="name",
+		order_by="name asc",
+		limit_page_length=0,
+	)
+	jobs = []
+	for job_name in job_names:
+		repair_job = frappe.get_doc("Repair Job", job_name)
+		repair_job.check_permission("read")
+		if repair_job.customer != campaign.customer:
+			frappe.throw(
+				_("Repair Job {0} customer does not match Fleet Service Campaign {1}.").format(
+					repair_job.name,
+					campaign.name,
+				)
+			)
+		jobs.append(repair_job)
+	return jobs
+
+
+def _iter_campaign_components(campaign, *, include_excluded=False, billable_only=False):
+	for repair_job in _get_campaign_repair_jobs(campaign):
+		for service, component in iter_repair_job_components(
+			repair_job.name,
+			include_excluded=include_excluded,
+			billable_only=billable_only,
+		):
+			yield repair_job, service, component
+
+
+def _validate_campaign_billing_status(campaign):
+	if campaign.status == "Cancelled":
+		frappe.throw(_("Cancelled Fleet Service Campaigns cannot create sales documents."))
+
+
+def _validate_target_campaign(target, campaign):
+	if target.get("fleet_service_campaign") and target.fleet_service_campaign != campaign.name:
+		frappe.throw(_("Target Fleet Service Campaign must match the selected campaign."))
+	if target.get("repair_job"):
+		frappe.throw(_("A campaign sales document cannot also have a parent Repair Job."))
+	target_customer = target.get("customer") or target.get("party_name")
+	if target_customer and target_customer != campaign.customer:
+		frappe.throw(_("Target customer must match the Fleet Service Campaign customer."))
+	item_campaigns = {
+		frappe.db.get_value("Repair Job", row.repair_job, "fleet_service_campaign")
+		for row in target.get("items") or []
+		if getattr(row, "repair_job", None)
+	}
+	if item_campaigns - {campaign.name}:
+		frappe.throw(_("Target items must belong to the selected Fleet Service Campaign."))
+
+
+def _validate_campaign_component_refs(campaign, component_refs):
+	if component_refs is None:
+		return
+	available = {
+		(component.row_doctype, component.name): (service, component)
+		for _repair_job, service, component in _iter_campaign_components(
+			campaign,
+			include_excluded=True,
+		)
+	}
+	missing = component_refs - set(available)
+	if missing:
+		frappe.throw(
+			_("Selected component {0} was not found in Fleet Service Campaign {1}.").format(
+				sorted(missing)[0][1],
+				campaign.name,
+			)
+		)
+	for ref in component_refs:
+		service, component = available[ref]
+		if getattr(service, "docstatus", 0) == 2:
+			frappe.throw(_("Component {0} belongs to a cancelled Repair Job Service.").format(component.name))
+		if not component.billable:
+			frappe.throw(_("Component {0} is not billable.").format(component.name))
+
+
+def _assert_requested_campaign_refs_mapped(component_refs, components, document_label):
+	if component_refs is None:
+		return
+	mapped_refs = {(component.row_doctype, component.name) for _job, _service, component in components}
+	unavailable = component_refs - mapped_refs
+	if unavailable:
+		frappe.throw(
+			_("Selected component {0} is no longer eligible for this {1}.").format(
+				sorted(unavailable)[0][1],
+				document_label,
+			)
+		)
+
+
 def _get_target_doc(doctype: str, target_doc: str | dict | None):
 	if isinstance(target_doc, str):
 		target_doc = frappe.parse_json(target_doc)
@@ -538,7 +824,11 @@ def _validate_target_job(target, repair_job):
 	if target.get("repair_job") and target.repair_job != repair_job.name:
 		frappe.throw(_("A target document can contain components from only one Repair Job."))
 	target_customer = target.get("customer") or target.get("party_name")
-	if target.doctype in {"Sales Invoice", "Quotation", "Sales Order"} and target_customer and target_customer != repair_job.customer:
+	if (
+		target.doctype in {"Sales Invoice", "Quotation", "Sales Order"}
+		and target_customer
+		and target_customer != repair_job.customer
+	):
 		frappe.throw(_("Target customer must match the Repair Job customer."))
 
 	item_jobs = {row.repair_job for row in target.get("items") or [] if getattr(row, "repair_job", None)}
@@ -641,6 +931,15 @@ def _component_invoice_state(component):
 		return "Unbilled"
 	invoice_status = frappe.db.get_value("Sales Invoice", component.sales_invoice, "docstatus")
 	return {0: "Reserved", 1: "Invoiced"}.get(invoice_status, "Unbilled")
+
+
+def _campaign_invoice_state(component):
+	invoice_state = _component_invoice_state(component)
+	if invoice_state != "Unbilled":
+		return invoice_state
+	if _accepted_sales_order_item(component):
+		return "Ordered"
+	return "Unbilled"
 
 
 def _has_active_link(component, linked_doctype, linked_field, *, current_target_name=None):
@@ -782,7 +1081,8 @@ def _sales_order_component_history(repair_job_name: str, service_name: str | Non
 				"sales_order": order.name,
 				"sales_order_item": item.name,
 				"docstatus": order.docstatus,
-				"status": order.status or ({0: "Draft", 1: "Submitted", 2: "Cancelled"}.get(order.docstatus, "Draft")),
+				"status": order.status
+				or ({0: "Draft", 1: "Submitted", 2: "Cancelled"}.get(order.docstatus, "Draft")),
 				"transaction_date": order.transaction_date,
 				"delivery_date": order.delivery_date,
 				"grand_total": flt(order.grand_total),
@@ -832,6 +1132,25 @@ def _component_trace_fields(repair_job, service, component):
 		"repair_component_doctype": component.row_doctype,
 		"repair_component_row": component.name,
 		"repair_service_line": component.legacy_repair_service_line or component.name,
+	}
+
+
+def _campaign_component_payload(repair_job, service, component):
+	return {
+		"repair_job": repair_job.name,
+		"customer_vehicle": repair_job.customer_vehicle,
+		"registration_number": repair_job.get("registration_number"),
+		"repair_job_service": service.name,
+		"service_name": service.service_name or service.name,
+		"component_doctype": component.row_doctype,
+		"component_name": component.name,
+		"component_type": component.component_type,
+		"description": component.service_description or component.item_code or component.name,
+		"item_code": component.item_code,
+		"quantity": flt(component.invoice_quantity),
+		"rate": flt(component.invoice_rate),
+		"amount": flt(component.invoice_amount),
+		"billable": bool(component.billable),
 	}
 
 

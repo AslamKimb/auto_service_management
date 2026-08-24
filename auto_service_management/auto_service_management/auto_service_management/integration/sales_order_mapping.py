@@ -19,7 +19,11 @@ def make_sales_invoice(source_name, target_doc=None, args=None):
 
 	invoice = native_make_sales_invoice(source_name, target_doc=target_doc, args=args)
 	sales_order = frappe.get_doc("Sales Order", source_name)
-	if sales_order.get("repair_job"):
+	if sales_order.get("fleet_service_campaign"):
+		invoice.fleet_service_campaign = sales_order.fleet_service_campaign
+		invoice.repair_job = None
+		invoice.project = None
+	elif sales_order.get("repair_job"):
 		invoice.repair_job = sales_order.repair_job
 
 	sales_order_items = sales_order.get("items") or []

@@ -174,10 +174,11 @@ def get_compatible_repair_job_service_templates(repair_job: str):
 	"""Return active global/make/model templates compatible with a Repair Job vehicle."""
 	job = frappe.get_doc("Repair Job", repair_job)
 	job.check_permission("read")
+	frappe.has_permission("Repair Job Service Template", "read", throw=True)
 	vehicle = frappe.db.get_value(
 		"Customer Vehicle", job.customer_vehicle, ["make", "model"], as_dict=True
 	) or frappe._dict()
-	templates = frappe.get_all(
+	templates = frappe.get_list(
 		"Repair Job Service Template",
 		filters={"is_active": 1},
 		fields=["name", "template_name", "service_name", "vehicle_make", "vehicle_model"],

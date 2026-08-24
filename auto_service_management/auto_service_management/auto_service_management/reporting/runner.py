@@ -10,8 +10,9 @@ def run_report(report_name, filters=None):
 		frappe.throw(_("Unknown report: {0}").format(report_name))
 
 	has_read_permission = frappe.has_permission(definition.permission_doctype, "read")
+	has_select_permission = frappe.has_permission(definition.permission_doctype, "select")
 	has_report_permission = frappe.has_permission(definition.permission_doctype, "report")
-	if not (has_read_permission or has_report_permission):
+	if not has_report_permission or not (has_read_permission or has_select_permission):
 		frappe.throw(_("You are not permitted to read this report."), frappe.PermissionError)
 
 	query_filters = _build_filters(definition, filters or {})
@@ -31,21 +32,9 @@ def run_report(report_name, filters=None):
 				**query_args,
 				"filters": dict(query_args["filters"]),
 			}
-			rows.extend(
-				_get_rows(
-					source_doctype,
-					definition,
-					source_query_args,
-					has_read_permission=has_read_permission,
-				)
-			)
+			rows.extend(_get_rows(source_doctype, definition, source_query_args))
 	else:
-		rows = _get_rows(
-			definition.source_doctype,
-			definition,
-			query_args,
-			has_read_permission=has_read_permission,
-		)
+		rows = _get_rows(definition.source_doctype, definition, query_args)
 
 	return list(definition.columns), rows
 
@@ -69,23 +58,11 @@ def _build_filters(definition, filters):
 	return query_filters
 
 
-def _get_rows(source_doctype, definition, query_args, has_read_permission=False):
-	if definition.parent_field:
-		return _get_scoped_child_rows(
+def _get_rows(source_doctype, definition, query_args):
+	if definition.permission_parent_doctype:
+		return frappe.get_list(
 			source_doctype,
-			definition,
-			query_args,
-			ignore_permissions=not has_read_permission,
+			parent_doctype=definition.permission_parent_doctype,
+			**query_args,
 		)
-	get_rows = frappe.get_list if has_read_permission else frappe.get_all
-	return get_rows(source_doctype, **query_args)
-
-
-def _get_scoped_child_rows(source_doctype, definition, query_args, ignore_permissions=False):
-	get_parents = frappe.get_list if not ignore_permissions else frappe.get_all
-	allowed_parents = get_parents(definition.permission_doctype, pluck="name", limit_page_length=0)
-	if not allowed_parents:
-		return []
-
-	query_args["filters"][definition.parent_field] = ["in", allowed_parents]
-	return frappe.get_all(source_doctype, **query_args)
+	return frappe.get_list(source_doctype, **query_args)

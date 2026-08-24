@@ -61,6 +61,21 @@
       "fieldtype": "Table",
       "label": "Repair Jobs",
       "options": "Fleet Service Campaign Job"
+    },
+    {
+      "fieldname": "billing_section",
+      "fieldtype": "Section Break",
+      "label": "Campaign Billing"
+    },
+    {
+      "fieldname": "sales_orders_html",
+      "fieldtype": "HTML",
+      "label": "Sales Orders"
+    },
+    {
+      "fieldname": "sales_invoices_html",
+      "fieldtype": "HTML",
+      "label": "Sales Invoices"
     }
   ],
   "permissions": [

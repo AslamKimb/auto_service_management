@@ -7,6 +7,7 @@ This repository contains the `auto_service_management` Frappe app for ERPNext v1
 ## Plan Operating Contract
 
 - Treat `IMPLEMENTATION_PLAN.md` as the live progress ledger for implementation work.
+- Before creating or replacing any auxiliary progress tracker, check whether Git already tracks that path; preserve prior run history and append a new run section instead of overwriting it.
 - Select the next unchecked task whose dependencies are already `[x]`; do not skip ahead.
 - Activate one task at a time by marking it `[-]` and recording the exact files, commands, and evidence under that task.
 - Mark a task `[x]` only after the behavior is verified and the evidence is written in the plan.
@@ -21,6 +22,43 @@ This repository contains the `auto_service_management` Frappe app for ERPNext v1
 - One Repair Job represents one vehicle and one Project. Fleet campaigns group separate jobs.
 - ERPNext is authoritative for pricing, taxes, stock, credit limits, and ledger postings.
 - Put user-triggered mutations in typed, POST-only controller methods with server-side permission checks.
+
+## Frappe Skill Routing (Mandatory Entry Point)
+
+This is a Frappe/ERPNext project. Before starting any Frappe-related task, use the `frappe-router` skill as the entry point, then run `frappe-project-triage` before deep work. Confirm the Frappe/ERPNext versions, installed apps, bench/site context, and available tooling before choosing implementation patterns. Never infer ERPNext APIs in a Frappe-only context, and always pass an explicit `--site` to bench commands.
+
+Route the task to the smallest appropriate specialized skill, using more than one when the work crosses boundaries:
+
+| Task type | Required skill |
+|---|---|
+| Understand project structure, versions, apps | `frappe-project-triage` |
+| Scaffold an app, hooks, architecture, or background jobs | `frappe-app-development` |
+| Create or modify DocTypes, fields, controllers | `frappe-doctype-development` |
+| Build REST/RPC APIs, webhooks, or integrations | `frappe-api-development` |
+| Customize Desk UI, form scripts, list views, or JS API | `frappe-desk-customization` |
+| Build Vue 3 frontends or portals | `frappe-frontend-development` |
+| Apply CRM/Helpdesk/HRMS UI patterns | `frappe-ui-patterns` |
+| Create print formats, email templates, Jinja, or PDFs | `frappe-printing-templates` |
+| Build reports or data-analysis views | `frappe-reports` |
+| Create public data-collection forms | `frappe-web-forms` |
+| Write or run tests | `frappe-testing` |
+| Set up or repair the Docker/bench environment | `frappe-manager` |
+| Build a complex enterprise workflow | `frappe-enterprise-patterns` |
+
+Use these combinations for common cross-cutting work:
+
+- New app: `frappe-app-development` + `frappe-doctype-development` + `frappe-api-development` + `frappe-testing`.
+- Feature with Desk UI: `frappe-doctype-development` + `frappe-desk-customization` + `frappe-api-development` + `frappe-ui-patterns` + `frappe-testing`.
+- Document workflow: `frappe-doctype-development` + `frappe-printing-templates` + `frappe-reports` + `frappe-testing`.
+- Custom frontend: `frappe-frontend-development` + `frappe-api-development` + `frappe-ui-patterns`.
+- Enterprise workflow: `frappe-enterprise-patterns` + the relevant DocType/API/UI/testing skills.
+
+Routing guardrails:
+
+- Check version compatibility before recommending APIs; this repository targets ERPNext/Frappe v16.
+- Prefer native Frappe/ERPNext DocTypes, Desk, permissions, reports, and print mechanisms over custom shells or vanilla JS/jQuery.
+- Keep mutations POST-only and permission-checked; preserve the explicit non-image-first deployment gate.
+- For UI or print work, also apply the visual inspection and approval gates in this file and use `frappe-ui-patterns` or `frappe-printing-templates` as appropriate.
 
 ## Development Environment
 
@@ -199,7 +237,18 @@ Remove stale lock files if a previous migrate was killed:
 docker exec dms-backend-1 rm -f /home/frappe/bench-home/frappe-bench/sites/auto-service.localhost/locks/bench_migrate.lock
 ```
 
-### 7. Container Paths
+### 7. Python changes require a backend restart in the editable stack
+
+The development backend runs `bench serve --noreload`. After syncing or changing a Python controller, RPC method, hook, or patch, restart the editable backend before testing through HTTP:
+
+```bash
+docker compose -f docker-compose.dev.yml restart backend
+docker exec dms-backend-1 bench --site auto-service.localhost clear-cache
+```
+
+`bench execute` starts a fresh Python process and can resolve a new method while the long-running HTTP worker still has the old module loaded. Always replay the exact `/api/method/...` URL after the restart; a stale-method failure is not fixed until the HTTP response no longer reports `AttributeError` or `Failed to get method`.
+
+### 8. Container Paths
 
 ```
 Bench root:    /home/frappe/bench-home/frappe-bench/
@@ -209,13 +258,13 @@ Virtual env:   /home/frappe/bench-home/frappe-bench/env/
 Logs:          /home/frappe/bench-home/frappe-bench/logs/
 ```
 
-### 8. Database Access
+### 9. Database Access
 
 ```bash
 docker exec dms-db-1 sh -c "mariadb -u _d0285d3abb0895b4 -p1fRi5pW1fwcK769i _d0285d3abb0895b4 < /tmp/query.sql"
 ```
 
-### 9. Socket.IO "Invalid origin" in Docker
+### 10. Socket.IO "Invalid origin" in Docker
 
 **Symptom:** Browser console shows `Error connecting to socket.io: Invalid origin`. The Desk loads but real-time features (notifications, document updates) fail.
 
@@ -250,7 +299,7 @@ with open('/home/frappe/bench-home/frappe-bench/sites/common_site_config.json') 
 # Should print: True
 ```
 
-### 10. Workspace Fixture Must Include `type` Field
+### 11. Workspace Fixture Must Include `type` Field
 
 **Symptom:** Fresh install via `bench migrate` fails to create the workspace, or `bench export-fixtures` produces an incomplete workspace JSON.
 
@@ -274,7 +323,7 @@ Get-Content "auto_service_management\auto_service_management\auto_service_manage
 ```
 
 
-### 11. Workspace Fixture Must Include `app` Field
+### 12. Workspace Fixture Must Include `app` Field
 
 **Symptom:** Workspace exists in DB but clicking the app icon gives "Page X not found" 404. The boot data shows 0 workspace pages and empty sidebar items. The desk SPA can't resolve the workspace route.
 
@@ -305,7 +354,7 @@ SELECT name, app, module FROM 	abWorkspace WHERE name = 'Workshop Management';
 -- app should be 'auto_service_management', not NULL
 `
 
-### 12. Workspace Sidebar Entry Required for Desk Navigation
+### 13. Workspace Sidebar Entry Required for Desk Navigation
 
 **Symptom:** Desktop Icon exists with correct link_type = "Workspace Sidebar" and link_to = "Workshop Management", but clicking the app icon still gives 404.
 
