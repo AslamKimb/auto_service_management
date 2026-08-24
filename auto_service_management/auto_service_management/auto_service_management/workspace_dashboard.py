@@ -62,14 +62,6 @@ CHILD_COMPONENT_CARD_CONFIG = {
 	},
 }
 
-WORKSPACE_LINK_CARDS = (
-	"Intake & Setup",
-	"Workshop Execution",
-	"QC, Release & History",
-	"Fleet & Exceptions",
-	"Reports",
-)
-
 WORKSPACE_REPORT_LINKS = (
 	"Open Repair Jobs",
 	"Daily Workshop Load",
@@ -104,191 +96,192 @@ WORKSPACE_REPORT_ICONS = {
 	"Discount and Price Change Audit": "badge-percent",
 }
 
-WORKSPACE_SIDEBAR_SECTION_ICONS = {
-	"Intake & Setup": "settings",
-	"Workshop Execution": "wrench",
-	"QC, Release & History": "shield-check",
-	"Fleet & Exceptions": "caravan",
-	"Reports": "file-chart-column",
+
+def _doctype_link(label, link_to, icon, **kwargs):
+	return {"label": label, "link_type": "DocType", "link_to": link_to, "icon": icon, **kwargs}
+
+
+def _report_link(label, icon=None):
+	return {
+		"label": label,
+		"link_type": "Report",
+		"link_to": label,
+		"is_query_report": 1,
+		"icon": icon or WORKSPACE_REPORT_ICONS.get(label, "file-chart-column"),
+	}
+
+
+_WORKSHOP_ROLES = (
+	"Workshop Manager",
+	"Service Advisor",
+	"Parts Interpreter",
+	"Cashier",
+	"Security Gate Officer",
+	"Workshop Technician",
+)
+
+_ADMIN_ROLES = ("System Manager", "Auto Service Admin")
+
+
+WORKSPACE_HUBS = {
+	"Overview": {
+		"label": "Overview",
+		"workspace_name": "Workshop Management",
+		"sidebar_name": "Overview",
+		"roles": ("Workshop Manager", "Service Advisor", *_ADMIN_ROLES),
+		"icon": "layout-dashboard",
+		"logo_url": "/assets/auto_service_management/icons/desktop_icons/solid/workshop_overview.svg",
+		"links": (
+			_doctype_link("New Repair Job", "Repair Job", "clipboard-list"),
+			_report_link("Open Repair Jobs"),
+			_doctype_link("Find Vehicle", "Customer Vehicle", "car-front"),
+		),
+	},
+	"Intake": {
+		"label": "Intake",
+		"workspace_name": "Customer Intake",
+		"sidebar_name": "Intake",
+		"roles": ("Service Advisor", "Workshop Manager", *_ADMIN_ROLES),
+		"icon": "clipboard-list",
+		"logo_url": "/assets/auto_service_management/icons/desktop_icons/solid/workshop_intake.svg",
+		"links": (
+			_doctype_link("Customers", "Customer", "users"),
+			_doctype_link("Find Vehicle", "Customer Vehicle", "car-front"),
+			_doctype_link("Repair Job", "Repair Job", "clipboard-list"),
+			_doctype_link("Walkaround Inspection", "Walkaround Inspection", "scan-search"),
+			_doctype_link("Diagnosis Report", "Diagnosis Report", "search-check"),
+			_doctype_link("Customer Authorization", "Customer Authorization", "signature"),
+		),
+	},
+	"Workshop": {
+		"label": "Workshop",
+		"workspace_name": "Workshop Operations",
+		"sidebar_name": "Workshop",
+		"roles": (
+			"Workshop Manager",
+			"Workshop Technician",
+			"Service Advisor",
+			"Parts Interpreter",
+			*_ADMIN_ROLES,
+		),
+		"icon": "wrench",
+		"logo_url": "/assets/auto_service_management/icons/desktop_icons/solid/workshop_operations.svg",
+		"links": (
+			_doctype_link(
+				"Repair Queue",
+				"Repair Job",
+				"clipboard-clock",
+				route_options={"job_status": ["not in", ["Closed", "Cancelled"]]},
+			),
+			_doctype_link("Repair Job Service", "Repair Job Service", "wrench"),
+			_doctype_link("Workshop Bay", "Workshop Bay", "warehouse"),
+			_doctype_link("Service Templates", "Repair Job Service Template", "copy"),
+			_report_link("Daily Workshop Load"),
+			_report_link("Workshop Bay View"),
+			_report_link("Jobs by Status"),
+			_report_link("Delayed Jobs"),
+			_report_link("Technician Productivity"),
+			_report_link("Labour Hours by Technician"),
+		),
+	},
+	"Parts & Billing": {
+		"label": "Parts & Billing",
+		"workspace_name": "Parts & Billing",
+		"sidebar_name": "Parts & Billing",
+		"roles": (
+			"Parts Interpreter",
+			"Cashier",
+			"Service Advisor",
+			"Workshop Manager",
+			"Accounts Manager",
+			*_ADMIN_ROLES,
+		),
+		"icon": "receipt-text",
+		"logo_url": "/assets/auto_service_management/icons/desktop_icons/solid/workshop_parts_billing.svg",
+		"links": (
+			_report_link("Jobs Waiting for Parts", "package-search"),
+			_doctype_link("Material Requests", "Material Request", "package"),
+			_doctype_link("Sales Orders", "Sales Order", "file-text"),
+			_doctype_link("Sales Invoices", "Sales Invoice", "receipt-text"),
+			_doctype_link("Payment Entries", "Payment Entry", "circle-dollar-sign"),
+			_report_link("Parts Used by Repair Job", "package-search"),
+			_report_link("Repair Revenue by Period", "circle-dollar-sign"),
+		),
+	},
+	"Quality & Release": {
+		"label": "Quality & Release",
+		"workspace_name": "Quality & Release",
+		"sidebar_name": "Quality & Release",
+		"roles": (
+			"Workshop Manager",
+			"Workshop Technician",
+			"Service Advisor",
+			"Security Gate Officer",
+			*_ADMIN_ROLES,
+		),
+		"icon": "shield-check",
+		"logo_url": "/assets/auto_service_management/icons/desktop_icons/solid/workshop_quality_release.svg",
+		"links": (
+			_doctype_link(
+				"QC Queue", "Quality Check", "clipboard-check", route_options={"status": "Pending"}
+			),
+			_doctype_link("Gate Pass", "Gate Pass", "shield-check"),
+			_doctype_link("Service History", "Service History", "history"),
+			_report_link("Gate Pass Register", "shield-check"),
+			_report_link("Vehicle Service History", "history"),
+		),
+	},
+	"Fleet & History": {
+		"label": "Fleet & History",
+		"workspace_name": "Fleet & History",
+		"sidebar_name": "Fleet & History",
+		"roles": ("Workshop Manager", "Service Advisor", "Security Gate Officer", *_ADMIN_ROLES),
+		"icon": "caravan",
+		"logo_url": "/assets/auto_service_management/icons/desktop_icons/solid/workshop_fleet_history.svg",
+		"links": (
+			_doctype_link("Fleet Service Campaign", "Fleet Service Campaign", "caravan"),
+			_doctype_link("Customers", "Customer", "users"),
+			_doctype_link("Find Vehicle", "Customer Vehicle", "car-front"),
+			_doctype_link("Service History", "Service History", "history"),
+		),
+	},
+	"Reports": {
+		"label": "Reports",
+		"workspace_name": "Workshop Reports",
+		"sidebar_name": "Reports",
+		"roles": (*_WORKSHOP_ROLES, "Accounts Manager", *_ADMIN_ROLES),
+		"icon": "file-chart-column",
+		"logo_url": "/assets/auto_service_management/icons/desktop_icons/solid/workshop_reports.svg",
+		"links": tuple(_report_link(report_name) for report_name in WORKSPACE_REPORT_LINKS),
+	},
+	"Setup": {
+		"label": "Setup",
+		"workspace_name": "Workshop Setup",
+		"sidebar_name": "Setup",
+		"roles": ("Workshop Manager", "Auto Service Admin", "System Manager"),
+		"icon": "settings",
+		"logo_url": "/assets/auto_service_management/icons/desktop_icons/solid/workshop_setup.svg",
+		"links": (
+			_doctype_link("Auto Service Settings", "Auto Service Settings", "settings"),
+			_doctype_link("Workshop Bays", "Workshop Bay", "warehouse"),
+			_doctype_link("Vehicle Makes", "Vehicle Make", "car-front"),
+			_doctype_link("Vehicle Models", "Vehicle Model", "car-front"),
+			_doctype_link("Service Templates", "Repair Job Service Template", "copy"),
+			_doctype_link("Repair Job Overrides", "Repair Job Override", "shield-alert"),
+			_doctype_link("Repair Job Logs", "Repair Job Log", "history"),
+		),
+	},
 }
 
+WORKSPACE_LINK_CARDS = tuple(WORKSPACE_HUBS)
+WORKSPACE_SIDEBAR_SECTION_ICONS = {label: hub["icon"] for label, hub in WORKSPACE_HUBS.items()}
 WORKSPACE_SIDEBAR_HOME = {
 	"label": "Home",
 	"link_type": "Workspace",
 	"link_to": "Workshop Management",
 	"icon": "house",
 }
-
-WORKSPACE_SIDEBAR_SECTIONS = {
-	"Intake & Setup": (
-		{
-			"label": "Auto Service Settings",
-			"link_type": "DocType",
-			"link_to": "Auto Service Settings",
-			"icon": "settings",
-		},
-		{
-			"label": "Find Vehicle",
-			"link_type": "DocType",
-			"link_to": "Customer Vehicle",
-			"icon": "car-front",
-		},
-		{
-			"label": "Customers",
-			"link_type": "DocType",
-			"link_to": "Customer",
-			"icon": "users",
-		},
-		{"label": "Workshop Bay", "link_type": "DocType", "link_to": "Workshop Bay", "icon": "warehouse"},
-		{
-			"label": "Repair Job",
-			"link_type": "DocType",
-			"link_to": "Repair Job",
-			"icon": "clipboard-list",
-		},
-		{
-			"label": "Walkaround Inspection",
-			"link_type": "DocType",
-			"link_to": "Walkaround Inspection",
-			"icon": "scan-search",
-		},
-		{
-			"label": "Diagnosis Report",
-			"link_type": "DocType",
-			"link_to": "Diagnosis Report",
-			"icon": "search-check",
-		},
-		{
-			"label": "Customer Authorization",
-			"link_type": "DocType",
-			"link_to": "Customer Authorization",
-			"icon": "signature",
-		},
-	),
-	"Workshop Execution": (
-		{
-			"label": "Repair Job",
-			"link_type": "DocType",
-			"link_to": "Repair Job",
-			"icon": "clipboard-list",
-		},
-		{
-			"label": "Repair Job Service",
-			"link_type": "DocType",
-			"link_to": "Repair Job Service",
-			"icon": "wrench",
-		},
-		{
-			"label": "Repair Queue",
-			"link_type": "DocType",
-			"link_to": "Repair Job",
-			"icon": "clipboard-clock",
-			"route_options": {
-				"job_status": ["not in", ["Closed", "Cancelled"]],
-			},
-		},
-		{
-			"label": "Parts Queue",
-			"link_type": "Report",
-			"link_to": "Jobs Waiting for Parts",
-			"is_query_report": 1,
-			"icon": "package-search",
-		},
-		{
-			"label": "Quality Check",
-			"link_type": "DocType",
-			"link_to": "Quality Check",
-			"icon": "clipboard-check",
-		},
-		{
-			"label": "Repair Job Log",
-			"link_type": "DocType",
-			"link_to": "Repair Job Log",
-			"icon": "history",
-		},
-		{
-			"label": "Repair Job Override",
-			"link_type": "DocType",
-			"link_to": "Repair Job Override",
-			"icon": "shield-alert",
-		},
-	),
-	"QC, Release & History": (
-		{
-			"label": "QC Queue",
-			"link_type": "DocType",
-			"link_to": "Quality Check",
-			"route_options": {"status": "Pending"},
-			"icon": "clipboard-check",
-		},
-		{
-			"label": "Invoice Queue",
-			"link_type": "DocType",
-			"link_to": "Sales Invoice",
-			"route_options": {"docstatus": 0},
-			"icon": "receipt-text",
-		},
-		{"label": "Gate Pass", "link_type": "DocType", "link_to": "Gate Pass", "icon": "shield-check"},
-		{
-			"label": "Gate Passes",
-			"link_type": "Report",
-			"link_to": "Gate Pass Register",
-			"is_query_report": 1,
-			"icon": "shield-check",
-		},
-		{
-			"label": "Service History",
-			"link_type": "DocType",
-			"link_to": "Service History",
-			"icon": "history",
-		},
-		{
-			"label": "Vehicle Service History",
-			"link_type": "Report",
-			"link_to": "Vehicle Service History",
-			"is_query_report": 1,
-			"icon": "history",
-		},
-	),
-	"Fleet & Exceptions": (
-		{
-			"label": "Fleet Service Campaign",
-			"link_type": "DocType",
-			"link_to": "Fleet Service Campaign",
-			"icon": "caravan",
-		},
-		{
-			"label": "Repair Job Override",
-			"link_type": "DocType",
-			"link_to": "Repair Job Override",
-			"icon": "shield-alert",
-		},
-		{
-			"label": "Corporate Credit Releases",
-			"link_type": "Report",
-			"link_to": "Corporate Credit Releases",
-			"is_query_report": 1,
-			"icon": "hand-coins",
-		},
-		{
-			"label": "Discount and Price Change Audit",
-			"link_type": "Report",
-			"link_to": "Discount and Price Change Audit",
-			"is_query_report": 1,
-			"icon": "badge-percent",
-		},
-	),
-	"Reports": tuple(
-		{
-			"label": report_name,
-			"link_type": "Report",
-			"link_to": report_name,
-			"is_query_report": 1,
-			"icon": WORKSPACE_REPORT_ICONS.get(report_name, "file-chart-column"),
-		}
-		for report_name in WORKSPACE_REPORT_LINKS
-	),
-}
+WORKSPACE_SIDEBAR_SECTIONS = {label: hub["links"] for label, hub in WORKSPACE_HUBS.items()}
 
 
 @frappe.whitelist()

@@ -1,0 +1,36 @@
+{
+  "app": "auto_service_management",
+  "charts": [],
+  "content": "[{\"id\":\"header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Workshop Setup</b></span>\",\"col\":12}},{\"id\":\"settings\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Auto Service Settings\",\"col\":3}},{\"id\":\"bays\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Workshop Bays\",\"col\":3}},{\"id\":\"templates\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Service Templates\",\"col\":3}},{\"id\":\"overrides\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Repair Job Overrides\",\"col\":3}}]",
+  "doctype": "Workspace",
+  "for_user": "",
+  "hide_custom": 0,
+  "icon": "settings",
+  "is_hidden": 0,
+  "label": "Setup",
+  "links": [
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Auto Service Settings", "link_count": 0, "link_to": "Auto Service Settings", "link_type": "DocType", "onboard": 1, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Workshop Bays", "link_count": 0, "link_to": "Workshop Bay", "link_type": "DocType", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Vehicle Makes", "link_count": 0, "link_to": "Vehicle Make", "link_type": "DocType", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Vehicle Models", "link_count": 0, "link_to": "Vehicle Model", "link_type": "DocType", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Service Templates", "link_count": 0, "link_to": "Repair Job Service Template", "link_type": "DocType", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Repair Job Overrides", "link_count": 0, "link_to": "Repair Job Override", "link_type": "DocType", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Repair Job Logs", "link_count": 0, "link_to": "Repair Job Log", "link_type": "DocType", "onboard": 0, "type": "Link"}
+  ],
+  "module": "Auto Service Management",
+  "name": "Workshop Setup",
+  "number_cards": [],
+  "parent_page": "",
+  "public": 1,
+  "quick_lists": [],
+  "roles": [{"role": "Workshop Manager"}, {"role": "Auto Service Admin"}, {"role": "System Manager"}],
+  "sequence_id": 8,
+  "shortcuts": [
+    {"color": "Blue", "doc_view": "List", "label": "Auto Service Settings", "link_to": "Auto Service Settings", "type": "DocType"},
+    {"color": "Blue", "doc_view": "List", "label": "Workshop Bays", "link_to": "Workshop Bay", "type": "DocType"},
+    {"color": "Blue", "doc_view": "List", "label": "Service Templates", "link_to": "Repair Job Service Template", "type": "DocType"},
+    {"color": "Orange", "doc_view": "List", "label": "Repair Job Overrides", "link_to": "Repair Job Override", "type": "DocType"}
+  ],
+  "title": "Workshop Setup",
+  "type": "Workspace"
+}

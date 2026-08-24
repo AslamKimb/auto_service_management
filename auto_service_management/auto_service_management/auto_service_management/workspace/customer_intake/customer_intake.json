@@ -1,0 +1,35 @@
+{
+  "app": "auto_service_management",
+  "charts": [],
+  "content": "[{\"id\":\"header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Customer Intake</b></span>\",\"col\":12}},{\"id\":\"new_job\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"New Repair Job\",\"col\":3}},{\"id\":\"find_vehicle\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Find Vehicle\",\"col\":3}},{\"id\":\"customers\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Customers\",\"col\":3}},{\"id\":\"approval_queue\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Approval Queue\",\"col\":3}}]",
+  "doctype": "Workspace",
+  "for_user": "",
+  "hide_custom": 0,
+  "icon": "clipboard-list",
+  "is_hidden": 0,
+  "label": "Intake",
+  "links": [
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Customers", "link_count": 0, "link_to": "Customer", "link_type": "DocType", "onboard": 1, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Find Vehicle", "link_count": 0, "link_to": "Customer Vehicle", "link_type": "DocType", "onboard": 1, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Repair Job", "link_count": 0, "link_to": "Repair Job", "link_type": "DocType", "onboard": 1, "type": "Link"},
+    {"dependencies": "Repair Job", "hidden": 0, "is_query_report": 0, "label": "Walkaround Inspection", "link_count": 0, "link_to": "Walkaround Inspection", "link_type": "DocType", "onboard": 0, "type": "Link"},
+    {"dependencies": "Repair Job", "hidden": 0, "is_query_report": 0, "label": "Diagnosis Report", "link_count": 0, "link_to": "Diagnosis Report", "link_type": "DocType", "onboard": 0, "type": "Link"},
+    {"dependencies": "Repair Job", "hidden": 0, "is_query_report": 0, "label": "Customer Authorization", "link_count": 0, "link_to": "Customer Authorization", "link_type": "DocType", "onboard": 0, "type": "Link"}
+  ],
+  "module": "Auto Service Management",
+  "name": "Customer Intake",
+  "number_cards": [],
+  "parent_page": "",
+  "public": 1,
+  "quick_lists": [],
+  "roles": [{"role": "Service Advisor"}, {"role": "Workshop Manager"}, {"role": "System Manager"}, {"role": "Auto Service Admin"}],
+  "sequence_id": 2,
+  "shortcuts": [
+    {"color": "Green", "doc_view": "New", "label": "New Repair Job", "link_to": "Repair Job", "type": "DocType"},
+    {"color": "Blue", "doc_view": "List", "label": "Find Vehicle", "link_to": "Customer Vehicle", "type": "DocType"},
+    {"color": "Blue", "doc_view": "List", "label": "Customers", "link_to": "Customer", "type": "DocType"},
+    {"color": "Orange", "doc_view": "List", "label": "Approval Queue", "link_to": "Customer Authorization", "type": "DocType"}
+  ],
+  "title": "Customer Intake",
+  "type": "Workspace"
+}

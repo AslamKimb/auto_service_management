@@ -167,17 +167,17 @@ try:
     ws = frappe.get_doc("Workspace", "Workshop Management")
     shortcuts = {s.label for s in ws.get("shortcuts", [])}
     roles = {r.role for r in ws.get("roles", [])}
-    assert len(shortcuts) == 11, f"Expected 11 shortcuts, got {len(shortcuts)}"
-    expected_shortcuts = {
-        "Find Vehicle", "Customers", "New Repair Job", "Open Repair Jobs",
-        "Approval Queue", "Repair Queue", "Parts Queue",
-        "QC Queue", "Invoice Queue", "Gate Passes",
-        "Service History", "Reports",
-    }
+    expected_shortcuts = {"Find Vehicle", "New Repair Job", "Open Repair Jobs"}
     assert shortcuts == expected_shortcuts, f"Shortcuts mismatch: {shortcuts.symmetric_difference(expected_shortcuts)}"
     assert "Workshop Manager" in roles, "Workshop Manager role missing"
     assert "Service Advisor" in roles, "Service Advisor role missing"
-    print(f"  Workshop Management workspace present with {len(shortcuts)} shortcuts")
+    icon = frappe.get_doc("Desktop Icon", "Car Workshop")
+    assert icon.icon_type == "App", "Car Workshop icon is not the native parent App"
+    assert icon.link == "/desk/workshop-management", "Car Workshop app route changed"
+    children = frappe.get_all("Desktop Icon", filters={"parent_icon": "Car Workshop"}, pluck="label", order_by="idx asc")
+    assert children == ["Overview", "Intake", "Workshop", "Parts & Billing", "Quality & Release", "Fleet & History", "Reports", "Setup"], children
+    assert frappe.db.exists("Workspace Sidebar", "Overview"), "Overview sidebar missing"
+    print(f"  Workshop Management workspace present with {len(shortcuts)} shortcuts and {len(children)} child hubs")
 finally:
     frappe.destroy()
 PY

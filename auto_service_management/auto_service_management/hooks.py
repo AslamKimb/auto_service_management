@@ -1,5 +1,5 @@
 app_name = "auto_service_management"
-app_title = "Auto Service Management"
+app_title = "Car Workshop"
 app_publisher = "Aslam Kimbugwe"
 app_description = "Automobile Repair Management for Frappe/ERPNext"
 app_email = "kimbugwe43@gmail.com"
@@ -10,6 +10,17 @@ from auto_service_management.auto_service_management.custom_fields import TRACE_
 # Apps
 required_apps = ["erpnext"]
 app_include_js = ["repair_job_billing.bundle.js"]
+app_home = "/desk/workshop-management"
+app_logo_url = "/assets/auto_service_management/icons/desktop_icons/solid/car_workshop.svg"
+add_to_apps_screen = [
+	{
+		"name": "auto_service_management",
+		"logo": app_logo_url,
+		"title": "Car Workshop",
+		"route": app_home,
+		"has_permission": "auto_service_management.auto_service_management.desktop.check_app_permission",
+	}
+]
 
 jinja = {
 	"methods": [
@@ -84,10 +95,8 @@ override_doctype_dashboards = {
 }
 
 override_whitelisted_methods = {
-	"erpnext.selling.doctype.quotation.quotation.make_sales_invoice":
-		"auto_service_management.auto_service_management.integration.quotation_mapping.make_sales_invoice",
-	"erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice":
-		"auto_service_management.auto_service_management.integration.sales_order_mapping.make_sales_invoice",
+	"erpnext.selling.doctype.quotation.quotation.make_sales_invoice": "auto_service_management.auto_service_management.integration.quotation_mapping.make_sales_invoice",
+	"erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice": "auto_service_management.auto_service_management.integration.sales_order_mapping.make_sales_invoice",
 }
 
 doc_events = {

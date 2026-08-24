@@ -205,3 +205,72 @@ Last update: 2026-08-24 setup
 | 2026-08-24 | M1 | BUILDING -> CRITIC -> PASSED | Fresh critic compared against `HEAD`: all 50 existing fields retained with key semantics, five tabs exact, static checks clean | Unlock M3 |
 | 2026-08-24 | M3 | BUILDING -> PARTIAL / UNVERIFIED | Both-site metadata and native count probes passed; serial focused regressions passed 43/43; build/cache/restart/ping passed; Browser Use doctor/CDP probe failed | Preserve explicit visual blocker; no completion claim |
 | 2026-08-24 | M3 | PARTIAL / UNVERIFIED -> PASSED | Authenticated Desk/CDP became available: exact five tabs rendered and switched on `RJ-2026-00096` and `RJ-2026-00005`; desktop screenshots covered Services, Workshop, Billing, and Connections; Connections showed grouped links with populated and empty rows; narrow `390x844` retained all tab buttons and Billing content; viewport restored to `1310x683` | Native Repair Job tabs scope closed; broader whole-system blockers remain separate |
+
+## Current run — Car Workshop Native Workspace Hubs
+
+Goal: reorganize the Car Workshop app icon into a native Frappe parent app modal with eight role-filtered workflow workspaces while preserving the `Workshop Management` route as the Overview/default workspace and removing technical coverage counters from staff-facing pages.
+
+Quality bar: CW-STRUCTURE exact eight hubs and parent/child hierarchy; CW-NATIVE v16 Workspace, Workspace Sidebar, Desktop Icon, and app-hook contracts; CW-PRESERVE existing route, permissions, workflows, and business data; CW-TEST focused contracts, migration, build, and role-filtered boot data; CW-VISUAL authenticated Desk inspection of the parent modal and hubs at desktop and narrow viewport, or an explicit capability blocker.
+
+Overall state: PASSED (native navigation scope; no image deployment)
+Current wave: W2 — integrated runtime and visual closeout
+Required modules: 4 / 4
+Active: none; closeout evidence recorded
+Blocked: no remaining blocker for the approved native navigation scope
+Whole-system gate: PASSED for Car Workshop navigation; unrelated renderer/image gates remain tracked in prior runs
+Parallel now: none
+Sequential chains: M1+M2 -> fresh critics -> contract integration -> editable runtime -> whole-system critic
+Free worker slots: available
+Dispatch batch: M1 -> workspace_hubs_builder; M2 -> desktop_app_icon_builder
+Last update: 2026-08-25 runtime and Desk visual closeout
+
+| ID | Output | Depends on | Quality gate | Owner | Round | Status | Last verdict | Largest gap | Evidence | Next action |
+|---|---|---|---|---|---:|---|---|---|---|---|---|
+| M1 | Native eight-hub workspace definitions, fixtures, and design note | None | CW-STRUCTURE/CW-PRESERVE | workspace_hubs_builder | 1 | PASSED | PASS | None | Eight fixtures, exact order, operational-only Overview, design note, JSON/static checks | Integrated into runtime |
+| M2 | Parent App icon, child Desktop Icons, sidebar lifecycle, and app hook | None | CW-NATIVE/CW-PRESERVE | Bro (builder stalled; root completed) | 1 | PASSED | PASS after round-3 critic | Native App parent, eight role-bearing Workspace Sidebar children, v16 `link_to=<sidebar>`, legacy cleanup, idempotent lifecycle | Integrated into runtime |
+| M3 | Contract/regression tests and acceptance updates | M1, M2 | CW-TEST | Bro | 1 | PASSED | PASS | None | Workspace contracts 12/12; desktop integration contracts 3/3; JSON/compile/Ruff/diff checks | Keep regression coverage |
+| M4 | Integrated migration/build/runtime/visual proof | M1, M2, M3 | CW-TEST/CW-VISUAL | Bro | 1 | PASSED (qualified) | PASS | Frappe migrate reaches 100% then hits known Docker `Command: Sleep` loop; no schema blocker | Direct setup committed on both sites; build completed; ping/assets HTTP 200; live role filter Cashier => Car Workshop/Parts & Billing/Reports; authenticated Desk parent modal and Overview desktop + narrow sidebar collapse inspected | No image build/deploy |
+
+### Car Workshop workspace event log
+
+| When | Module | Transition | Evidence or decision | Unlocked / next |
+|---|---|---|---|---|
+| 2026-08-24 | Run | SETUP -> BUILDING | Approved HRMS-style eight-hub native Frappe plan; role-filtered visibility and operational-only dashboards selected; no core edits or image deployment | Dispatch M1/M2 |
+| 2026-08-24 | M1 | BUILDING -> CRITIC | Builder returned eight native Workspace fixtures and persisted `docs/design/car-workshop-navigation.md`; static JSON/fixture checks passed | Fresh critics |
+| 2026-08-24 | Critics | CRITIC -> FIX -> CRITIC | Round-1 and round-2 critics found missing child roles, stale legacy cleanup, app-less icon cleanup, and old shortcut assertions; root fixed each gap | Fresh round-3 critic |
+| 2026-08-24 | Round-3 critic | CRITIC -> FIX | Found Parts Queue/Gate Passes fixture labels drifting from runtime hub definitions; fixtures aligned and parity test added | Re-run contracts |
+| 2026-08-25 | Contracts | FIX -> PASSED | Workspace/dashboard unit contracts passed 12/12; desktop hierarchy/idempotency/grouping integration contracts passed 3/3; targeted Ruff, compileall, JSON, and diff checks passed | Runtime proof |
+| 2026-08-25 | Runtime | BUILDING -> PASSED (qualified) | Test/dev post-sync setup committed native records; exact parent/children/sidebar/legacy queries pass; Cashier boot simulation returns only Car Workshop, Parts & Billing, Reports; migration reached 100% sync before known cleanup sleep loop | Build and Desk inspection |
+| 2026-08-25 | Visual | VERIFY -> PASSED | Browser Use authenticated Desk inspection: Car Workshop parent modal shows eight branded SVG cards at 1310x683; Overview sidebar and operational charts render; 390x844 native sidebar collapses and charts stack without custom shell; viewport restored | Scope closed; no image build/deploy |
+
+## Current run — Customer LPO Fleet Intake and Consolidated Billing
+
+Goal: implement the approved customer-LPO workflow for vehicle-list-plus-ceiling LPOs, linking one LPO to one Fleet Service Campaign, one Repair Job per vehicle, and one traceable consolidated invoice while preserving ERPNext accounting and existing workshop controls.
+
+Quality bar: LPO-DOMAIN normalized submittable LPO/vehicle/amendment model; LPO-API permission-checked CSV, vehicle-resolution, campaign/job, amendment, summary, and billing actions; LPO-CEILING per-LPO tax-basis enforcement with hard amendment gate; LPO-DESK native approved Frappe form/actions/states; LPO-REPORT permission-aware utilization/progress reports; LPO-PRINT rendered fulfilment/proforma/invoice identity; LPO-RUNTIME test-site and editable-stack migration/build/probe evidence; LPO-E2E three-vehicle corporate acceptance case; LPO-VISUAL authenticated Desk/PDF inspection or explicit capability blocker.
+
+Overall state: SETUP -> BUILDING
+Current wave: W0 — contract and isolated schema builders
+Required modules: 0 / 5
+Active: M0 lead reconciliation; M1 schema builder; M2 contract/design builder
+Blocked: M3 API/billing until M1 critic PASS; M4 Desk/reports/prints until backend interface PASS; M5 integration until all module critics PASS
+Whole-system gate: PENDING
+Parallel now: M1, M2
+Sequential chains: M1 -> fresh critic -> M3 API/billing -> fresh critic -> M4 Desk/reports/prints -> integration -> system critic
+Free worker slots: tracked in collaboration roster
+Dispatch batch: M1 -> lpo_schema_builder; M2 -> lpo_contract_builder
+Last update: 2026-08-25 setup
+
+| ID | Output | Depends on | Quality gate | Owner | Round | Status | Last verdict | Largest gap | Evidence | Next action |
+|---|---|---|---|---|---:|---|---|---|---|---|
+| M1 | Customer LPO, Customer LPO Vehicle, Customer LPO Amendment schemas/controllers/permissions and isolated tests | None | LPO-DOMAIN | lpo_schema_builder | 1 | BUILDING | None | None | Agent dispatched with disjoint new-DocType write set | Fresh critic on returned files |
+| M2 | Customer LPO specification and native Frappe design note | None | LPO-DESIGN | lpo_contract_builder | 1 | BUILDING | None | None | Agent dispatched with docs-only write set | Lead review and design-direction gate |
+| M3 | CSV/vehicle resolution, campaign/job creation, ceiling enforcement, and billing trace integration | M1 | LPO-API/LPO-CEILING | Bro | 1 | BLOCKED | None | M1 schema contract not yet critic-passed | Existing campaign adapters/hook surfaces inspected | Unlock after M1 PASS |
+| M4 | Native Desk actions, reports, workspace links, and print formats | M2, M3 | LPO-DESK/LPO-REPORT/LPO-PRINT | Bro | 1 | BLOCKED | None | Backend interface and design artifact not yet passed | Existing native hub/print patterns identified | Unlock after M2/M3 PASS |
+| M5 | Integrated migrations, tests, build, editable-stack runtime, UAT and visual evidence | M1, M2, M3, M4 | LPO-RUNTIME/LPO-E2E/LPO-VISUAL | Bro | 1 | BLOCKED | None | Upstream modules not integrated | Non-image deployment gate preserved | Unlock after all critics PASS |
+
+### Customer LPO run event log
+
+| When | Module | Transition | Evidence or decision | Unlocked / next |
+|---|---|---|---|---|
+| 2026-08-25 | Run | SETUP -> BUILDING | User explicitly requested implementation; scope locked to LPO vehicle list plus ceiling, per-LPO tax basis, hard amendment gate, table plus CSV intake, one consolidated invoice; no image/production deployment | Dispatch independent docs and schema builders |

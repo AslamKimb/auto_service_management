@@ -1,0 +1,34 @@
+{
+  "app": "auto_service_management",
+  "charts": [],
+  "content": "[{\"id\":\"header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Quality &amp; Release</b></span>\",\"col\":12}},{\"id\":\"qc_queue\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"QC Queue\",\"col\":3}},{\"id\":\"gate_pass\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Gate Pass\",\"col\":3}},{\"id\":\"service_history\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Service History\",\"col\":3}},{\"id\":\"gate_pass_report\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Gate Pass Register\",\"col\":3}}]",
+  "doctype": "Workspace",
+  "for_user": "",
+  "hide_custom": 0,
+  "icon": "shield-check",
+  "is_hidden": 0,
+  "label": "Quality & Release",
+  "links": [
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "QC Queue", "link_count": 0, "link_to": "Quality Check", "link_type": "DocType", "onboard": 1, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Gate Pass", "link_count": 0, "link_to": "Gate Pass", "link_type": "DocType", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Service History", "link_count": 0, "link_to": "Service History", "link_type": "DocType", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Gate Pass Register", "link_count": 0, "link_to": "Gate Pass Register", "link_type": "Report", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Vehicle Service History", "link_count": 0, "link_to": "Vehicle Service History", "link_type": "Report", "onboard": 0, "type": "Link"}
+  ],
+  "module": "Auto Service Management",
+  "name": "Quality & Release",
+  "number_cards": [],
+  "parent_page": "",
+  "public": 1,
+  "quick_lists": [],
+  "roles": [{"role": "Workshop Manager"}, {"role": "Workshop Technician"}, {"role": "Service Advisor"}, {"role": "Security Gate Officer"}, {"role": "System Manager"}, {"role": "Auto Service Admin"}],
+  "sequence_id": 5,
+  "shortcuts": [
+    {"color": "Orange", "doc_view": "List", "label": "QC Queue", "link_to": "Quality Check", "type": "DocType"},
+    {"color": "Blue", "doc_view": "List", "label": "Gate Pass", "link_to": "Gate Pass", "type": "DocType"},
+    {"color": "Blue", "doc_view": "List", "label": "Service History", "link_to": "Service History", "type": "DocType"},
+    {"color": "Blue", "doc_view": "", "label": "Gate Pass Register", "link_to": "Gate Pass Register", "type": "Report"}
+  ],
+  "title": "Quality & Release",
+  "type": "Workspace"
+}

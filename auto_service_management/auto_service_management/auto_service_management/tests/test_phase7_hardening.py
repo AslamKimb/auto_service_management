@@ -4,17 +4,8 @@ from frappe.tests import UnitTestCase
 
 WORKSPACE_SHORTCUTS = {
 	"Find Vehicle",
-	"Customers",
 	"New Repair Job",
 	"Open Repair Jobs",
-	"Approval Queue",
-	"Repair Queue",
-	"Parts Queue",
-	"QC Queue",
-	"Invoice Queue",
-	"Gate Passes",
-	"Service History",
-	"Reports",
 }
 
 WORKSPACE_ROLES = {
@@ -51,13 +42,10 @@ class TestPhase7HardeningContracts(UnitTestCase):
 		import json
 
 		module_root = Path(__file__).parents[1]
-		workspace = json.loads(
-			(module_root / "workspace" / "workshop_management" / "workshop_management.json").read_text(
-				encoding="utf-8"
-			)
-		)
-		declared_shortcuts = {shortcut["label"] for shortcut in workspace["shortcuts"]}
-		declared_roles = {row["role"] for row in workspace["roles"]}
+		workspaces = [json.loads(path.read_text(encoding="utf-8")) for path in (module_root / "workspace").glob("*/*.json")]
+		overview = next(workspace for workspace in workspaces if workspace["name"] == "Workshop Management")
+		declared_shortcuts = {shortcut["label"] for shortcut in overview["shortcuts"]}
+		declared_roles = {row["role"] for workspace in workspaces for row in workspace["roles"]}
 
 		self.assertEqual(declared_shortcuts, WORKSPACE_SHORTCUTS)
 		self.assertTrue(WORKSPACE_ROLES.issubset(declared_roles))

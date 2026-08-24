@@ -1,0 +1,36 @@
+{
+  "app": "auto_service_management",
+  "charts": [],
+  "content": "[{\"id\":\"header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Parts &amp; Billing</b></span>\",\"col\":12}},{\"id\":\"parts_queue\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Jobs Waiting for Parts\",\"col\":3}},{\"id\":\"sales_orders\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Orders\",\"col\":3}},{\"id\":\"sales_invoices\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Invoices\",\"col\":3}},{\"id\":\"payments\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Payment Entries\",\"col\":3}}]",
+  "doctype": "Workspace",
+  "for_user": "",
+  "hide_custom": 0,
+  "icon": "receipt-text",
+  "is_hidden": 0,
+  "label": "Parts & Billing",
+  "links": [
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Jobs Waiting for Parts", "link_count": 0, "link_to": "Jobs Waiting for Parts", "link_type": "Report", "onboard": 1, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Material Requests", "link_count": 0, "link_to": "Material Request", "link_type": "DocType", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Sales Orders", "link_count": 0, "link_to": "Sales Order", "link_type": "DocType", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Sales Invoices", "link_count": 0, "link_to": "Sales Invoice", "link_type": "DocType", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Payment Entries", "link_count": 0, "link_to": "Payment Entry", "link_type": "DocType", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Parts Used by Repair Job", "link_count": 0, "link_to": "Parts Used by Repair Job", "link_type": "Report", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Repair Revenue by Period", "link_count": 0, "link_to": "Repair Revenue by Period", "link_type": "Report", "onboard": 0, "type": "Link"}
+  ],
+  "module": "Auto Service Management",
+  "name": "Parts & Billing",
+  "number_cards": [],
+  "parent_page": "",
+  "public": 1,
+  "quick_lists": [],
+  "roles": [{"role": "Parts Interpreter"}, {"role": "Cashier"}, {"role": "Service Advisor"}, {"role": "Workshop Manager"}, {"role": "Accounts Manager"}, {"role": "System Manager"}, {"role": "Auto Service Admin"}],
+  "sequence_id": 4,
+  "shortcuts": [
+    {"color": "Orange", "doc_view": "", "label": "Jobs Waiting for Parts", "link_to": "Jobs Waiting for Parts", "type": "Report"},
+    {"color": "Blue", "doc_view": "List", "label": "Sales Orders", "link_to": "Sales Order", "type": "DocType"},
+    {"color": "Green", "doc_view": "List", "label": "Sales Invoices", "link_to": "Sales Invoice", "type": "DocType"},
+    {"color": "Blue", "doc_view": "List", "label": "Payment Entries", "link_to": "Payment Entry", "type": "DocType"}
+  ],
+  "title": "Parts & Billing",
+  "type": "Workspace"
+}

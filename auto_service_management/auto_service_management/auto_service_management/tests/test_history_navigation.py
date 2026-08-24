@@ -24,17 +24,13 @@ class TestHistoryNavigationContracts(UnitTestCase):
 
 		self.assertIs(result, data)
 		self.assertIn("Orders", [group["label"] for group in result["transactions"]])
-		workshop_groups = [
-			group for group in result["transactions"] if group["label"] == "Workshop History"
-		]
+		workshop_groups = [group for group in result["transactions"] if group["label"] == "Workshop History"]
 		self.assertEqual(len(workshop_groups), 1)
 		self.assertEqual(workshop_groups[0]["items"], ["Customer Vehicle", "Repair Job"])
 
 		# Re-applying the hook must not duplicate dashboard entries.
 		result = get_customer_dashboard(result)
-		workshop_groups = [
-			group for group in result["transactions"] if group["label"] == "Workshop History"
-		]
+		workshop_groups = [group for group in result["transactions"] if group["label"] == "Workshop History"]
 		self.assertEqual(len(workshop_groups), 1)
 		self.assertEqual(workshop_groups[0]["items"], ["Customer Vehicle", "Repair Job"])
 
@@ -42,15 +38,25 @@ class TestHistoryNavigationContracts(UnitTestCase):
 		data = get_customer_vehicle_dashboard()
 
 		self.assertEqual(data["fieldname"], "customer_vehicle")
-		self.assertEqual(data["transactions"], [{
-			"label": "Workshop History",
-			"items": ["Repair Job", "Repair Job Service", "Service History"],
-		}])
+		self.assertEqual(
+			data["transactions"],
+			[
+				{
+					"label": "Workshop History",
+					"items": ["Repair Job", "Repair Job Service", "Service History"],
+				}
+			],
+		)
 
 	def test_workspace_exposes_find_vehicle_and_customers(self):
-		intake = WORKSPACE_SIDEBAR_SECTIONS["Intake & Setup"]
+		intake = WORKSPACE_SIDEBAR_SECTIONS["Intake"]
 		self.assertIn(
-			{"label": "Find Vehicle", "link_type": "DocType", "link_to": "Customer Vehicle", "icon": "car-front"},
+			{
+				"label": "Find Vehicle",
+				"link_type": "DocType",
+				"link_to": "Customer Vehicle",
+				"icon": "car-front",
+			},
 			intake,
 		)
 		self.assertIn(
@@ -58,7 +64,7 @@ class TestHistoryNavigationContracts(UnitTestCase):
 			intake,
 		)
 
-		path = Path(__file__).parents[1] / "workspace" / "workshop_management" / "workshop_management.json"
+		path = Path(__file__).parents[1] / "workspace" / "customer_intake" / "customer_intake.json"
 		workspace = json.loads(path.read_text(encoding="utf-8"))
 		self.assertIn(
 			{"label": "Find Vehicle", "link_to": "Customer Vehicle", "type": "DocType"},

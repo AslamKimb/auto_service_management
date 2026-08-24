@@ -919,7 +919,7 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 				authorization.approve()
 
 	def test_desktop_icon_exists_and_is_visible(self):
-		"""Car Workshop must be a directly routed top-level workspace icon."""
+		"""Car Workshop is a native parent App icon with eight child hubs."""
 		icon = frappe.db.get_value(
 			"Desktop Icon",
 			{"label": "Car Workshop", "app": "auto_service_management"},
@@ -933,6 +933,7 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 				"link_to",
 				"parent_icon",
 				"standard",
+				"logo_url",
 			],
 			as_dict=True,
 		)
@@ -940,15 +941,43 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		self.assertEqual(icon.name, "Car Workshop")
 		self.assertFalse(icon.hidden, "Desktop Icon must not be hidden")
 		self.assertEqual(icon.icon, "car-front")
-		self.assertEqual(icon.icon_type, "Link")
-		self.assertEqual(icon.link_type, "Workspace Sidebar")
-		self.assertFalse(icon.link)
-		self.assertEqual(icon.link_to, "Workshop Management")
+		self.assertEqual(icon.icon_type, "App")
+		self.assertEqual(icon.link_type, "External")
+		self.assertEqual(icon.link, "/desk/workshop-management")
+		self.assertFalse(icon.link_to)
 		self.assertFalse(icon.parent_icon)
 		self.assertTrue(icon.standard, "Desktop Icon must be standard")
-		self.assertFalse(
-			frappe.db.exists("Desktop Icon", {"icon_type": "App", "app": "auto_service_management"})
+		self.assertEqual(
+			icon.logo_url,
+			"/assets/auto_service_management/icons/desktop_icons/solid/car_workshop.svg",
 		)
+		children = frappe.get_all(
+			"Desktop Icon",
+			filters={"parent_icon": "Car Workshop", "app": "auto_service_management"},
+			pluck="label",
+			order_by="idx asc",
+		)
+		self.assertEqual(
+			children,
+			[
+				"Overview",
+				"Intake",
+				"Workshop",
+				"Parts & Billing",
+				"Quality & Release",
+				"Fleet & History",
+				"Reports",
+				"Setup",
+			],
+		)
+		from auto_service_management.auto_service_management.workspace_dashboard import WORKSPACE_HUBS
+
+		for label, hub in WORKSPACE_HUBS.items():
+			with self.subTest(hub=label):
+				child = frappe.get_doc("Desktop Icon", label)
+				self.assertEqual(child.link_to, hub["sidebar_name"])
+				self.assertEqual(child.logo_url, hub["logo_url"])
+				self.assertEqual({row.role for row in child.roles}, set(hub["roles"]))
 		self.assertFalse(
 			frappe.db.exists(
 				"Desktop Icon", {"label": "Workshop Management", "app": "auto_service_management"}
@@ -1011,20 +1040,20 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		self.assertTrue(frappe.db.exists("Workspace Sidebar", "DMS Reconciliation Sentinel"))
 		self.assertTrue(frappe.db.exists("Desktop Icon", "DMS Reconciliation Sentinel"))
 
-		sidebar = frappe.get_doc("Workspace Sidebar", "Car Workshop")
-		self.assertEqual(len(sidebar.items), 45)
+		sidebar = frappe.get_doc("Workspace Sidebar", "Overview")
+		self.assertEqual(len(sidebar.items), 5)
 		self.assertEqual(
-			frappe.db.count("Workspace Sidebar", {"name": "Car Workshop"}),
+			frappe.db.count("Workspace Sidebar", {"name": "Overview"}),
 			1,
 		)
 		self.assertEqual(
-			frappe.db.count("Desktop Icon", {"label": "Car Workshop", "icon_type": "Link"}),
+			frappe.db.count("Desktop Icon", {"label": "Car Workshop", "icon_type": "App"}),
 			1,
 		)
-		icon = frappe.get_doc("Desktop Icon", {"label": "Car Workshop", "icon_type": "Link"})
-		self.assertEqual(icon.link_type, "Workspace Sidebar")
-		self.assertEqual(icon.link_to, "Workshop Management")
-		self.assertFalse(icon.link)
+		icon = frappe.get_doc("Desktop Icon", "Car Workshop")
+		self.assertEqual(icon.link_type, "External")
+		self.assertEqual(icon.link, "/desk/workshop-management")
+		self.assertEqual(frappe.db.count("Desktop Icon", {"parent_icon": "Car Workshop"}), 8)
 		self.assertEqual(
 			frappe.db.get_value("Workspace", "Workshop Management", "name"),
 			"Workshop Management",
@@ -1033,14 +1062,14 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 	def test_workspace_sidebar_is_grouped_for_auto_service_management(self):
 		from auto_service_management.auto_service_management.desktop import setup_desktop
 
-		for name in ("Auto Service Management", "Workshop Management", "Car Workshop"):
+		for name in ("Auto Service Management", "Workshop Management", "Car Workshop", "Overview"):
 			if frappe.db.exists("Workspace Sidebar", name):
 				frappe.delete_doc("Workspace Sidebar", name, ignore_permissions=True)
 
 		setup_desktop()
 
-		sidebar = frappe.get_doc("Workspace Sidebar", "Car Workshop")
-		self.assertGreater(len(sidebar.items), 6)
+		sidebar = frappe.get_doc("Workspace Sidebar", "Overview")
+		self.assertGreater(len(sidebar.items), 3)
 
 		home_item = sidebar.items[0]
 		self.assertEqual(home_item.label, "Home")
@@ -1051,21 +1080,24 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		self.assertTrue(all(item.icon for item in sidebar.items))
 
 		section_labels = [item.label for item in sidebar.items if item.type == "Section Break"]
-		self.assertEqual(
-			section_labels,
-			[
-				"Intake & Setup",
-				"Workshop Execution",
-				"QC, Release & History",
-				"Fleet & Exceptions",
-				"Reports",
-			],
-		)
+		self.assertEqual(section_labels, ["Overview"])
 
 		link_labels = {item.label for item in sidebar.items if item.type == "Link"}
+		self.assertIn("New Repair Job", link_labels)
 		self.assertIn("Find Vehicle", link_labels)
-		self.assertIn("Customers", link_labels)
-		self.assertNotIn("Customer Vehicle", link_labels)
-		self.assertIn("Repair Job", link_labels)
-		self.assertIn("Gate Pass", link_labels)
-		self.assertIn("Jobs by Status", link_labels)
+		self.assertIn("Open Repair Jobs", link_labels)
+		self.assertEqual(
+			frappe.get_all(
+				"Desktop Icon", filters={"parent_icon": "Car Workshop"}, pluck="label", order_by="idx asc"
+			),
+			[
+				"Overview",
+				"Intake",
+				"Workshop",
+				"Parts & Billing",
+				"Quality & Release",
+				"Fleet & History",
+				"Reports",
+				"Setup",
+			],
+		)

@@ -1,0 +1,43 @@
+{
+  "app": "auto_service_management",
+  "charts": [],
+  "content": "[{\"id\":\"header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Workshop Reports</b></span>\",\"col\":12}},{\"id\":\"open_jobs\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Open Repair Jobs\",\"col\":3}},{\"id\":\"daily_load\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Daily Workshop Load\",\"col\":3}},{\"id\":\"revenue\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Repair Revenue by Period\",\"col\":3}},{\"id\":\"vehicle_history\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vehicle Service History\",\"col\":3}}]",
+  "doctype": "Workspace",
+  "for_user": "",
+  "hide_custom": 0,
+  "icon": "file-chart-column",
+  "is_hidden": 0,
+  "label": "Reports",
+  "links": [
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Open Repair Jobs", "link_count": 0, "link_to": "Open Repair Jobs", "link_type": "Report", "onboard": 1, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Daily Workshop Load", "link_count": 0, "link_to": "Daily Workshop Load", "link_type": "Report", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Workshop Bay View", "link_count": 0, "link_to": "Workshop Bay View", "link_type": "Report", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Jobs by Status", "link_count": 0, "link_to": "Jobs by Status", "link_type": "Report", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Jobs Waiting for Parts", "link_count": 0, "link_to": "Jobs Waiting for Parts", "link_type": "Report", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Technician Productivity", "link_count": 0, "link_to": "Technician Productivity", "link_type": "Report", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Labour Hours by Technician", "link_count": 0, "link_to": "Labour Hours by Technician", "link_type": "Report", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Parts Used by Repair Job", "link_count": 0, "link_to": "Parts Used by Repair Job", "link_type": "Report", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Vehicle Service History", "link_count": 0, "link_to": "Vehicle Service History", "link_type": "Report", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Delayed Jobs", "link_count": 0, "link_to": "Delayed Jobs", "link_type": "Report", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Repair Revenue by Period", "link_count": 0, "link_to": "Repair Revenue by Period", "link_type": "Report", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Gate Pass Register", "link_count": 0, "link_to": "Gate Pass Register", "link_type": "Report", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Corporate Credit Releases", "link_count": 0, "link_to": "Corporate Credit Releases", "link_type": "Report", "onboard": 0, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Discount and Price Change Audit", "link_count": 0, "link_to": "Discount and Price Change Audit", "link_type": "Report", "onboard": 0, "type": "Link"}
+  ],
+  "module": "Auto Service Management",
+  "name": "Workshop Reports",
+  "number_cards": [],
+  "parent_page": "",
+  "public": 1,
+  "quick_lists": [],
+  "roles": [{"role": "Workshop Manager"}, {"role": "Service Advisor"}, {"role": "Parts Interpreter"}, {"role": "Cashier"}, {"role": "Security Gate Officer"}, {"role": "Workshop Technician"}, {"role": "Accounts Manager"}, {"role": "System Manager"}, {"role": "Auto Service Admin"}],
+  "sequence_id": 7,
+  "shortcuts": [
+    {"color": "Blue", "doc_view": "", "label": "Open Repair Jobs", "link_to": "Open Repair Jobs", "type": "Report"},
+    {"color": "Blue", "doc_view": "", "label": "Daily Workshop Load", "link_to": "Daily Workshop Load", "type": "Report"},
+    {"color": "Blue", "doc_view": "", "label": "Repair Revenue by Period", "link_to": "Repair Revenue by Period", "type": "Report"},
+    {"color": "Blue", "doc_view": "", "label": "Vehicle Service History", "link_to": "Vehicle Service History", "type": "Report"}
+  ],
+  "title": "Workshop Reports",
+  "type": "Workspace"
+}

@@ -12,8 +12,8 @@
     "hash": "890e1066f9252a1b29f99e165a5c8369"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\hooks.py": {
-    "mtime": 1787548241.5658667,
-    "hash": "b80602bc42c64b829a2e0a91dbd7a9b2"
+    "mtime": 1787600179.0174096,
+    "hash": "578570d25e4868db02d4fafc697976df"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\portal.py": {
     "mtime": 1784796863.5662997,
@@ -36,8 +36,8 @@
     "hash": "44f888e4b3d222b3985b16505fd7ee20"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\desktop.py": {
-    "mtime": 1785676082.145233,
-    "hash": "d9784d054c1654c28e49dbc1a4bbca8c"
+    "mtime": 1787604133.9930747,
+    "hash": "67cc80f4f2a305e47c3775354f1106d8"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\hooks.py": {
     "mtime": 1782737459.0,
@@ -60,8 +60,8 @@
     "hash": "fddafbc51e5d3091d992990100eecf63"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\workspace_dashboard.py": {
-    "mtime": 1787553521.612949,
-    "hash": "f2eae4f5e44a5209d8204c6c5fe45e76"
+    "mtime": 1787604121.2964754,
+    "hash": "89c00482e68de8ee5fae754b4dc6c81b"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\__init__.py": {
     "mtime": 1782769121.0,
@@ -572,8 +572,8 @@
     "hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_controllers_integration.py": {
-    "mtime": 1787556578.0898364,
-    "hash": "bafdf4a17b532487628fc11c6c1655ac"
+    "mtime": 1787604190.8784215,
+    "hash": "61a2f47140b6ececae4ea5743c7a71e4"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_customer_vehicle.py": {
     "mtime": 1784910659.482816,
@@ -592,8 +592,8 @@
     "hash": "faf4f16c9d67011ade607c048b921618"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_history_navigation.py": {
-    "mtime": 1787549255.6478095,
-    "hash": "77643086b5ffc65b976e7b04357b49d7"
+    "mtime": 1787599435.995975,
+    "hash": "b259a953b9d485c76cbcf6332d66d786"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_optional_repair_evidence.py": {
     "mtime": 1787527840.0719135,
@@ -648,12 +648,12 @@
     "hash": "a7122ee0389e903561872afb56eb8c6f"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_phase6_contracts.py": {
-    "mtime": 1787567706.627499,
-    "hash": "09f55f374dbbf78c2fe3f2751a86e431"
+    "mtime": 1787601795.1436887,
+    "hash": "68d82d724895d9bee572a0e12f3a5132"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_phase7_hardening.py": {
-    "mtime": 1787549145.6687121,
-    "hash": "549572f11cbd4645c418f84305094dca"
+    "mtime": 1787605236.8461027,
+    "hash": "138efc2034f61aaa63ede1431867fede"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_printing.py": {
     "mtime": 1787449668.283747,
@@ -696,8 +696,8 @@
     "hash": "065da638829065ef61d918150778bddc"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\test_workspace_dashboard.py": {
-    "mtime": 1787549145.666061,
-    "hash": "8d4602896b57412e9f690a55a9e54f0a"
+    "mtime": 1787605302.90292,
+    "hash": "a067a2882cadb9126e0a1747e144a1f0"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\tests\\__init__.py": {
     "mtime": 1782726628.0,
@@ -900,12 +900,12 @@
     "hash": "b66beb5ea6e3f13414eca2db36aac886"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\gauntlet-progress.md": {
-    "mtime": 1787589900.4116504,
-    "hash": "5a8549f15228437527b23b5792440f39"
+    "mtime": 1787605639.2654035,
+    "hash": "7e1f89d4531274d00be095844a97bbc8"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\IMPLEMENTATION_PLAN.md": {
-    "mtime": 1787585914.4784415,
-    "hash": "898fbba92917e2228d472f416f721219"
+    "mtime": 1787605658.811604,
+    "hash": "09220fc911ed48f51ee30491cf8a39fe"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\README.md": {
     "mtime": 1784804868.772587,
@@ -992,7 +992,7 @@
     "hash": "6f35a8031cf209d06607d24911a4fd81"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\graphify-out\\converted\\item details_dcfcd323.md": {
-    "mtime": 1787591317.045542,
+    "mtime": 1787605674.6379702,
     "hash": "de84bcd09115e8bf57d65089fa130565"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\onboarding.html": {
@@ -1014,6 +1014,10 @@
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\baselines\\migration-baseline-2026-07-16.md": {
     "mtime": 1784228862.694515,
     "hash": "5ed268ccd8f5817da825cdf32bc3ab60"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\design\\car-workshop-navigation.md": {
+    "mtime": 1787598057.1758475,
+    "hash": "fb40dd6dba2d8027f30f5d3705f5f214"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\design\\job-card-print-format.md": {
     "mtime": 1787477340.5524635,
@@ -1063,6 +1067,38 @@
     "mtime": 1784749360.1068456,
     "hash": "92deea601815b4085d6e943bfc12f97c"
   },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\icons\\desktop_icons\\solid\\workshop_fleet_history.svg": {
+    "mtime": 1787604097.6376047,
+    "hash": "235461c55f9693d50134e740979dc91f"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\icons\\desktop_icons\\solid\\workshop_intake.svg": {
+    "mtime": 1787604097.6262505,
+    "hash": "966c948a86dee77c60447733c5364f0f"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\icons\\desktop_icons\\solid\\workshop_operations.svg": {
+    "mtime": 1787604097.628754,
+    "hash": "a000ea4b4537935ea9e9a9b4f34c2a7d"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\icons\\desktop_icons\\solid\\workshop_overview.svg": {
+    "mtime": 1787604097.6170077,
+    "hash": "3fe8bc8df0e0a7540eef020c6739c483"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\icons\\desktop_icons\\solid\\workshop_parts_billing.svg": {
+    "mtime": 1787604097.6308239,
+    "hash": "f1e44a6d9103c45adab20c02c4c84fc7"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\icons\\desktop_icons\\solid\\workshop_quality_release.svg": {
+    "mtime": 1787604097.6339135,
+    "hash": "a618fef8b7176bd46af1069eff8cf9af"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\icons\\desktop_icons\\solid\\workshop_reports.svg": {
+    "mtime": 1787604097.6411939,
+    "hash": "ab92806a48ddb95c5f80860da4299a9a"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\icons\\desktop_icons\\solid\\workshop_setup.svg": {
+    "mtime": 1787604097.643711,
+    "hash": "cf0cd092489af8263404657f5ad42b02"
+  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\icons\\desktop_icons\\subtle\\car_workshop.svg": {
     "mtime": 1784749360.1046398,
     "hash": "a504122d9c195de313ad48dfa8e59fb3"
@@ -1078,5 +1114,9 @@
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\public\\images\\vehicle_silhouette.svg": {
     "mtime": 1782766169.0,
     "hash": "fb5a4d7c4e18f389cc0a8dca3779fd6f"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\work\\desk-rj.png": {
+    "mtime": 1787600653.0942452,
+    "hash": "33d62c8a42ea51274e1ed230b79ffb90"
   }
 }

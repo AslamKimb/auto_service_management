@@ -35,17 +35,8 @@ PRINT_TEMPLATE_ROOT = Path(__file__).parents[2] / "templates" / "includes" / "au
 
 WORKSPACE_SHORTCUTS = {
 	"Find Vehicle",
-	"Customers",
 	"New Repair Job",
 	"Open Repair Jobs",
-	"Approval Queue",
-	"Repair Queue",
-	"Parts Queue",
-	"QC Queue",
-	"Invoice Queue",
-	"Gate Passes",
-	"Service History",
-	"Reports",
 }
 
 WORKSPACE_ROLES = {
@@ -97,7 +88,7 @@ class TestPhase6Contracts(UnitTestCase):
 				self.assertEqual(data["doc_type"], doc_type)
 				self.assertEqual(data["module"], "Auto Service Management")
 				self.assertEqual(data["standard"], "Yes")
-				self.assertIn(f'templates/includes/auto_service_print/{folder}.html', data["html"])
+				self.assertIn(f"templates/includes/auto_service_print/{folder}.html", data["html"])
 				self.assertTrue((PRINT_TEMPLATE_ROOT / f"{folder}.html").is_file())
 
 	def test_print_formats_share_company_branded_header(self):
@@ -200,9 +191,9 @@ class TestPhase6Contracts(UnitTestCase):
 			)
 		)
 		settings = json.loads(
-			(Path(__file__).parents[1] / "doctype" / "auto_service_settings" / "auto_service_settings.json").read_text(
-				encoding="utf-8"
-			)
+			(
+				Path(__file__).parents[1] / "doctype" / "auto_service_settings" / "auto_service_settings.json"
+			).read_text(encoding="utf-8")
 		)
 		repair_fields = {field["fieldname"]: field for field in repair_job["fields"]}
 		settings_fields = {field["fieldname"]: field for field in settings["fields"]}
@@ -384,7 +375,14 @@ class TestPhase6Contracts(UnitTestCase):
 			"This proforma invoice is valid for one month only unless the vehicle is not mobile. Payment can be done by CASH, through a bank, DFCU Bank: 01670016727489, OR MTN Mobile Money: 0392554255. We value and respect your time and will provide the best service to you.",
 			html,
 		)
-		for marker in ("row.item_code", "row.invoice_quantity", "row.invoice_rate", "row.invoice_amount", "row.row_doctype", "row.name"):
+		for marker in (
+			"row.item_code",
+			"row.invoice_quantity",
+			"row.invoice_rate",
+			"row.invoice_amount",
+			"row.row_doctype",
+			"row.name",
+		):
 			self.assertIn(marker, html)
 
 	def test_repair_summary_print_uses_linked_quality_check_status(self):
@@ -414,13 +412,13 @@ class TestPhase6Contracts(UnitTestCase):
 
 		self.assertEqual(referenced, declared)
 		self.assertEqual(referenced, WORKSPACE_SHORTCUTS)
-		self.assertIn("Gate Passes", referenced)
 
 	def test_workspace_roles_cover_phase6_desk_personas(self):
 		module_root = Path(__file__).parents[1]
-		path = module_root / "workspace" / "workshop_management" / "workshop_management.json"
-		workspace = json.loads(path.read_text(encoding="utf-8"))
-		roles = {row["role"] for row in workspace["roles"]}
+		roles = set()
+		for path in (module_root / "workspace").glob("*/*.json"):
+			workspace = json.loads(path.read_text(encoding="utf-8"))
+			roles.update(row["role"] for row in workspace.get("roles", []))
 
 		self.assertTrue(WORKSPACE_ROLES.issubset(roles))
 
@@ -464,11 +462,15 @@ class TestPhase6Contracts(UnitTestCase):
 
 	# ── Desk desktop visibility ──
 
-	def test_hooks_uses_workspace_sidebar_as_the_only_desk_entry(self):
-		"""Desktop setup owns the DMS menu; a second app-screen entry would duplicate it."""
+	def test_hooks_declares_native_car_workshop_app_entry(self):
+		"""The app launcher owns the parent icon; native child sidebars own routing."""
 		hooks_root = Path(__file__).parents[2]  # hooks.py is at single-nested package level
 		hooks_source = (hooks_root / "hooks.py").read_text(encoding="utf-8")
-		self.assertNotIn("add_to_apps_screen", hooks_source)
+		self.assertIn("add_to_apps_screen", hooks_source)
+		self.assertIn('"title": "Car Workshop"', hooks_source)
+		self.assertIn('"route": app_home', hooks_source)
+		self.assertIn("desktop.check_app_permission", hooks_source)
+		self.assertIn("app_logo_url", hooks_source)
 		self.assertIn("boot_session", hooks_source)
 
 	def test_hooks_declares_lifecycle_hooks_for_desktop_icon(self):
@@ -494,6 +496,12 @@ class TestPhase6Contracts(UnitTestCase):
 		self.assertIn("def create_workspace_desktop_icon", source)
 		self.assertIn('"car-front"', source)
 		self.assertIn('"Car Workshop"', source)
+		self.assertIn("WORKSPACE_HUBS", source)
+		self.assertIn('icon_type = "App"', source)
+		self.assertIn("parent_icon = WORKSPACE_LABEL", source)
+		self.assertIn('icon.set("roles", [])', source)
+		self.assertIn('for role in hub["roles"]', source)
+		self.assertIn("WORKSPACE_LABEL)", source)
 		self.assertIn("def _ensure_workspace_sidebar", source)
 		self.assertIn("def remove_auto_generated_sidebar", source)
 		self.assertIn("Desktop Icon", source)
