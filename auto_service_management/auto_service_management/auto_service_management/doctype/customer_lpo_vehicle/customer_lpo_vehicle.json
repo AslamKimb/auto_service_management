@@ -1,0 +1,55 @@
+{
+  "name": "Customer LPO Vehicle",
+  "module": "Auto Service Management",
+  "doctype": "DocType",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "istable": 1,
+  "fields": [
+    {
+      "fieldname": "registration_number",
+      "fieldtype": "Data",
+      "label": "Registration Number",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "customer_vehicle",
+      "fieldtype": "Link",
+      "label": "Customer Vehicle",
+      "options": "Customer Vehicle",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "requested_work",
+      "fieldtype": "Small Text",
+      "label": "Requested Work",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "planned_date",
+      "fieldtype": "Date",
+      "label": "Planned Date",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "allocated_ceiling",
+      "fieldtype": "Currency",
+      "label": "Allocated Ceiling",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "repair_job",
+      "fieldtype": "Link",
+      "label": "Repair Job",
+      "options": "Repair Job",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "remarks",
+      "fieldtype": "Small Text",
+      "label": "Remarks"
+    }
+  ],
+  "permissions": []
+}

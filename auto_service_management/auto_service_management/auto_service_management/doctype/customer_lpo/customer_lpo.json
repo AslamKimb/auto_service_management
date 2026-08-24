@@ -1,0 +1,187 @@
+{
+  "name": "Customer LPO",
+  "module": "Auto Service Management",
+  "doctype": "DocType",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "autoname": "format:LPO-{YYYY}-{#####}",
+  "track_changes": 1,
+  "is_submittable": 1,
+  "fields": [
+    {
+      "fieldname": "lpo_details_section",
+      "fieldtype": "Section Break",
+      "label": "LPO Details"
+    },
+    {
+      "fieldname": "company",
+      "fieldtype": "Link",
+      "label": "Company",
+      "options": "Company",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "customer",
+      "fieldtype": "Link",
+      "label": "Customer",
+      "options": "Customer",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "column_break_details",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "lpo_number",
+      "fieldtype": "Data",
+      "label": "Customer LPO Number",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "issue_date",
+      "fieldtype": "Date",
+      "label": "Issue Date",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "expiry_date",
+      "fieldtype": "Date",
+      "label": "Expiry Date",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "commercial_section",
+      "fieldtype": "Section Break",
+      "label": "Commercial Authority"
+    },
+    {
+      "fieldname": "currency",
+      "fieldtype": "Link",
+      "label": "Currency",
+      "options": "Currency",
+      "reqd": 1
+    },
+    {
+      "fieldname": "ceiling_basis",
+      "fieldtype": "Select",
+      "label": "Ceiling Basis",
+      "options": "Tax Inclusive\nTax Exclusive",
+      "reqd": 1,
+      "default": "Tax Inclusive"
+    },
+    {
+      "fieldname": "column_break_commercial",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "authorized_amount",
+      "fieldtype": "Currency",
+      "label": "Authorized Amount",
+      "reqd": 1,
+      "in_list_view": 1,
+      "options": "currency"
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "Draft\nActive\nExhausted\nCompleted\nExpired\nCancelled",
+      "default": "Draft",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "source_lpo",
+      "fieldtype": "Attach",
+      "label": "Source LPO"
+    },
+    {
+      "fieldname": "fleet_service_campaign",
+      "fieldtype": "Link",
+      "label": "Fleet Service Campaign",
+      "options": "Fleet Service Campaign",
+      "read_only": 1
+    },
+    {
+      "fieldname": "instruction_section",
+      "fieldtype": "Section Break",
+      "label": "Work Instruction"
+    },
+    {
+      "fieldname": "work_instruction",
+      "fieldtype": "Text Editor",
+      "label": "Work Instruction"
+    },
+    {
+      "fieldname": "vehicles_section",
+      "fieldtype": "Section Break",
+      "label": "Vehicles"
+    },
+    {
+      "fieldname": "vehicle_rows",
+      "fieldtype": "Table",
+      "label": "Vehicles",
+      "options": "Customer LPO Vehicle"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "Workshop Manager",
+      "read": 1,
+      "report": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "submit": 1,
+      "cancel": 1,
+      "amend": 1,
+      "export": 1,
+      "import": 1,
+      "print": 1
+    },
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "submit": 1,
+      "cancel": 1,
+      "amend": 1,
+      "report": 1,
+      "export": 1,
+      "import": 1,
+      "share": 1,
+      "print": 1,
+      "email": 1,
+      "select": 1
+    },
+    {
+      "role": "Service Advisor",
+      "read": 1,
+      "report": 1,
+      "write": 1,
+      "create": 1
+    },
+    {
+      "role": "Parts Interpreter",
+      "read": 1,
+      "report": 1
+    },
+    {
+      "role": "Cashier",
+      "read": 1,
+      "report": 1,
+      "print": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "title_field": "lpo_number",
+  "search_fields": "lpo_number,customer,company,status"
+}

@@ -5,10 +5,8 @@ import frappe
 from frappe.tests import UnitTestCase
 
 from auto_service_management.auto_service_management.doctype.customer_lpo.customer_lpo import (
-	normalize_registration_number,
-)
-from auto_service_management.auto_service_management.doctype.customer_lpo.customer_lpo import (
 	CustomerLPO,
+	normalize_registration_number,
 )
 
 

@@ -83,6 +83,18 @@
     "mtime": 1787527840.07446,
     "hash": "273f06c39184a42349fb45fcea01b296"
   },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\customer_lpo\\test_customer_lpo.py": {
+    "mtime": 1787607474.542931,
+    "hash": "0e862eac23f4b33b5a46e05cf2bd0746"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\customer_lpo_amendment\\test_customer_lpo_amendment.py": {
+    "mtime": 1787607474.5457878,
+    "hash": "095cd347026f30888332273b7e6936d4"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\customer_lpo_vehicle\\test_customer_lpo_vehicle.py": {
+    "mtime": 1787607474.5443542,
+    "hash": "cb01c06743b27e5b2035000e2e553aed"
+  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\auto_service_management\\auto_service_management\\auto_service_management\\doctype\\customer_vehicle\\customer_vehicle.js": {
     "mtime": 1784907624.038019,
     "hash": "7b406ea41cb4c52cb32c00610f933437"
@@ -900,12 +912,12 @@
     "hash": "b66beb5ea6e3f13414eca2db36aac886"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\gauntlet-progress.md": {
-    "mtime": 1787605639.2654035,
-    "hash": "7e1f89d4531274d00be095844a97bbc8"
+    "mtime": 1787607039.5144012,
+    "hash": "2b31b03d23f138e47b356bd644c29dfe"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\IMPLEMENTATION_PLAN.md": {
-    "mtime": 1787605658.811604,
-    "hash": "09220fc911ed48f51ee30491cf8a39fe"
+    "mtime": 1787607390.1391292,
+    "hash": "ec3b75e4b8a8cf106177d49a5776dc55"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\README.md": {
     "mtime": 1784804868.772587,
@@ -992,7 +1004,7 @@
     "hash": "6f35a8031cf209d06607d24911a4fd81"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\graphify-out\\converted\\item details_dcfcd323.md": {
-    "mtime": 1787605674.6379702,
+    "mtime": 1787607602.5568352,
     "hash": "de84bcd09115e8bf57d65089fa130565"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\onboarding.html": {
@@ -1018,6 +1030,10 @@
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\design\\car-workshop-navigation.md": {
     "mtime": 1787598057.1758475,
     "hash": "fb40dd6dba2d8027f30f5d3705f5f214"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\design\\customer-lpo.md": {
+    "mtime": 1787607526.524648,
+    "hash": "2d80040d4750d030b173e54490f9a8fe"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\design\\job-card-print-format.md": {
     "mtime": 1787477340.5524635,
@@ -1046,6 +1062,10 @@
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\specs\\automobile-repair-management.md": {
     "mtime": 1787524402.2315333,
     "hash": "09ae9033c7c11e2e311bef16f0f0983c"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\specs\\customer-lpo-fleet-workflow.md": {
+    "mtime": 1787607486.8200297,
+    "hash": "c82bc18f8134b42a7e3c9dfdfc39e6f9"
   },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\docs\\specs\\repair-job-quotation.md": {
     "mtime": 1787487774.67737,
@@ -1115,8 +1135,28 @@
     "mtime": 1782766169.0,
     "hash": "fb5a4d7c4e18f389cc0a8dca3779fd6f"
   },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\work\\desk-home.png": {
+    "mtime": 1787606697.0393167,
+    "hash": "c595d623fbcfc3955f4ffcf5dc16a0d7"
+  },
   "C:\\Users\\user\\Documents\\Coded\\DMS\\work\\desk-rj.png": {
     "mtime": 1787600653.0942452,
     "hash": "33d62c8a42ea51274e1ed230b79ffb90"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\work\\rj-00101-billing.png": {
+    "mtime": 1787607038.143239,
+    "hash": "3cee70261212d14d0595f0134f741b66"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\work\\rj-00101-proforma-dialog.png": {
+    "mtime": 1787607106.496394,
+    "hash": "3726dd5f9c77eaa404579fc6e09a8968"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\work\\rj-00101-services.png": {
+    "mtime": 1787607018.7638867,
+    "hash": "ba4e9462516fcfc1d1a197057778d7be"
+  },
+  "C:\\Users\\user\\Documents\\Coded\\DMS\\work\\rj-00101.png": {
+    "mtime": 1787606989.8186526,
+    "hash": "af6c6eea4c1c68dcfa7ecd575739d207"
   }
 }

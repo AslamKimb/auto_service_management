@@ -1,0 +1,126 @@
+{
+  "name": "Customer LPO Amendment",
+  "module": "Auto Service Management",
+  "doctype": "DocType",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "autoname": "format:LPOA-{YYYY}-{#####}",
+  "track_changes": 1,
+  "is_submittable": 1,
+  "fields": [
+    {
+      "fieldname": "amendment_details_section",
+      "fieldtype": "Section Break",
+      "label": "Amendment Details"
+    },
+    {
+      "fieldname": "customer_lpo",
+      "fieldtype": "Link",
+      "label": "Customer LPO",
+      "options": "Customer LPO",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "external_reference",
+      "fieldtype": "Data",
+      "label": "External Reference",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "column_break_amendment_details",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "issue_date",
+      "fieldtype": "Date",
+      "label": "Issue Date",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "amount_increase",
+      "fieldtype": "Currency",
+      "label": "Amount Increase",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "replacement_expiry",
+      "fieldtype": "Date",
+      "label": "Replacement Expiry",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "evidence_section",
+      "fieldtype": "Section Break",
+      "label": "Evidence"
+    },
+    {
+      "fieldname": "reason",
+      "fieldtype": "Small Text",
+      "label": "Reason",
+      "reqd": 1
+    },
+    {
+      "fieldname": "source_attachment",
+      "fieldtype": "Attach",
+      "label": "Source Attachment"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "Workshop Manager",
+      "read": 1,
+      "report": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "submit": 1,
+      "cancel": 1,
+      "amend": 1,
+      "export": 1,
+      "import": 1,
+      "print": 1
+    },
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "submit": 1,
+      "cancel": 1,
+      "amend": 1,
+      "report": 1,
+      "export": 1,
+      "import": 1,
+      "share": 1,
+      "print": 1,
+      "email": 1,
+      "select": 1
+    },
+    {
+      "role": "Service Advisor",
+      "read": 1,
+      "report": 1,
+      "write": 1,
+      "create": 1
+    },
+    {
+      "role": "Parts Interpreter",
+      "read": 1,
+      "report": 1
+    },
+    {
+      "role": "Cashier",
+      "read": 1,
+      "report": 1,
+      "print": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "title_field": "external_reference",
+  "search_fields": "external_reference,customer_lpo,reason"
+}
