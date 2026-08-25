@@ -30,7 +30,12 @@ LEGACY_COMPONENT_DOCTYPES = {
 	"Quality Check Road Test",
 }
 
-CATALOG_MASTER_DOCTYPES = {"Vehicle Make", "Vehicle Model"}
+CATALOG_MASTER_DOCTYPES = {
+	"Vehicle Make",
+	"Vehicle Model",
+	"Vehicle Engine",
+	"Item Vehicle Fitment",
+}
 
 
 class TestWorkspaceDashboardContracts(UnitTestCase):

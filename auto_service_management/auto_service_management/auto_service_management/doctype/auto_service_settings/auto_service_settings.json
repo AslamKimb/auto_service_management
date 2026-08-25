@@ -162,6 +162,11 @@
    "role": "Workshop Manager",
    "read": 1,
    "write": 1
+  },
+  {
+   "role": "Service Advisor",
+   "read": 1,
+   "select": 1
   }
  ]
 }

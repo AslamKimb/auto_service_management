@@ -1,0 +1,20 @@
+{
+ "add_total_row": 0,
+ "apply_user_permissions": 1,
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "is_standard": "Yes",
+ "module": "Auto Service Management",
+ "name": "Customer LPO Vehicle Progress",
+ "ref_doctype": "Customer LPO Vehicle",
+ "report_name": "Customer LPO Vehicle Progress",
+ "report_type": "Script Report",
+ "roles": [
+  {"role": "Workshop Manager"},
+  {"role": "Service Advisor"},
+  {"role": "Cashier"},
+  {"role": "Auto Service Admin"},
+  {"role": "System Manager"}
+ ]
+}

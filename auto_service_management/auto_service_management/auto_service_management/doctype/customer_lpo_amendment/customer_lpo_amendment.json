@@ -72,6 +72,7 @@
     {
       "role": "Workshop Manager",
       "read": 1,
+      "select": 1,
       "report": 1,
       "write": 1,
       "create": 1,
@@ -82,6 +83,23 @@
       "export": 1,
       "import": 1,
       "print": 1
+    },
+    {
+      "role": "Auto Service Admin",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "submit": 1,
+      "cancel": 1,
+      "amend": 1,
+      "report": 1,
+      "export": 1,
+      "import": 1,
+      "share": 1,
+      "print": 1,
+      "email": 1,
+      "select": 1
     },
     {
       "role": "System Manager",
@@ -103,6 +121,7 @@
     {
       "role": "Service Advisor",
       "read": 1,
+      "select": 1,
       "report": 1,
       "write": 1,
       "create": 1
@@ -110,11 +129,13 @@
     {
       "role": "Parts Interpreter",
       "read": 1,
+      "select": 1,
       "report": 1
     },
     {
       "role": "Cashier",
       "read": 1,
+      "select": 1,
       "report": 1,
       "print": 1
     }

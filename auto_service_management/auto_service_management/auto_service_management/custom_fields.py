@@ -3,9 +3,11 @@ from __future__ import annotations
 TRACE_CUSTOM_FIELD_NAMES = (
 	"Sales Invoice-repair_job",
 	"Sales Invoice-fleet_service_campaign",
+	"Sales Invoice-customer_lpo",
 	"Sales Order-repair_job",
 	"Sales Order-repair_job_service",
 	"Sales Order-fleet_service_campaign",
+	"Sales Order-customer_lpo",
 	"Quotation-repair_job",
 	"Quotation-repair_job_service",
 	"Material Request-repair_job",
@@ -67,6 +69,15 @@ PARENT_TRACE_FIELDS = {
 			"read_only": 1,
 			"no_copy": 1,
 		},
+		{
+			"fieldname": "customer_lpo",
+			"label": "Customer LPO",
+			"fieldtype": "Link",
+			"options": "Customer LPO",
+			"insert_after": "fleet_service_campaign",
+			"read_only": 1,
+			"no_copy": 1,
+		},
 	],
 	"Sales Order": [
 		{
@@ -93,6 +104,15 @@ PARENT_TRACE_FIELDS = {
 			"fieldtype": "Link",
 			"options": "Fleet Service Campaign",
 			"insert_after": "repair_job_service",
+			"read_only": 1,
+			"no_copy": 1,
+		},
+		{
+			"fieldname": "customer_lpo",
+			"label": "Customer LPO",
+			"fieldtype": "Link",
+			"options": "Customer LPO",
+			"insert_after": "fleet_service_campaign",
 			"read_only": 1,
 			"no_copy": 1,
 		},

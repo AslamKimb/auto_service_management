@@ -35,6 +35,8 @@ WORKSHOP_PRINT_FORMATS = (
 	("Payment Entry", "Payment Entry"),
 )
 
+PUBLIC_PRINT_LOGO = "/assets/auto_service_management/images/vectorised-bb109a99.svg"
+
 
 def normalize_logo_url(value, base_url):
 	"""Return a browser/PDF-safe absolute logo URL."""
@@ -209,7 +211,7 @@ def get_job_card_context(doc):
 		"vehicle": vehicle,
 		"received_on": snapshot.get("captured_at") or _text(getattr(doc, "creation", None)),
 		"terms": frappe.db.get_single_value("Auto Service Settings", "job_card_terms") or "",
-		"diagram_url": f"{frappe.utils.get_url().rstrip('/')}/assets/auto_service_management/images/vectorised-bb109a99.svg",
+		"diagram_url": PUBLIC_PRINT_LOGO,
 		"damage_markers": _damage_markers(getattr(doc, "walkaround_inspection", None)),
 	}
 
@@ -237,15 +239,21 @@ def get_print_branding(doc):
 		else frappe._dict()
 	) or frappe._dict()
 	website = frappe.get_single("Website Settings")
+	logo = resolve_logo_url(
+		company.company_logo,
+		website.app_logo,
+		website.banner_image,
+		frappe.utils.get_url(),
+	)
+	# Private file logos are not readable by role-scoped Desk print requests.
+	# Use the app-owned public mark so PDFs never render a broken image for
+	# Service Advisor and other non-System-Manager roles.
+	if logo and "/private/files/" in logo:
+		logo = PUBLIC_PRINT_LOGO
 	return frappe._dict(
 		company=company,
 		company_name=company.company_name or company_name or "Auto Service Workshop",
-		logo=resolve_logo_url(
-			company.company_logo,
-			website.app_logo,
-			website.banner_image,
-			frappe.utils.get_url(),
-		),
+		logo=logo,
 		contact=" · ".join(
 			value for value in (company.phone_no, company.email, company.website) if value
 		),

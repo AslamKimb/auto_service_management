@@ -23,6 +23,8 @@
     {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Gate Pass Register", "link_count": 0, "link_to": "Gate Pass Register", "link_type": "Report", "onboard": 0, "type": "Link"},
     {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Corporate Credit Releases", "link_count": 0, "link_to": "Corporate Credit Releases", "link_type": "Report", "onboard": 0, "type": "Link"},
     {"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Discount and Price Change Audit", "link_count": 0, "link_to": "Discount and Price Change Audit", "link_type": "Report", "onboard": 0, "type": "Link"}
+    ,{"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Customer LPO Utilization", "link_count": 0, "link_to": "Customer LPO Utilization", "link_type": "Report", "onboard": 0, "type": "Link"}
+    ,{"dependencies": "", "hidden": 0, "is_query_report": 1, "label": "Customer LPO Vehicle Progress", "link_count": 0, "link_to": "Customer LPO Vehicle Progress", "link_type": "Report", "onboard": 0, "type": "Link"}
   ],
   "module": "Auto Service Management",
   "name": "Workshop Reports",

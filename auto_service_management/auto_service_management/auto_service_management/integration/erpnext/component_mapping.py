@@ -130,6 +130,8 @@ def map_sales_order(
 		service_names = frappe.parse_json(service_names)
 	service_names = set(service_names or [])
 	target = _get_target_doc("Sales Order", target_doc)
+	if target.is_new() and not target.name:
+		target.name = f"new-{frappe.scrub(target.doctype).replace('_', '-')}-{frappe.generate_hash(length=10)}"
 	_validate_target_job(target, repair_job)
 	_validate_service_scope(repair_job.name, service_names, None, document_label=_("Sales Order"))
 	_validate_requested_component_refs(repair_job.name, requested_refs, service_names)
@@ -332,9 +334,10 @@ def map_campaign_sales_order(
 	*,
 	target_doc: str | dict | None = None,
 	component_refs: Iterable[dict] | str | None = None,
+	permission: str = "write",
 ) -> Document:
 	"""Map explicitly eligible components from linked Repair Jobs into one draft Sales Order."""
-	campaign = _get_campaign(campaign_name, permission="write")
+	campaign = _get_campaign(campaign_name, permission=permission)
 	_validate_campaign_billing_status(campaign)
 	requested_refs = _normalize_component_refs(component_refs)
 	_validate_campaign_component_refs(campaign, requested_refs)
@@ -386,9 +389,10 @@ def map_campaign_sales_invoice(
 	*,
 	target_doc: str | dict | None = None,
 	component_refs: Iterable[dict] | str | None = None,
+	permission: str = "write",
 ) -> Document:
 	"""Map unbilled, unordered campaign components into a direct draft Sales Invoice."""
-	campaign = _get_campaign(campaign_name, permission="write")
+	campaign = _get_campaign(campaign_name, permission=permission)
 	_validate_campaign_billing_status(campaign)
 	requested_refs = _normalize_component_refs(component_refs)
 	_validate_campaign_component_refs(campaign, requested_refs)

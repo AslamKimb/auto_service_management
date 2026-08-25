@@ -78,6 +78,11 @@
    "role": "Workshop Technician",
    "read": 1
   }
+  ,{
+   "role": "Service Advisor",
+   "read": 1,
+   "select": 1
+  }
  ],
  "sort_field": "modified",
  "sort_order": "DESC",

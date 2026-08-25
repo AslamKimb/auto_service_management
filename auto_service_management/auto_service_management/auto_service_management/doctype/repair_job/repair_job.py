@@ -141,6 +141,7 @@ class RepairJob(Document):
 	def validate(self):
 		self.validate_intake_requirements()
 		self.validate_fleet_service_campaign()
+		self.validate_customer_lpo()
 		self.validate_primary_related_documents()
 		self.validate_status_transition()
 		self.calculate_totals()
@@ -245,6 +246,21 @@ class RepairJob(Document):
 		campaign.check_permission("write")
 		campaign.require_active_job_link_status()
 		self._validate_campaign_customer(campaign)
+		if self.customer_lpo and campaign.get("customer_lpo") and self.customer_lpo != campaign.customer_lpo:
+			frappe.throw(_("Repair Job Customer LPO must match Fleet Service Campaign Customer LPO."))
+
+	def validate_customer_lpo(self):
+		if not self.customer_lpo:
+			return
+		lpo = frappe.db.get_value("Customer LPO", self.customer_lpo, ["customer", "docstatus", "fleet_service_campaign"], as_dict=True)
+		if not lpo:
+			frappe.throw(_("Customer LPO {0} does not exist.").format(self.customer_lpo))
+		if lpo.customer != self.customer:
+			frappe.throw(_("Customer LPO {0} customer does not match this Repair Job.").format(self.customer_lpo))
+		if lpo.docstatus != 1:
+			frappe.throw(_("Customer LPO {0} must be submitted before linking a Repair Job.").format(self.customer_lpo))
+		if lpo.fleet_service_campaign and self.fleet_service_campaign != lpo.fleet_service_campaign:
+			frappe.throw(_("Repair Job Fleet Service Campaign must match Customer LPO {0}.").format(self.customer_lpo))
 
 	def sync_fleet_campaign_membership(self):
 		if getattr(self.flags, "skip_fleet_campaign_sync", False):

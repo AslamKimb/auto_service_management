@@ -85,12 +85,16 @@ fixtures = [
 # DocType Events
 doctype_js = {
 	"Sales Invoice": "public/js/sales_invoice.js",
+	"Customer LPO": "public/js/customer_lpo.js",
 	"Material Request": "public/js/material_request.js",
 }
 
 override_doctype_dashboards = {
 	"Customer": [
 		"auto_service_management.auto_service_management.dashboard_overrides.get_customer_dashboard"
+	],
+	"Customer LPO": [
+		"auto_service_management.auto_service_management.doctype.customer_lpo.customer_lpo_dashboard.get_data"
 	],
 }
 

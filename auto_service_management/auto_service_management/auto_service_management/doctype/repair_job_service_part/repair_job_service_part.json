@@ -57,6 +57,27 @@
    "label": "Part"
   },
   {
+   "fieldname": "fitment_match_status",
+   "fieldtype": "Select",
+   "label": "Fitment Match",
+   "options": "\nNot Checked\nExact Match\nBroad Match\nUniversal Match\nProvisional Match\nNo Fitment Data\nMismatch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "matched_fitment",
+   "fieldtype": "Link",
+   "label": "Matched Fitment",
+   "options": "Item Vehicle Fitment",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fitment_override_reason",
+   "fieldtype": "Small Text",
+   "label": "Fitment Override Reason",
+   "description": "Required when the selected Item is broad, provisional, missing fitment evidence, or mismatched.",
+   "depends_on": "eval:doc.fitment_match_status && doc.fitment_match_status != 'Exact Match' && doc.fitment_match_status != 'Not Checked'"
+  },
+  {
    "fieldname": "item_code",
    "fieldtype": "Link",
    "label": "Item",

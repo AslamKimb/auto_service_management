@@ -1,0 +1,21 @@
+{% set print_title = "Customer LPO Invoice" %}
+<div class="asm-print">
+{% include "templates/includes/auto_service_print/common.html" %}
+<table class="asm-grid">
+  <tr><th>Customer</th><td>{{ doc.customer_name or doc.customer or "" }}</td><th>Sales Invoice</th><td>{{ doc.name }}</td></tr>
+  {% if doc.customer_lpo %}<tr><th>Customer LPO</th><td>{{ doc.customer_lpo }}</td><th>External LPO Number</th><td>{{ frappe.db.get_value("Customer LPO", doc.customer_lpo, "lpo_number") or "" }}</td></tr>{% endif %}
+  {% if doc.fleet_service_campaign %}<tr><th>Fleet Service Campaign</th><td>{{ doc.fleet_service_campaign }}</td><th>Currency</th><td>{{ doc.currency or "" }}</td></tr>{% endif %}
+</table>
+<div class="asm-section-title">Invoice Items</div>
+<table class="asm-lines">
+  <thead><tr><th>#</th><th>Item / Service</th><th>Description</th><th>Repair Job / Vehicle</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
+  <tbody>
+  {% for row in doc.items or [] %}
+    <tr><td>{{ row.idx }}</td><td>{{ row.item_code or "" }}</td><td>{{ row.description or "" }}</td><td>{{ row.repair_job or "" }}{% if row.customer_vehicle %}<br><span class="asm-muted">{{ row.customer_vehicle }}</span>{% endif %}</td><td>{{ row.qty or 0 }} {{ row.uom or "" }}</td><td class="asm-money">{{ frappe.utils.fmt_money(row.rate, currency=doc.currency) }}</td><td class="asm-money">{{ frappe.utils.fmt_money(row.amount, currency=doc.currency) }}</td></tr>
+  {% endfor %}
+    <tr><th colspan="6" class="asm-money">Net Total</th><th class="asm-money">{{ frappe.utils.fmt_money(doc.net_total, currency=doc.currency) }}</th></tr>
+    <tr><th colspan="6" class="asm-money">Grand Total</th><th class="asm-money">{{ frappe.utils.fmt_money(doc.grand_total, currency=doc.currency) }}</th></tr>
+  </tbody>
+</table>
+<div class="asm-footer">This invoice is linked to the Customer LPO and preserves vehicle/Repair Job component traces.</div>
+</div>

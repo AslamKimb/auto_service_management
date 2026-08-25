@@ -6,6 +6,7 @@
   <tr><th>Customer</th><td>{{ doc.customer_name or doc.customer or "" }}</td><th>Proforma Invoice</th><td>{{ doc.name }}</td></tr>
   <tr><th>Transaction Date</th><td>{{ doc.get_formatted("transaction_date") if doc.transaction_date else "" }}</td><th>Delivery Date</th><td>{{ doc.get_formatted("delivery_date") if doc.delivery_date else "" }}</td></tr>
   {% if doc.fleet_service_campaign %}<tr><th>Fleet Service Campaign</th><td>{{ doc.fleet_service_campaign }}</td><th>Currency</th><td>{{ doc.currency or "" }}</td></tr>{% endif %}
+  {% if doc.customer_lpo %}<tr><th>Customer LPO</th><td>{{ doc.customer_lpo }}</td><th>External LPO Number</th><td>{{ frappe.db.get_value("Customer LPO", doc.customer_lpo, "lpo_number") or "" }}</td></tr>{% endif %}
   {% if doc.repair_job %}<tr><th>Repair Job</th><td>{{ doc.repair_job }}</td><th>Currency</th><td>{{ doc.currency or "" }}</td></tr>{% endif %}
 </table>
 <div class="asm-section-title">Proforma Invoice Items</div>

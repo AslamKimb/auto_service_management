@@ -9,6 +9,7 @@ from frappe.model.document import Document
 class CustomerVehicle(Document):
 	def validate(self):
 		self.validate_make_and_model()
+		self.validate_engine_model()
 		self.validate_unique_vehicle()
 
 	def validate_make_and_model(self):
@@ -26,6 +27,10 @@ class CustomerVehicle(Document):
 					self.model, model_make, self.make
 				)
 			)
+
+	def validate_engine_model(self):
+		if self.engine_model and not frappe.db.exists("Vehicle Engine", self.engine_model):
+			frappe.throw(_("Vehicle Engine {0} does not exist.").format(self.engine_model))
 
 	def validate_unique_vehicle(self):
 		"""Ensure no duplicate registration across the system."""

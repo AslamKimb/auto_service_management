@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import frappe
 from frappe.tests import UnitTestCase
 
@@ -16,17 +18,20 @@ class TestCustomerLPOAmendment(UnitTestCase):
 				"issue_date": "2026-08-25",
 			}
 		)
-		with self.assertRaises(frappe.ValidationError):
-			amendment.validate()
+		with patch.object(CustomerLPOAmendment, "validate_lpo_state"):
+			with self.assertRaises(frappe.ValidationError):
+				amendment.validate()
 
 	def test_amount_increase_must_be_positive(self):
 		amendment = self._amendment(amount_increase=-1)
-		with self.assertRaises(frappe.ValidationError):
-			amendment.validate()
+		with patch.object(CustomerLPOAmendment, "validate_lpo_state"):
+			with self.assertRaises(frappe.ValidationError):
+				amendment.validate()
 
 	def test_valid_amount_increase_passes(self):
 		amendment = self._amendment(amount_increase=500)
-		amendment.validate()
+		with patch.object(CustomerLPOAmendment, "validate_lpo_state"):
+			amendment.validate()
 
 	def _amendment(self, amount_increase):
 		return CustomerLPOAmendment(

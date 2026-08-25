@@ -34,6 +34,11 @@ CAMPAIGN_SALES_ITEM_TRACE_FIELDS = (
 
 
 def validate_sales_invoice(doc, method=None):
+	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
+		validate_lpo_sales_document,
+	)
+
+	validate_lpo_sales_document(doc)
 	if not _has_repair_traces(doc):
 		return
 	jobs = _validate_sales_document_scope(doc)
@@ -49,6 +54,11 @@ def validate_sales_invoice(doc, method=None):
 
 
 def validate_sales_order(doc, method=None):
+	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
+		validate_lpo_sales_document,
+	)
+
+	validate_lpo_sales_document(doc)
 	if not _has_repair_traces(doc):
 		return
 	if not doc.get("select_print_heading") and frappe.db.exists("Print Heading", "Proforma Invoice"):
@@ -66,6 +76,11 @@ def validate_sales_order(doc, method=None):
 
 
 def sync_sales_order(doc, method=None):
+	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
+		sync_lpo_from_sales_document,
+	)
+
+	sync_lpo_from_sales_document(doc)
 	if not _has_repair_traces(doc):
 		return
 	job_names = _repair_job_names(doc)
@@ -82,6 +97,11 @@ def submit_sales_order(doc, method=None):
 
 
 def cancel_sales_order(doc, method=None):
+	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
+		sync_lpo_from_sales_document,
+	)
+
+	sync_lpo_from_sales_document(doc)
 	job_names = _repair_job_names(doc)
 	_release_component_links(doc, "sales_order", "sales_order_item")
 	for job_name in job_names:
@@ -102,6 +122,11 @@ def validate_material_request(doc, method=None):
 
 
 def sync_sales_invoice(doc, method=None):
+	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
+		sync_lpo_from_sales_document,
+	)
+
+	sync_lpo_from_sales_document(doc)
 	if not _has_repair_traces(doc):
 		return
 	job_names = _repair_job_names(doc)
@@ -116,6 +141,20 @@ def sync_sales_invoice(doc, method=None):
 
 
 def submit_sales_invoice(doc, method=None):
+	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
+		validate_lpo_invoice_ceiling,
+		validate_lpo_sales_document,
+	)
+
+	if doc.get("customer_lpo"):
+		# Serialize LPO invoice submissions so two concurrent submissions cannot
+		# both pass the remaining-ceiling check against the same snapshot.
+		frappe.db.sql(
+			"SELECT name FROM `tabCustomer LPO` WHERE name = %s FOR UPDATE",
+			doc.customer_lpo,
+		)
+	validate_lpo_sales_document(doc)
+	validate_lpo_invoice_ceiling(doc)
 	if not _has_repair_traces(doc):
 		return
 	_validate_invoice_service_submission(doc)
@@ -123,6 +162,11 @@ def submit_sales_invoice(doc, method=None):
 
 
 def cancel_sales_invoice(doc, method=None):
+	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
+		sync_lpo_from_sales_document,
+	)
+
+	sync_lpo_from_sales_document(doc)
 	job_names = _repair_job_names(doc)
 	for job_name in job_names:
 		_assert_invoice_cancellation_allowed(job_name)

@@ -60,6 +60,13 @@
    "in_list_view": 1
   },
   {
+   "fieldname": "engine_model",
+   "fieldtype": "Link",
+   "label": "Engine Model",
+   "options": "Vehicle Engine",
+   "in_list_view": 1
+  },
+  {
    "fieldname": "column_break_vehicle2",
    "fieldtype": "Column Break"
   },

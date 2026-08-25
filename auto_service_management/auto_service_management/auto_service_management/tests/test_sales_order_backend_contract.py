@@ -43,7 +43,7 @@ class TestSalesOrderBackendContract(unittest.TestCase):
 		self.assertEqual(len(fields["Sales Order Item"]), len(custom_fields.TRACE_FIELDS))
 		self.assertEqual(
 			{row["fieldname"] for row in fields["Sales Order"]},
-			{"repair_job", "repair_job_service", "fleet_service_campaign"},
+			{"repair_job", "repair_job_service", "fleet_service_campaign", "customer_lpo"},
 		)
 
 	def test_repair_job_has_related_sales_order_child_table(self):

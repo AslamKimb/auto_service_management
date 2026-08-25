@@ -26,6 +26,13 @@
       "reqd": 1
     },
     {
+      "fieldname": "customer_lpo",
+      "fieldtype": "Link",
+      "label": "Customer LPO",
+      "options": "Customer LPO",
+      "read_only": 1
+    },
+    {
       "fieldname": "column_break_1",
       "fieldtype": "Column Break"
     },

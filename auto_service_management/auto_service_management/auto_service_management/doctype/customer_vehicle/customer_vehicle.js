@@ -6,6 +6,7 @@ frappe.ui.form.on("Customer Vehicle", {
 			}
 			return { filters: { vehicle_make: frm.doc.make } };
 		});
+		frm.set_query("engine_model", () => ({}));
 	},
 
 	make(frm) {

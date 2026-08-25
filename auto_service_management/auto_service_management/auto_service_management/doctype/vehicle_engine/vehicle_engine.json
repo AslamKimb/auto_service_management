@@ -1,0 +1,40 @@
+{
+ "name": "Vehicle Engine",
+ "module": "Auto Service Management",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "autoname": "field:engine_code",
+ "track_changes": 1,
+ "fields": [
+  {
+   "fieldname": "engine_code",
+   "fieldtype": "Data",
+   "label": "Engine Code",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "engine_name",
+   "fieldtype": "Data",
+   "label": "Engine Name",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "technical_notes",
+   "fieldtype": "Small Text",
+   "label": "Technical Notes"
+  }
+ ],
+ "permissions": [
+  {"role": "Workshop Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "amend": 1, "report": 1, "export": 1, "import": 1, "share": 1, "print": 1, "email": 1, "select": 1},
+  {"role": "Service Advisor", "read": 1, "write": 1, "create": 1},
+  {"role": "Workshop Technician", "read": 1}
+ ],
+ "sort_field": "engine_code",
+ "sort_order": "ASC",
+ "title_field": "engine_code",
+ "search_fields": "engine_code,engine_name"
+}

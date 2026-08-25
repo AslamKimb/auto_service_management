@@ -243,19 +243,61 @@ Last update: 2026-08-25 runtime and Desk visual closeout
 | 2026-08-25 | Runtime | BUILDING -> PASSED (qualified) | Test/dev post-sync setup committed native records; exact parent/children/sidebar/legacy queries pass; Cashier boot simulation returns only Car Workshop, Parts & Billing, Reports; migration reached 100% sync before known cleanup sleep loop | Build and Desk inspection |
 | 2026-08-25 | Visual | VERIFY -> PASSED | Browser Use authenticated Desk inspection: Car Workshop parent modal shows eight branded SVG cards at 1310x683; Overview sidebar and operational charts render; 390x844 native sidebar collapses and charts stack without custom shell; viewport restored | Scope closed; no image build/deploy |
 
+## Current run — Structured Spare-Parts Fitment Catalog
+
+Goal: keep one ERPNext Item per physical spare part while recording reusable make/model/engine fitment, importing mixed-quality catalog data safely, and warning (not blocking) when a Repair Job part lacks an exact fitment.
+
+Quality bar: G1 fitment/engine schema and validation; G2 duplicate-safe Item/fitment import path; G3 permission-checked compatibility query and Repair Job warning/override; G4 focused regressions, migration, build, and editable-stack runtime; G5 fresh critics plus whole-system evidence. No Item Variants for fitment, no ERPNext/Frappe core edits, no image/production deployment.
+
+Overall state: BLOCKED / UNVERIFIED
+Current wave: W2 — integration and editable runtime proof
+Required modules: 3 / 4
+Active: M4 closeout
+Blocked: one pre-existing parent-scoped report permission artifact and browser/PDF visual capability
+Whole-system gate: PENDING
+Parallel now: M1, M2, M3
+Sequential chains: M1 -> M4; M3 -> M4; M2 -> M4
+Free worker slots: tracked in collaboration roster
+Dispatch batch: M1 -> fitment_schema_builder; M2 -> fitment_import_builder; M3 -> compatibility_query_builder
+Last update: 2026-08-25 setup
+
+| ID | Output | Depends on | Quality gate | Owner | Round | Status | Last verdict | Largest gap | Evidence | Next action |
+|---|---|---|---|---|---:|---|---|---|---|---|---|
+| M1 | Vehicle Engine, Item Vehicle Fitment, Customer Vehicle engine-model link, permissions, and schema tests | None | G1 | fitment_schema_builder | 2 | PASSED | PASS | Live serial Frappe test pending setup completion | Canonical-field reconciliation, schema/static contracts, import 8/8, and fresh schema critic PASS | Integrate and run serial bench tests |
+| M2 | Duplicate-safe Item/fitment CSV templates, validator/import documentation, and source audit tooling | None | G2 | fitment_import_builder | 3 | PASSED | PASS | Manufacturer child-template validation is optional hardening | 8 focused tests, native Item headers, alias checks, CLI/hash immutability, compileall/Ruff, fresh critic PASS | Integrate package and runtime proof |
+| M3 | Compatibility read query, Repair Job part match snapshot/warning, Desk contracts, and focused tests | None | G3 | compatibility_query_builder | 2 | PASSED | PASS | Live serial Frappe test pending setup completion | GET-only decorators, permissions, canonical fields, ranking/snapshot tests, compile/Ruff, fresh critic PASS; custom JS intentionally deferred | Integrate and run serial bench tests |
+| M4 | Integrated migration, tests, build, live editable-stack proof, Graphify refresh, and whole-system critic | M1, M2, M3 | G4/G5 | Bro | 1 | BLOCKED / UNVERIFIED | PARTIAL | Full app integration has one known v16 parent-scoped child-report permission artifact plus wkhtmltopdf/browser visual blockers | Focused Frappe 8/8 + 9/9, full unit 215/215, integration 73/75 with one known PDF HostNotFoundError and one existing Jobs Waiting for Parts permission artifact; build, ping, metadata, GET/POST denial, Graphify 3142/4772/500 | Keep image gate closed; resolve report artifact and obtain approved authenticated visual inspection |
+
+### Structured fitment catalog event log
+
+| When | Module | Transition | Evidence or decision | Unlocked / next |
+|---|---|---|---|---|
+| 2026-08-25 | Run | SETUP -> BUILDING | Scope locked to one physical Item plus many fitments; engine model distinct from engine serial; manual+CSV first; warn-and-allow with override reason; existing dirty LPO work protected | Dispatch M1/M2/M3 disjoint builders |
+| 2026-08-25 | M2 | BUILDING -> CRITIC | Import builder returned validator, templates, docs, and 4/4 focused tests; fresh critic must verify DocType header compatibility and non-mutating review behavior | Await fresh M2 critic; M1/M3 continue building |
+| 2026-08-25 | M2 | CRITIC -> FIX | Fresh critic failed G2.4/G2.5: internal ASM-/PROV- fallback is rejected after normalization and CSV fields do not match Item Vehicle Fitment; dual OEM/manufacturer identifiers also need independent checks | M2 builder fixes canonical fields and identity normalization; fresh critic retest |
+| 2026-08-25 | M2 | FIX -> CRITIC | M2 builder aligned canonical headers, added explicit legacy aliases, fixed SKU normalization and independent OEM/manufacturer keys; focused tests now pass 7/7 with compileall/Ruff/CLI evidence | Await fresh M2 round-2 critic |
+| 2026-08-25 | M1 | BUILDING -> CRITIC | Schema builder returned Vehicle Engine, Item Vehicle Fitment, Customer Vehicle engine-model link, validation, and static evidence; focused Frappe run remains unverified under concurrent Docker tests | Await fresh M1 critic; M3 continues building |
+| 2026-08-25 | M1 | CRITIC -> FIX | Fresh schema critic passed schema/validation/permissions but failed G1.6 because compatibility/import consumers use item_code, vehicle_engine, from_year/to_year/status instead of canonical item, engine_model/vehicle_engine, year_from/year_to/verification_status | M3 and M2 builders reconcile interfaces; fresh critics retest |
+| 2026-08-25 | M2 | FIX -> CRITIC -> PASSED | Corrected native ERPNext Item headers to `default_item_manufacturer`/`default_manufacturer_part_no`, added native Item Manufacturer child template, retained legacy source aliases, and passed 8 focused tests; fresh critic PASS | M4 integration |
+| 2026-08-25 | M3 | BUILDING -> CRITIC -> FIX | Fresh critic found public compatibility decorators did not explicitly constrain methods to GET | Change both whitelists to `methods=["GET"]`; retain runtime and permission checks |
+| 2026-08-25 | M3 | FIX -> CRITIC -> PASSED | Both compatibility methods now declare GET-only whitelists; fresh critic verified permissions, bounded search, canonical fields, ranking, snapshots, and no custom Desk JS | M4 integration |
+| 2026-08-25 | M1 | CRITIC -> FIX -> CRITIC -> PASSED | Consumers and regression assertions reconciled to canonical fitment `item`, `vehicle_engine`, `year_from`/`year_to`/`verification_status`, and Customer Vehicle `engine_model`; fresh critic PASS | M4 integration; live Bench verification remains required |
+| 2026-08-25 | M4 | BUILDING -> VERIFY | Editable source ownership repaired; both site schemas synced; focused Frappe schema 8/8 and compatibility 9/9; assets built and backend restarted; live metadata, ping, and permission-boundary probes passed; Graphify refreshed | Run full app suite and system critic |
+| 2026-08-25 | M4 | VERIFY -> BLOCKED / UNVERIFIED | Full app suite: 215/215 unit tests pass; 75 integration tests have one wkhtmltopdf local-asset HostNotFoundError and one pre-existing v16 parent-scoped child-report permission failure in Parts Interpreter → Jobs Waiting for Parts; 81 unspecified tests pass | Preserve residuals honestly; no image or production gate |
+
 ## Current run — Customer LPO Fleet Intake and Consolidated Billing
 
 Goal: implement the approved customer-LPO workflow for vehicle-list-plus-ceiling LPOs, linking one LPO to one Fleet Service Campaign, one Repair Job per vehicle, and one traceable consolidated invoice while preserving ERPNext accounting and existing workshop controls.
 
 Quality bar: LPO-DOMAIN normalized submittable LPO/vehicle/amendment model; LPO-API permission-checked CSV, vehicle-resolution, campaign/job, amendment, summary, and billing actions; LPO-CEILING per-LPO tax-basis enforcement with hard amendment gate; LPO-DESK native approved Frappe form/actions/states; LPO-REPORT permission-aware utilization/progress reports; LPO-PRINT rendered fulfilment/proforma/invoice identity; LPO-RUNTIME test-site and editable-stack migration/build/probe evidence; LPO-E2E three-vehicle corporate acceptance case; LPO-VISUAL authenticated Desk/PDF inspection or explicit capability blocker.
 
-Overall state: SETUP -> BUILDING
-Current wave: W0 — contract and isolated schema builders
-Required modules: 0 / 5
-Active: M0 lead reconciliation; M1 schema builder; M2 contract/design builder
-Blocked: M3 API/billing until M1 critic PASS; M4 Desk/reports/prints until backend interface PASS; M5 integration until all module critics PASS
-Whole-system gate: PENDING
-Parallel now: M1, M2
+Overall state: SETUP -> BUILDING -> RUNTIME VERIFIED / VISUAL BLOCKED
+Current wave: W1 — editable runtime verified; authenticated Desk/PDF visual gate blocked by CDP capability
+Required modules: 5 / 5
+Active: M5 visual evidence and Aslam editable-stack UAT
+Blocked: Authenticated browser CDP handshake/interaction inspection
+Whole-system gate: PENDING UAT and visual capability recovery
+Parallel now: none; awaiting Aslam UAT and browser capability recovery
 Sequential chains: M1 -> fresh critic -> M3 API/billing -> fresh critic -> M4 Desk/reports/prints -> integration -> system critic
 Free worker slots: tracked in collaboration roster
 Dispatch batch: M1 -> lpo_schema_builder; M2 -> lpo_contract_builder
@@ -263,14 +305,23 @@ Last update: 2026-08-25 setup
 
 | ID | Output | Depends on | Quality gate | Owner | Round | Status | Last verdict | Largest gap | Evidence | Next action |
 |---|---|---|---|---|---:|---|---|---|---|---|
-| M1 | Customer LPO, Customer LPO Vehicle, Customer LPO Amendment schemas/controllers/permissions and isolated tests | None | LPO-DOMAIN | lpo_schema_builder | 1 | BUILDING | None | None | Agent dispatched with disjoint new-DocType write set | Fresh critic on returned files |
-| M2 | Customer LPO specification and native Frappe design note | None | LPO-DESIGN | lpo_contract_builder | 1 | BUILDING | None | None | Agent dispatched with docs-only write set | Lead review and design-direction gate |
-| M3 | CSV/vehicle resolution, campaign/job creation, ceiling enforcement, and billing trace integration | M1 | LPO-API/LPO-CEILING | Bro | 1 | BLOCKED | None | M1 schema contract not yet critic-passed | Existing campaign adapters/hook surfaces inspected | Unlock after M1 PASS |
-| M4 | Native Desk actions, reports, workspace links, and print formats | M2, M3 | LPO-DESK/LPO-REPORT/LPO-PRINT | Bro | 1 | BLOCKED | None | Backend interface and design artifact not yet passed | Existing native hub/print patterns identified | Unlock after M2/M3 PASS |
-| M5 | Integrated migrations, tests, build, editable-stack runtime, UAT and visual evidence | M1, M2, M3, M4 | LPO-RUNTIME/LPO-E2E/LPO-VISUAL | Bro | 1 | BLOCKED | None | Upstream modules not integrated | Non-image deployment gate preserved | Unlock after all critics PASS |
+| M1 | Customer LPO, Customer LPO Vehicle, Customer LPO Amendment schemas/controllers/permissions and isolated tests | None | LPO-DOMAIN | lpo_schema_builder | 1 | PASSED | PASS | End-to-end user submission remains UAT scope | JSON/compile/Ruff plus fresh critic PASS; focused DocType tests and editable metadata/migration pass | Aslam UAT |
+| M2 | Customer LPO specification and native Frappe design note | None | LPO-DESIGN | lpo_contract_builder | 1 | PASSED (static) | PASS | Native Desk/PDF visual gate remains unobserved | Markdown/contract coverage plus fresh critic PASS | Use design contract for implementation |
+| M3 | CSV/vehicle resolution, campaign/job creation, ceiling enforcement, and billing trace integration | M1 | LPO-API/LPO-CEILING | Bro | 2 | PASSED | PASS | Three-vehicle corporate UAT remains | Fresh critic PASS; focused workflow suite 12/12, existing billing/regression suites pass, test-site runtime and live permission/metadata checks pass | Aslam UAT |
+| M4 | Native Desk actions, reports, workspace links, and print formats | M2, M3 | LPO-DESK/LPO-REPORT/LPO-PRINT | Bro | 2 | PASSED (static/runtime) | PASS | Authenticated screenshot/PDF inspection blocked by CDP timeout | Fresh M4 critic PASS; UI contracts 5/5; dashboard override accepts Frappe's `data` keyword; authenticated live metadata HTTP 200 with no TypeError; asset build and HTTP asset 200 pass | Aslam hard-refresh confirmation; retry visual gate when browser capability is available |
+| M5 | Integrated migrations, tests, build, editable-stack runtime, UAT and visual evidence | M1, M2, M3, M4 | LPO-RUNTIME/LPO-E2E/LPO-VISUAL | Bro | 1 | BLOCKED / UNVERIFIED | PARTIAL | Page.captureScreenshot timed out; Desk/PDF visual inspection not evidenced | Test-site regressions, dev migration, backend restart/cache clear, asset build, ping/asset 200, metadata probes, and authenticated Customer LPO `getdoctype` HTTP 200 without TypeError pass; image gate preserved | Aslam UAT editable stack; retry visual gate when browser capability is available |
 
 ### Customer LPO run event log
 
 | When | Module | Transition | Evidence or decision | Unlocked / next |
 |---|---|---|---|---|
 | 2026-08-25 | Run | SETUP -> BUILDING | User explicitly requested implementation; scope locked to LPO vehicle list plus ceiling, per-LPO tax basis, hard amendment gate, table plus CSV intake, one consolidated invoice; no image/production deployment | Dispatch independent docs and schema builders |
+| 2026-08-25 | M1/M2 | BUILDING -> PASSED (static) | Schema/design builders returned; fresh critic PASS; JSON, compile, Ruff, and contract checks pass; runtime remains unobserved | Integrate API/billing and native Desk/report/print slices |
+| 2026-08-25 | M3/M4 | BLOCKED -> BUILDING | Lead integrated CSV/file intake, explicit confirmed vehicle creation, one-to-one Campaign/Repair Job creation, LPO trace fields, ceiling hooks/row lock, native Desk actions, reports, and A4/proforma/invoice formats; static checks pass | Fresh M3/M4 critics, then test-site runtime |
+| 2026-08-25 | M3 | BUILDING -> FIX | Fresh critic found named-target active-document bypass, unscoped amendment aggregation, and missing regression coverage for reassignment/summary permissions/Cashier billing; native mapping and rounding fixes otherwise passed | Apply guard/query/test fixes; fresh critic retest |
+| 2026-08-25 | M3 | FIX -> PASSED (static/critic) | Fresh retest critic verified always-on active-document query with current-target exclusion, permission-scoped amendments, native SO->SI mapping, zero-rounded-total handling, Cashier read/create path, and regression coverage; runtime still pending | Run focused runtime tests after migration |
+| 2026-08-25 | M4 | BUILDING -> FIX | Fresh Desk/report/print critic found missing Add Amendment action, missing native Attach CSV picker, missing Auto Service Admin declarations, and Cashier excluded from Fleet & History discovery; four tabs, HTTP routing, reports, prints, and no-core-edit checks passed | Add native action/file picker, role declarations, Cashier workspace access; fresh M4 retest |
+| 2026-08-25 | M4 | FIX -> PASSED (static/critic) | Fresh M4 retest PASS after amendment action gating, native file picker support, Admin/report permissions, and Cashier workspace visibility; live Desk/PDF inspection remains pending | Run editable runtime and visual gate |
+| 2026-08-25 | M5 | BLOCKED -> BUILDING | Test-site migration and focused runtime regressions passed; editable dev-site migration completed without error; backend restart, asset build, live probes, and visual inspection remain | Complete runtime/build/visual evidence, then pause for Aslam UAT |
+| 2026-08-25 | M5 | BUILDING -> RUNTIME VERIFIED / VISUAL BLOCKED | Dev migration exited cleanly; backend restarted and cache cleared; app assets built; `/api/method/ping` returned 200; Customer LPO JS returned 200; live metadata confirmed LPO DocTypes, trace links, Cashier select access, Admin read access, and Fleet & History workspace. Browser session opened `/desk/customer-lpo` on localhost, but Page.captureScreenshot timed out; no direct Desk/PDF visual claim made | Aslam UAT editable stack; retry browser/PDF inspection when screenshot capability is available; no image build |
+| 2026-08-25 | M4 | USER REPRO -> FIX -> VERIFIED | Reproduced `get_data() got an unexpected keyword argument 'data'` by invoking the registered Customer LPO dashboard override with Frappe's `data` keyword. Changed the signature to `get_data(data=None)`, added a regression, synced source, restarted backend, cleared cache, and called the authenticated live `frappe.desk.form.load.getdoctype` endpoint: HTTP 200, Customer LPO metadata present, TypeError absent. Focused UI contracts pass 5/5 | Aslam hard-refresh and confirm the LPO Desk route; no image build |

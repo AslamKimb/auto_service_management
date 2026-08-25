@@ -105,11 +105,11 @@ class TestFleetCampaignBillingBackend(UnitTestCase):
 		fields = custom_fields.get_trace_custom_fields()
 		self.assertEqual(
 			{row["fieldname"] for row in fields["Sales Order"]},
-			{"repair_job", "repair_job_service", "fleet_service_campaign"},
+			{"repair_job", "repair_job_service", "fleet_service_campaign", "customer_lpo"},
 		)
 		self.assertEqual(
 			{row["fieldname"] for row in fields["Sales Invoice"]},
-			{"repair_job", "fleet_service_campaign"},
+			{"repair_job", "fleet_service_campaign", "customer_lpo"},
 		)
 
 	def test_campaign_scope_accepts_multiple_linked_jobs_and_clears_single_job_parent(self):

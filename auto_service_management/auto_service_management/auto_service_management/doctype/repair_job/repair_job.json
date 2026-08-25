@@ -128,6 +128,13 @@
    "read_only": 1
   },
   {
+   "fieldname": "customer_lpo",
+   "fieldtype": "Link",
+   "label": "Customer LPO",
+   "options": "Customer LPO",
+   "read_only": 1
+  },
+  {
    "fieldname": "quotation",
    "fieldtype": "Link",
    "label": "Quotation",
@@ -371,11 +378,11 @@
    "write": 1,
    "create": 1
   },
-  {
-   "role": "Parts Interpreter",
-   "read": 1,
-   "report": 1
-  },
+    {
+     "role": "Parts Interpreter",
+     "read": 1,
+     "report": 1
+    },
   {
    "role": "Cashier",
    "report": 1,

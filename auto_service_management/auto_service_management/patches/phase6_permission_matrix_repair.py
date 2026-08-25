@@ -23,6 +23,12 @@ def execute():
 	backfill_default_workspace_for_existing_users()
 	ensure_cashier_sales_invoice_custom_docperm()
 	ensure_service_advisor_customer_custom_docperm()
+	ensure_service_advisor_workshop_bay_custom_docperm()
+	ensure_service_advisor_auto_service_settings_custom_docperm()
+	ensure_service_advisor_catalog_custom_docperms()
+	ensure_service_advisor_account_custom_docperm()
+	ensure_service_advisor_sales_order_custom_docperm()
+	ensure_service_advisor_page_custom_docperm()
 
 
 def _ensure_app_roles():
@@ -81,6 +87,151 @@ def ensure_service_advisor_customer_custom_docperm():
 		"select": 1,
 	}
 	_ensure_custom_docperm(values, clear_doctype="Customer")
+
+
+def ensure_service_advisor_workshop_bay_custom_docperm():
+	values = {
+		"parent": "Workshop Bay",
+		"role": "Service Advisor",
+		"permlevel": 0,
+		"read": 1,
+		"write": 0,
+		"create": 0,
+		"delete": 0,
+		"submit": 0,
+		"cancel": 0,
+		"amend": 0,
+		"report": 0,
+		"export": 0,
+		"import": 0,
+		"share": 0,
+		"print": 0,
+		"email": 0,
+		"if_owner": 0,
+		"select": 1,
+	}
+	_ensure_custom_docperm(values, clear_doctype="Workshop Bay")
+
+
+def ensure_service_advisor_auto_service_settings_custom_docperm():
+	values = {
+		"parent": "Auto Service Settings",
+		"role": "Service Advisor",
+		"permlevel": 0,
+		"read": 1,
+		"write": 0,
+		"create": 0,
+		"delete": 0,
+		"submit": 0,
+		"cancel": 0,
+		"amend": 0,
+		"report": 0,
+		"export": 0,
+		"import": 0,
+		"share": 0,
+		"print": 0,
+		"email": 0,
+		"if_owner": 0,
+		"select": 1,
+	}
+	_ensure_custom_docperm(values, clear_doctype="Auto Service Settings")
+
+
+def ensure_service_advisor_catalog_custom_docperms():
+	for doctype in ("Item", "Warehouse", "UOM", "Price List", "Activity Type", "Task"):
+		values = {
+			"parent": doctype,
+			"role": "Service Advisor",
+			"permlevel": 0,
+			"read": 1,
+			"write": 0,
+			"create": 0,
+			"delete": 0,
+			"submit": 0,
+			"cancel": 0,
+			"amend": 0,
+			"report": 0,
+			"export": 0,
+			"import": 0,
+			"share": 0,
+			"print": 0,
+			"email": 0,
+			"if_owner": 0,
+			"select": 1,
+		}
+		_ensure_custom_docperm(values, clear_doctype=doctype)
+
+
+def ensure_service_advisor_account_custom_docperm():
+	values = {
+		"parent": "Account",
+		"role": "Service Advisor",
+		"permlevel": 0,
+		"read": 1,
+		"write": 0,
+		"create": 0,
+		"delete": 0,
+		"submit": 0,
+		"cancel": 0,
+		"amend": 0,
+		"report": 0,
+		"export": 0,
+		"import": 0,
+		"share": 0,
+		"print": 0,
+		"email": 0,
+		"if_owner": 0,
+		"select": 1,
+	}
+	_ensure_custom_docperm(values, clear_doctype="Account")
+
+
+def ensure_service_advisor_sales_order_custom_docperm():
+	values = {
+		"parent": "Sales Order",
+		"role": "Service Advisor",
+		"permlevel": 0,
+		"read": 1,
+		"write": 1,
+		"create": 1,
+		"delete": 0,
+		"submit": 0,
+		"cancel": 0,
+		"amend": 0,
+		"report": 1,
+		"export": 0,
+		"import": 0,
+		"share": 0,
+		"print": 1,
+		"email": 0,
+		"if_owner": 0,
+		"select": 1,
+	}
+	_ensure_custom_docperm(values, clear_doctype="Sales Order")
+
+
+def ensure_service_advisor_page_custom_docperm():
+	values = {
+		"parent": "Page",
+		"role": "Service Advisor",
+		"permlevel": 0,
+		"read": 1,
+		"write": 0,
+		"create": 0,
+		"delete": 0,
+		"submit": 0,
+		"cancel": 0,
+		"amend": 0,
+		"report": 0,
+		"export": 0,
+		"import": 0,
+		"share": 0,
+		"print": 0,
+		"email": 0,
+		"if_owner": 0,
+		"select": 1,
+	}
+	_ensure_custom_docperm(values, clear_doctype="Page")
 
 
 def _ensure_custom_docperm(values: dict[str, object], *, clear_doctype: str) -> None:

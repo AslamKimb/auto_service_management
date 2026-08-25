@@ -1,7 +1,7 @@
 {
   "app": "auto_service_management",
   "charts": [],
-  "content": "[{\"id\":\"header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Fleet &amp; History</b></span>\",\"col\":12}},{\"id\":\"campaigns\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Fleet Service Campaign\",\"col\":3}},{\"id\":\"vehicles\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Find Vehicle\",\"col\":3}},{\"id\":\"customers\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Customers\",\"col\":3}},{\"id\":\"history\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Service History\",\"col\":3}}]",
+  "content": "[{\"id\":\"header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Fleet &amp; History</b></span>\",\"col\":12}},{\"id\":\"campaigns\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Fleet Service Campaign\",\"col\":3}},{\"id\":\"lpos\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Customer LPO\",\"col\":3}},{\"id\":\"vehicles\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Find Vehicle\",\"col\":3}},{\"id\":\"customers\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Customers\",\"col\":3}},{\"id\":\"history\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Service History\",\"col\":3}}]",
   "doctype": "Workspace",
   "for_user": "",
   "hide_custom": 0,
@@ -10,6 +10,7 @@
   "label": "Fleet & History",
   "links": [
     {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Fleet Service Campaign", "link_count": 0, "link_to": "Fleet Service Campaign", "link_type": "DocType", "onboard": 1, "type": "Link"},
+    {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Customer LPO", "link_count": 0, "link_to": "Customer LPO", "link_type": "DocType", "onboard": 1, "type": "Link"},
     {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Customers", "link_count": 0, "link_to": "Customer", "link_type": "DocType", "onboard": 0, "type": "Link"},
     {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Find Vehicle", "link_count": 0, "link_to": "Customer Vehicle", "link_type": "DocType", "onboard": 1, "type": "Link"},
     {"dependencies": "", "hidden": 0, "is_query_report": 0, "label": "Service History", "link_count": 0, "link_to": "Service History", "link_type": "DocType", "onboard": 0, "type": "Link"}
@@ -20,10 +21,11 @@
   "parent_page": "",
   "public": 1,
   "quick_lists": [],
-  "roles": [{"role": "Workshop Manager"}, {"role": "Service Advisor"}, {"role": "Security Gate Officer"}, {"role": "System Manager"}, {"role": "Auto Service Admin"}],
+  "roles": [{"role": "Workshop Manager"}, {"role": "Service Advisor"}, {"role": "Cashier"}, {"role": "Security Gate Officer"}, {"role": "System Manager"}, {"role": "Auto Service Admin"}],
   "sequence_id": 6,
   "shortcuts": [
     {"color": "Blue", "doc_view": "List", "label": "Fleet Service Campaign", "link_to": "Fleet Service Campaign", "type": "DocType"},
+    {"color": "Blue", "doc_view": "List", "label": "Customer LPO", "link_to": "Customer LPO", "type": "DocType"},
     {"color": "Blue", "doc_view": "List", "label": "Find Vehicle", "link_to": "Customer Vehicle", "type": "DocType"},
     {"color": "Blue", "doc_view": "List", "label": "Customers", "link_to": "Customer", "type": "DocType"},
     {"color": "Blue", "doc_view": "List", "label": "Service History", "link_to": "Service History", "type": "DocType"}

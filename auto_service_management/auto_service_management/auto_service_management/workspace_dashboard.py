@@ -40,6 +40,9 @@ WORKSPACE_DOC_TYPE_COVERAGE = {
 	"Service History": "Service History Records",
 	"Fleet Service Campaign": "Fleet Service Campaigns",
 	"Fleet Service Campaign Job": "Fleet Campaign Jobs",
+	"Customer LPO": "Customer LPOs",
+	"Customer LPO Vehicle": "Customer LPO Vehicles",
+	"Customer LPO Amendment": "Customer LPO Amendments",
 }
 
 WORKSPACE_COVERAGE_NUMBER_CARDS = tuple(WORKSPACE_DOC_TYPE_COVERAGE.values())
@@ -77,6 +80,8 @@ WORKSPACE_REPORT_LINKS = (
 	"Gate Pass Register",
 	"Corporate Credit Releases",
 	"Discount and Price Change Audit",
+	"Customer LPO Utilization",
+	"Customer LPO Vehicle Progress",
 )
 
 WORKSPACE_REPORT_ICONS = {
@@ -94,6 +99,8 @@ WORKSPACE_REPORT_ICONS = {
 	"Gate Pass Register": "shield-check",
 	"Corporate Credit Releases": "hand-coins",
 	"Discount and Price Change Audit": "badge-percent",
+	"Customer LPO Utilization": "wallet-cards",
+	"Customer LPO Vehicle Progress": "list-tree",
 }
 
 
@@ -235,11 +242,12 @@ WORKSPACE_HUBS = {
 		"label": "Fleet & History",
 		"workspace_name": "Fleet & History",
 		"sidebar_name": "Fleet & History",
-		"roles": ("Workshop Manager", "Service Advisor", "Security Gate Officer", *_ADMIN_ROLES),
+		"roles": ("Workshop Manager", "Service Advisor", "Cashier", "Security Gate Officer", *_ADMIN_ROLES),
 		"icon": "caravan",
 		"logo_url": "/assets/auto_service_management/icons/desktop_icons/solid/workshop_fleet_history.svg",
 		"links": (
 			_doctype_link("Fleet Service Campaign", "Fleet Service Campaign", "caravan"),
+			_doctype_link("Customer LPO", "Customer LPO", "file-input"),
 			_doctype_link("Customers", "Customer", "users"),
 			_doctype_link("Find Vehicle", "Customer Vehicle", "car-front"),
 			_doctype_link("Service History", "Service History", "history"),

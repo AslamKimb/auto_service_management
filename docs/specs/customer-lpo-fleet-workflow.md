@@ -90,6 +90,20 @@ Add app-owned links from `Fleet Service Campaign`, `Repair Job`, `Sales Order`, 
 
 The LPO-owned billing action allows one active consolidated Sales Order/Proforma and one active consolidated Sales Invoice per LPO. Cancelled documents may be replaced. A draft may be reviewed and corrected, but a second active LPO-level document is rejected.
 
+### Canonical field contract
+
+Use these fieldnames unless an existing Frappe/ERPNext field collision requires an app-owned prefix:
+
+| Document | Required fieldnames |
+|---|---|
+| Customer LPO | `company`, `customer`, `lpo_number`, `issue_date`, `expiry_date`, `currency`, `ceiling_basis`, `authorized_amount`, `source_lpo`, `work_instruction`, `vehicle_rows`, `fleet_service_campaign`, `status`. |
+| Customer LPO calculated values | `effective_authorized_amount`, `committed_amount`, `invoiced_amount`, `paid_amount`, `remaining_amount`, `vehicle_count`, `resolved_vehicle_count`; read-only and server-derived. |
+| Customer LPO Vehicle | `registration_number`, `customer_vehicle`, `requested_work`, `planned_date`, `allocated_ceiling`, `repair_job`, `status`, `remarks`. |
+| Customer LPO Amendment | `customer_lpo`, `external_reference`, `issue_date`, `amount_increase`, `replacement_expiry`, `reason`, `source_attachment`. |
+| Cross-document trace | `customer_lpo` on Fleet Service Campaign, Repair Job, Sales Order, and Sales Invoice; existing campaign/item trace fields remain unchanged. |
+
+The attachment fields are the original customer evidence: `source_lpo` on Customer LPO and `source_attachment` on Amendment. They are not generated summaries or OCR output.
+
 ## Intake and data flow
 
 ### Table intake
@@ -112,13 +126,13 @@ All methods are app-owned, typed, permission-checked, and resolved through the n
 
 | Method | HTTP | Input | Output and rules |
 |---|---|---|---|
-| `preview_vehicle_csv(lpo_name, file_url)` | GET | Draft LPO and attached CSV | Normalized rows, matched/new/unresolved vehicles, duplicate registrations, and row errors; no mutation. |
-| `import_vehicle_csv(lpo_name, file_url)` | POST | Draft LPO and CSV file URL | Atomically appends validated rows; invalid rows leave the LPO unchanged. |
-| `resolve_vehicle_rows(lpo_name, row_names, create_confirmed)` | POST | LPO rows and explicit confirmation flag | Links same-customer vehicles or creates confirmed minimal Customer Vehicles; revalidates ownership and duplicates. |
+| `preview_vehicle_csv(lpo_name, csv_text=None, rows=None)` | GET | Draft LPO plus UTF-8 CSV text or normalized row objects | Normalized rows, matched/new/unresolved vehicles, duplicate registrations, and row errors; no mutation. A native file dialog supplies content; the method does not create a server-side file. |
+| `import_vehicle_csv(lpo_name, csv_text=None, rows=None)` | POST | Draft LPO plus UTF-8 CSV text or normalized row objects | Atomically appends validated rows; invalid rows leave the LPO unchanged. |
+| `resolve_vehicle_rows(lpo_name, row_names=None, create_confirmed=False)` | POST | Draft LPO rows and explicit confirmation flag | Links same-customer vehicles or, only when explicitly confirmed, creates minimal Customer Vehicles; revalidates ownership and duplicates. |
 | `create_campaign_and_repair_jobs(lpo_name)` | POST | Submitted LPO | Creates or reuses exactly one Campaign and fills only missing one-to-one Repair Job links. Repeated calls are idempotent. |
 | `get_lpo_summary(lpo_name)` | GET | Readable LPO | Permission-scoped totals, status, expiry, amendments, row/job states, Campaign, Sales Order, and Sales Invoice links. |
-| `make_sales_order(lpo_name, component_refs)` | POST | LPO and explicitly selected billable component references | Returns/creates the single reviewable consolidated Sales Order; preserves LPO, Campaign, Vehicle, Repair Job, service, component, and Project traces. |
-| `make_sales_invoice(lpo_name, component_refs)` | POST | LPO and selected component references | Returns/creates the single consolidated Sales Invoice through the existing Campaign mapper or native Sales Order mapping; preserves all traces and applies the ceiling gate. |
+| `make_sales_order(lpo_name, target_doc=None, component_refs=None)` | POST | LPO, optional draft target, and explicitly selected billable component references | Returns/creates the single reviewable consolidated Sales Order; preserves LPO, Campaign, Vehicle, Repair Job, service, component, and Project traces. |
+| `make_sales_invoice(lpo_name, target_doc=None, component_refs=None)` | POST | LPO, optional draft target, and selected component references | Returns/creates the single consolidated Sales Invoice through the existing Campaign mapper or native Sales Order mapping; preserves all traces and applies the ceiling gate. |
 | `close_lpo(lpo_name)` | POST | Submitted LPO | Closes only when every linked Repair Job is `Closed` or `Cancelled` and no billable component remains unresolved. |
 
 The server rechecks the LPO, Customer Vehicle, Campaign, Repair Job, and ERPNext sales-document permissions on every call. Client-side visibility is not authorization.

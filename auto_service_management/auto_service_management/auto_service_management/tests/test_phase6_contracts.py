@@ -8,6 +8,8 @@ from frappe.tests import UnitTestCase
 
 REPORT_NAMES = {
 	"Corporate Credit Releases",
+	"Customer LPO Utilization",
+	"Customer LPO Vehicle Progress",
 	"Daily Workshop Load",
 	"Delayed Jobs",
 	"Discount and Price Change Audit",

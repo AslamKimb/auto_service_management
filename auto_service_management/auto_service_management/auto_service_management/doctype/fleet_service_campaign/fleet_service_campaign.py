@@ -124,6 +124,7 @@ class FleetServiceCampaign(Document):
 		self.validate_unique_jobs()
 		self.validate_job_customers()
 		self.validate_job_link_changes()
+		self.validate_customer_lpo()
 
 	def on_update(self):
 		if getattr(self.flags, "skip_job_link_sync", False):
@@ -162,6 +163,14 @@ class FleetServiceCampaign(Document):
 						self.customer,
 					)
 				)
+			if self.customer_lpo:
+				job_lpo = job.get("customer_lpo")
+				if job_lpo and job_lpo != self.customer_lpo:
+					frappe.throw(
+						_("Repair Job {0} is linked to Customer LPO {1}, not {2}.").format(
+							row.repair_job, job_lpo, self.customer_lpo
+						)
+					)
 			if job.fleet_service_campaign and job.fleet_service_campaign != self.name:
 				frappe.throw(
 					_("Repair Job {0} is already linked to Fleet Service Campaign {1}.").format(
@@ -184,6 +193,15 @@ class FleetServiceCampaign(Document):
 		self.require_active_job_link_status()
 		for repair_job in sorted(changed_jobs):
 			frappe.get_doc("Repair Job", repair_job).check_permission("write")
+
+	def validate_customer_lpo(self):
+		if not self.customer_lpo:
+			return
+		lpo = frappe.db.get_value("Customer LPO", self.customer_lpo, ["customer", "docstatus"], as_dict=True)
+		if not lpo:
+			frappe.throw(_("Customer LPO {0} does not exist.").format(self.customer_lpo))
+		if lpo.customer != self.customer:
+			frappe.throw(_("Customer LPO {0} customer does not match this campaign.").format(self.customer_lpo))
 
 	def sync_job_links(self, clear_all=False):
 		linked_jobs = set(

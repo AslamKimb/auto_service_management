@@ -13,6 +13,7 @@ from frappe.utils import getdate
 class CustomerLPOAmendment(Document):
 	def validate(self):
 		self.validate_identity()
+		self.validate_lpo_state()
 		self.validate_amount_or_expiry()
 		self.validate_dates()
 		self.validate_replacement_expiry()
@@ -24,6 +25,13 @@ class CustomerLPOAmendment(Document):
 		if not self.reason:
 			frappe.throw(_("A reason is required before submitting a Customer LPO Amendment."))
 
+	def on_submit(self):
+		self._refresh_lpo_status()
+
+	def on_cancel(self):
+		self.validate_cancellation_safety()
+		self._refresh_lpo_status()
+
 	def validate_identity(self):
 		missing = [
 			field
@@ -32,6 +40,45 @@ class CustomerLPOAmendment(Document):
 		]
 		if missing:
 			frappe.throw(_("Customer LPO Amendment requires: {0}.").format(", ".join(missing)))
+
+	def validate_lpo_state(self):
+		lpo = frappe.db.get_value("Customer LPO", self.customer_lpo, ["docstatus", "status"], as_dict=True)
+		if not lpo:
+			frappe.throw(_("Customer LPO {0} does not exist.").format(self.customer_lpo))
+		if lpo.docstatus != 1:
+			frappe.throw(_("Customer LPO {0} must be submitted before it can be amended.").format(self.customer_lpo))
+		if lpo.status == "Cancelled":
+			frappe.throw(_("Cancelled Customer LPOs cannot be amended."))
+
+	def validate_cancellation_safety(self):
+		if self.docstatus not in {1, 2} or not self.customer_lpo:
+			return
+		from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
+			get_lpo_invoice_amount,
+		)
+
+		lpo = frappe.get_doc("Customer LPO", self.customer_lpo)
+		remaining_authority = lpo.get_effective_authorized_amount() - _to_decimal(self.amount_increase)
+		invoiced = 0
+		for invoice in frappe.get_all(
+			"Sales Invoice",
+			filters={"customer_lpo": lpo.name, "docstatus": 1},
+			fields=["net_total", "grand_total", "rounded_total", "disable_rounded_total"],
+			limit_page_length=0,
+		):
+			invoiced += get_lpo_invoice_amount(invoice, lpo.ceiling_basis)
+		if invoiced > remaining_authority + Decimal("0.0001"):
+			frappe.throw(
+				_("Amendment {0} cannot be cancelled because submitted invoices exceed the resulting LPO authority.").format(
+					self.name
+				)
+			)
+
+	def _refresh_lpo_status(self):
+		if not self.customer_lpo:
+			return
+		lpo = frappe.get_doc("Customer LPO", self.customer_lpo)
+		lpo.save(ignore_permissions=True)
 
 	def validate_amount_or_expiry(self):
 		amount = _to_decimal(self.amount_increase)

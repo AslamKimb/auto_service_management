@@ -1,0 +1,27 @@
+{% set print_title = "Customer LPO Fulfilment Summary" %}
+<div class="asm-print">
+{% include "templates/includes/auto_service_print/common.html" %}
+<table class="asm-grid">
+  <tr><th>Customer</th><td>{{ doc.customer or "" }}</td><th>Customer LPO</th><td>{{ doc.name }}</td></tr>
+  <tr><th>External LPO Number</th><td>{{ doc.lpo_number or "" }}</td><th>Issue / Expiry</th><td>{{ doc.issue_date or "" }} → {{ doc.expiry_date or "" }}</td></tr>
+  <tr><th>Currency</th><td>{{ doc.currency or "" }}</td><th>Ceiling Basis</th><td>{{ doc.ceiling_basis or "" }}</td></tr>
+  <tr><th>Effective Authority</th><td>{{ frappe.utils.fmt_money(doc.get_effective_authorized_amount(), currency=doc.currency) }}</td><th>Status</th><td>{{ doc.status or "" }}</td></tr>
+</table>
+{% if doc.work_instruction %}<div class="asm-section-title">Work Instruction</div><div class="asm-note">{{ doc.work_instruction }}</div>{% endif %}
+<div class="asm-section-title">Vehicle Fulfilment</div>
+<table class="asm-lines">
+  <thead><tr><th>#</th><th>Registration</th><th>Customer Vehicle</th><th>Requested Work</th><th>Planned Date</th><th>Repair Job</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for row in doc.vehicle_rows or [] %}
+    <tr><td>{{ row.idx }}</td><td>{{ row.registration_number or "" }}</td><td>{{ row.customer_vehicle or "" }}</td><td>{{ row.requested_work or "" }}</td><td>{{ row.planned_date or "" }}</td><td>{{ row.repair_job or "" }}</td><td>{{ row.status or "Pending" }}</td></tr>
+  {% endfor %}
+  {% if not doc.vehicle_rows %}<tr><td colspan="7" class="asm-muted">No vehicle rows.</td></tr>{% endif %}
+  </tbody>
+</table>
+<div class="asm-section-title">Authorization Reconciliation</div>
+<table class="asm-grid">
+  <tr><th>Original Authorized</th><td>{{ frappe.utils.fmt_money(doc.authorized_amount, currency=doc.currency) }}</td><th>Invoiced</th><td>{{ frappe.utils.fmt_money(doc.invoiced_amount, currency=doc.currency) }}</td></tr>
+  <tr><th>Remaining</th><td>{{ frappe.utils.fmt_money(doc.remaining_amount, currency=doc.currency) }}</td><th>Fleet Campaign</th><td>{{ doc.fleet_service_campaign or "" }}</td></tr>
+</table>
+<div class="asm-footer">Generated from Customer LPO {{ doc.name }}. ERPNext remains authoritative for billing, tax, payment, and ledger values.</div>
+</div>

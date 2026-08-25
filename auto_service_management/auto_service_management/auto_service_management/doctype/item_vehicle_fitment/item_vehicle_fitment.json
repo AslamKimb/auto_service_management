@@ -1,0 +1,87 @@
+{
+ "name": "Item Vehicle Fitment",
+ "module": "Auto Service Management",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "autoname": "naming_series:",
+ "track_changes": 1,
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Naming Series",
+   "options": "IVF-.#####",
+   "default": "IVF-.#####",
+   "hidden": 1
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "vehicle_make",
+   "fieldtype": "Link",
+   "label": "Vehicle Make",
+   "options": "Vehicle Make",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "vehicle_model",
+   "fieldtype": "Link",
+   "label": "Vehicle Model",
+   "options": "Vehicle Model",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "vehicle_engine",
+   "fieldtype": "Link",
+   "label": "Vehicle Engine",
+   "options": "Vehicle Engine",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "year_from",
+   "fieldtype": "Int",
+   "label": "Year From"
+  },
+  {
+   "fieldname": "year_to",
+   "fieldtype": "Int",
+   "label": "Year To"
+  },
+  {
+   "fieldname": "verification_status",
+   "fieldtype": "Select",
+   "label": "Verification Status",
+   "options": "Provisional\nVerified",
+   "default": "Provisional",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Data",
+   "label": "Source"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "permissions": [
+  {"role": "Workshop Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1, "amend": 1, "report": 1, "export": 1, "import": 1, "share": 1, "print": 1, "email": 1, "select": 1},
+  {"role": "Service Advisor", "read": 1, "write": 1, "create": 1},
+  {"role": "Workshop Technician", "read": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "item",
+ "search_fields": "item,vehicle_make,vehicle_model,vehicle_engine,source"
+}

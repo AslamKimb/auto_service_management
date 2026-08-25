@@ -9,6 +9,11 @@
   "is_submittable": 1,
   "fields": [
     {
+      "fieldname": "details_tab",
+      "fieldtype": "Tab Break",
+      "label": "Details"
+    },
+    {
       "fieldname": "lpo_details_section",
       "fieldtype": "Section Break",
       "label": "LPO Details"
@@ -96,6 +101,19 @@
       "in_list_view": 1
     },
     {
+      "fieldname": "closed_on",
+      "fieldtype": "Datetime",
+      "label": "Closed On",
+      "read_only": 1
+    },
+    {
+      "fieldname": "closed_by",
+      "fieldtype": "Link",
+      "label": "Closed By",
+      "options": "User",
+      "read_only": 1
+    },
+    {
       "fieldname": "source_lpo",
       "fieldtype": "Attach",
       "label": "Source LPO"
@@ -105,6 +123,20 @@
       "fieldtype": "Link",
       "label": "Fleet Service Campaign",
       "options": "Fleet Service Campaign",
+      "read_only": 1
+    },
+    {
+      "fieldname": "sales_order",
+      "fieldtype": "Link",
+      "label": "Consolidated Sales Order",
+      "options": "Sales Order",
+      "read_only": 1
+    },
+    {
+      "fieldname": "sales_invoice",
+      "fieldtype": "Link",
+      "label": "Consolidated Sales Invoice",
+      "options": "Sales Invoice",
       "read_only": 1
     },
     {
@@ -118,6 +150,11 @@
       "label": "Work Instruction"
     },
     {
+      "fieldname": "vehicles_tab",
+      "fieldtype": "Tab Break",
+      "label": "Vehicles"
+    },
+    {
       "fieldname": "vehicles_section",
       "fieldtype": "Section Break",
       "label": "Vehicles"
@@ -127,12 +164,67 @@
       "fieldtype": "Table",
       "label": "Vehicles",
       "options": "Customer LPO Vehicle"
+    },
+    {
+      "fieldname": "financials_tab",
+      "fieldtype": "Tab Break",
+      "label": "Financials"
+    },
+    {
+      "fieldname": "financials_section",
+      "fieldtype": "Section Break",
+      "label": "Authorization and Utilization"
+    },
+    {
+      "fieldname": "effective_authorized_amount",
+      "fieldtype": "Currency",
+      "label": "Effective Authorized Amount",
+      "options": "currency",
+      "read_only": 1
+    },
+    {
+      "fieldname": "invoiced_amount",
+      "fieldtype": "Currency",
+      "label": "Invoiced Amount",
+      "options": "currency",
+      "read_only": 1
+    },
+    {
+      "fieldname": "remaining_amount",
+      "fieldtype": "Currency",
+      "label": "Remaining Amount",
+      "options": "currency",
+      "read_only": 1
+    },
+    {
+      "fieldname": "vehicle_count",
+      "fieldtype": "Int",
+      "label": "Vehicle Count",
+      "read_only": 1
+    },
+    {
+      "fieldname": "completed_vehicle_count",
+      "fieldtype": "Int",
+      "label": "Completed Vehicles",
+      "read_only": 1
+    },
+    {
+      "fieldname": "summary_html",
+      "fieldtype": "HTML",
+      "label": "LPO Summary"
+    },
+    {
+      "fieldname": "connections_tab",
+      "fieldtype": "Tab Break",
+      "label": "Connections",
+      "show_dashboard": 1
     }
   ],
   "permissions": [
     {
       "role": "Workshop Manager",
       "read": 1,
+      "select": 1,
       "report": 1,
       "write": 1,
       "create": 1,
@@ -143,6 +235,23 @@
       "export": 1,
       "import": 1,
       "print": 1
+    },
+    {
+      "role": "Auto Service Admin",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "submit": 1,
+      "cancel": 1,
+      "amend": 1,
+      "report": 1,
+      "export": 1,
+      "import": 1,
+      "share": 1,
+      "print": 1,
+      "email": 1,
+      "select": 1
     },
     {
       "role": "System Manager",
@@ -164,6 +273,7 @@
     {
       "role": "Service Advisor",
       "read": 1,
+      "select": 1,
       "report": 1,
       "write": 1,
       "create": 1
@@ -171,11 +281,13 @@
     {
       "role": "Parts Interpreter",
       "read": 1,
+      "select": 1,
       "report": 1
     },
     {
       "role": "Cashier",
       "read": 1,
+      "select": 1,
       "report": 1,
       "print": 1
     }

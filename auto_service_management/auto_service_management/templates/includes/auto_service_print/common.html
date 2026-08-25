@@ -3,7 +3,11 @@
 {% set company_name = branding.company_name %}
 {% set logo = branding.logo %}
 {% set contact = branding.contact %}
+{% if logo and '/private/files/' in logo %}
+  {% set logo = '/assets/auto_service_management/images/vectorised-bb109a99.svg' %}
+{% endif %}
 <style>
+@page { size: A4; margin: 10mm; }
 .asm-print { color: #18212f; font-family: Inter, Arial, sans-serif; font-size: 11px; line-height: 1.42; }
 .asm-brand { border: 1px solid #d7d0c1; border-top: 6px solid #e66f2a; display: table; margin-bottom: 14px; padding: 12px; width: 100%; }
 .asm-logo, .asm-brand-copy, .asm-doc-chip { display: table-cell; vertical-align: middle; }
@@ -11,9 +15,9 @@
 .asm-logo img { max-height: 52px; max-width: 64px; }
 .asm-brand-copy h1 { color: #111827; font-size: 18px; letter-spacing: .04em; margin: 0 0 3px; text-transform: uppercase; }
 .asm-brand-copy p { color: #5b6472; margin: 0; }
-.asm-doc-chip { text-align: right; width: 34%; }
+.asm-doc-chip { padding-left: 8px; text-align: left; width: 30%; }
 .asm-doc-chip .title { color: #183c43; font-size: 19px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
-.asm-doc-chip .ref { color: #5b6472; margin-top: 2px; }
+.asm-doc-chip .ref { color: #5b6472; font-size: 9px; margin-top: 2px; overflow-wrap: anywhere; text-align: left; word-break: break-all; }
 .asm-badge { background: #fff4e8; border: 1px solid #f2b179; border-radius: 999px; color: #9a4314; display: inline-block; font-size: 10px; font-weight: 700; margin-top: 6px; padding: 3px 8px; text-transform: uppercase; }
 .asm-grid { border-collapse: collapse; margin: 0 0 12px; width: 100%; }
 .asm-grid th, .asm-grid td { border: 1px solid #d7d0c1; padding: 6px 7px; text-align: left; vertical-align: top; }

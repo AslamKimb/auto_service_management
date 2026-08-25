@@ -257,6 +257,60 @@ class TestPhase10MappingUnits(UnitTestCase):
 		self.assertEqual(target.valid_till, "2026-09-02")
 		self.assertEqual(target.items, [{"item_code": "PART-1", "qty": 2}])
 
+	def test_sales_order_mapping_assigns_client_safe_name_for_new_target(self):
+		class Target:
+			doctype = "Sales Order"
+			docstatus = 0
+			name = None
+
+			def __init__(self):
+				self.items = []
+				self.values = {}
+
+			def is_new(self):
+				return True
+
+			def get(self, fieldname):
+				return self.values.get(fieldname)
+
+			def set(self, fieldname, value):
+				self.values[fieldname] = value
+				setattr(self, fieldname, value)
+
+			def append(self, _fieldname, value):
+				self.items.append(value)
+
+			def run_method(self, _method):
+				return None
+
+		job = frappe._dict(name="RJ-1", customer="CUST-1", customer_vehicle="VEH-1", project="PROJ-1")
+		service = frappe._dict(name="RJS-1", service_name="Brake Service")
+		component = frappe._dict(row_doctype="Repair Job Service Part", name="PART-1")
+		target = Target()
+
+		with (
+			patch.object(component_mapping, "_get_repair_job", return_value=job),
+			patch.object(component_mapping, "_get_target_doc", return_value=target),
+			patch.object(component_mapping, "_validate_target_job"),
+			patch.object(component_mapping, "_validate_company"),
+			patch.object(component_mapping, "_validate_service_scope"),
+			patch.object(component_mapping, "_validate_requested_component_refs"),
+			patch.object(component_mapping, "iter_repair_job_components", return_value=[(service, component)]),
+			patch.object(component_mapping, "_sales_order_item", return_value={"item_code": "PART-1", "qty": 2}),
+			patch.object(component_mapping, "_set_if_empty"),
+			patch.object(component_mapping, "today", return_value="2026-08-02"),
+			patch.object(component_mapping.frappe, "generate_hash", return_value="testhash"),
+			patch.object(
+				component_mapping.frappe,
+				"get_single",
+				return_value=frappe._dict(company="Company", selling_price_list="Standard Selling"),
+			),
+		):
+			result = component_mapping.map_sales_order("RJ-1", service_names={"RJS-1"})
+
+		self.assertIs(result, target)
+		self.assertEqual(target.name, "new-sales-order-testhash")
+
 	def test_quotation_and_count_mutations_have_explicit_http_methods(self):
 		job_source = inspect.getsource(repair_job_module)
 		service_source = inspect.getsource(
