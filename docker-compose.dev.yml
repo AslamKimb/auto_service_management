@@ -112,7 +112,9 @@ services:
           echo "=== Syncing auto_service_management source ==="
           test -f "$$source_dir/auto_service_management/__init__.py"
           rm -rf "$$tmp_dir"
-          cp -a "$$source_dir" "$$tmp_dir"
+          # Do not preserve root ownership from the Windows bind mount. The
+          # bench runtime and future setup runs execute as the `frappe` user.
+          cp -r "$$source_dir" "$$tmp_dir"
           test -f "$$tmp_dir/auto_service_management/__init__.py"
           rm -rf "$$dest_dir"
           mv "$$tmp_dir" "$$dest_dir"
@@ -244,7 +246,9 @@ services:
       - ./bench-data/bench-home:/home/frappe/bench-home:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
-      - "8080:80"
+      # Keep 8080 as the documented default, while allowing another local
+      # process to coexist via DMS_FRONTEND_PORT (for example, 18081).
+      - "${DMS_FRONTEND_PORT:-8080}:80"
     depends_on:
       backend:
         condition: service_healthy
