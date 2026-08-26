@@ -54,7 +54,11 @@ class TestRepairJobServiceTemplates(unittest.TestCase):
 		self.assertIn("vehicle_model", {field["fieldname"] for field in parent["fields"]})
 		for child in ("part", "labour", "consumable"):
 			child_json = json.loads(
-				(root / f"repair_job_service_template_{child}" / f"repair_job_service_template_{child}.json").read_text()
+				(
+					root
+					/ f"repair_job_service_template_{child}"
+					/ f"repair_job_service_template_{child}.json"
+				).read_text()
 			)
 			self.assertEqual(child_json["istable"], 1)
 			fieldnames = {field["fieldname"] for field in child_json["fields"]}
@@ -66,8 +70,10 @@ class TestRepairJobServiceTemplates(unittest.TestCase):
 		source = inspect.getsource(repair_job_service)
 		self.assertIn('@frappe.whitelist(methods=["POST"])\ndef make_repair_job_service(', source)
 		self.assertIn('@frappe.whitelist(methods=["POST"])\ndef make_repair_job_service_template(', source)
-		self.assertIn('@frappe.whitelist(methods=["GET"])\ndef get_compatible_repair_job_service_templates', source)
-		self.assertNotIn("Repair Service Template\", source_name", source)
+		self.assertIn(
+			'@frappe.whitelist(methods=["GET"])\ndef get_compatible_repair_job_service_templates', source
+		)
+		self.assertNotIn('Repair Service Template", source_name', source)
 
 	def test_native_mapping_callbacks_route_the_synced_unsaved_doc(self):
 		root = Path(__file__).resolve().parents[1] / "doctype"
@@ -78,7 +84,7 @@ class TestRepairJobServiceTemplates(unittest.TestCase):
 		)
 		self.assertIn("const docs = result.message ? frappe.model.sync(result.message) : [];", job_js)
 		self.assertIn("const service = docs[0];", job_js)
-		self.assertIn("frappe.set_route(\"Form\", service.doctype, service.name)", job_js)
+		self.assertIn('frappe.set_route("Form", service.doctype, service.name)', job_js)
 		self.assertIn('frm.add_custom_button("Create Repair Job Service"', job_js)
 		self.assertNotIn('frm.add_custom_button("Create Service"', job_js)
 		self.assertIn("const docs = r.message ? frappe.model.sync(r.message) : [];", service_js)
@@ -97,8 +103,17 @@ class TestRepairJobServiceTemplates(unittest.TestCase):
 			vehicle_model="Prado",
 			default_billable=1,
 			_tables={
-				"parts": [_Doc(doctype="Repair Job Service Template Part", item_code="OIL", quantity=4, billable=1)],
-				"labour": [_Doc(doctype="Repair Job Service Template Labour", item_code="LAB", estimated_hours=1.5, billable=1)],
+				"parts": [
+					_Doc(doctype="Repair Job Service Template Part", item_code="OIL", quantity=4, billable=1)
+				],
+				"labour": [
+					_Doc(
+						doctype="Repair Job Service Template Labour",
+						item_code="LAB",
+						estimated_hours=1.5,
+						billable=1,
+					)
+				],
 				"consumables": [],
 			},
 		)
@@ -125,8 +140,12 @@ class TestRepairJobServiceTemplates(unittest.TestCase):
 		)
 		with (
 			patch.object(repair_job_service, "frappe", fake_frappe),
+			patch.object(repair_job_service, "_get_settings", return_value=settings),
 			patch.object(repair_job_service, "_coerce_target_doc", return_value=service),
-			patch("auto_service_management.auto_service_management.integration.erpnext.adapters.get_item_price", side_effect=lambda item: {"OIL": 25, "LAB": 100}[item]),
+			patch(
+				"auto_service_management.auto_service_management.integration.erpnext.adapters.get_item_price",
+				side_effect=lambda item: {"OIL": 25, "LAB": 100}[item],
+			),
 		):
 			result = repair_job_service.make_repair_job_service("RJST-1", repair_job="RJ-1")
 
@@ -145,10 +164,26 @@ class TestRepairJobServiceTemplates(unittest.TestCase):
 
 	def test_service_to_template_excludes_prices_and_operational_traces(self):
 		service = _Doc(
-			name="RJS-1", service_name="Brake Service", description="Pads", billable=1,
+			name="RJS-1",
+			service_name="Brake Service",
+			description="Pads",
+			billable=1,
 			_tables={
-				"parts": [_Doc(doctype="Repair Job Service Part", item_code="PAD", quantity=2, rate=70, cost_rate=50, discount_percentage=10, warehouse="Stores", sales_invoice="SI-1", billable=1)],
-				"labour": [], "consumables": [],
+				"parts": [
+					_Doc(
+						doctype="Repair Job Service Part",
+						item_code="PAD",
+						quantity=2,
+						rate=70,
+						cost_rate=50,
+						discount_percentage=10,
+						warehouse="Stores",
+						sales_invoice="SI-1",
+						billable=1,
+					)
+				],
+				"labour": [],
+				"consumables": [],
 			},
 		)
 		template = _Doc(doctype="Repair Job Service Template", template_name=None)
@@ -175,7 +210,9 @@ class TestRepairJobServiceTemplates(unittest.TestCase):
 		rows = [
 			frappe._dict(name="GLOBAL", template_name="Global", vehicle_make=None, vehicle_model=None),
 			frappe._dict(name="MAKE", template_name="Make", vehicle_make="Toyota", vehicle_model=None),
-			frappe._dict(name="MODEL", template_name="Model", vehicle_make="Toyota", vehicle_model="Toyota - Prado"),
+			frappe._dict(
+				name="MODEL", template_name="Model", vehicle_make="Toyota", vehicle_model="Toyota - Prado"
+			),
 			frappe._dict(name="WRONG", template_name="Wrong", vehicle_make="Ford", vehicle_model=None),
 		]
 		fake_frappe = SimpleNamespace(

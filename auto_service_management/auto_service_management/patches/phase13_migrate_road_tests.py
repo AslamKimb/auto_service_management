@@ -52,7 +52,9 @@ def _migrate_road_tests():
 	):
 		road_test = frappe.get_doc("Road Test Report", report_row.name)
 		quality_check_name = _ensure_quality_check(road_test)
-		row = build_quality_check_road_test_row(quality_check_name, road_test, road_test.repair_job, road_test.customer_vehicle)
+		row = build_quality_check_road_test_row(
+			quality_check_name, road_test, road_test.repair_job, road_test.customer_vehicle
+		)
 		if _quality_check_road_test_exists(row):
 			continue
 		_insert_quality_check_road_test(row, road_test)
@@ -75,12 +77,26 @@ def _ensure_quality_check(road_test):
 	)
 	set_new_name(quality_check)
 	_insert_quality_check(quality_check, road_test)
-	frappe.db.set_value("Repair Job", road_test.repair_job, "quality_check", quality_check.name, update_modified=False)
+	frappe.db.set_value(
+		"Repair Job", road_test.repair_job, "quality_check", quality_check.name, update_modified=False
+	)
 	return quality_check.name
 
 
 def _insert_quality_check(quality_check, road_test):
-	columns = ("name", "repair_job", "customer_vehicle", "qc_date", "checked_by", "status", "docstatus", "owner", "creation", "modified", "modified_by")
+	columns = (
+		"name",
+		"repair_job",
+		"customer_vehicle",
+		"qc_date",
+		"checked_by",
+		"status",
+		"docstatus",
+		"owner",
+		"creation",
+		"modified",
+		"modified_by",
+	)
 	values = {
 		"name": quality_check.name,
 		"repair_job": quality_check.repair_job,
@@ -181,7 +197,9 @@ def _insert_quality_check_road_test(row: dict, road_test):
 
 
 def _next_road_test_idx(quality_check_name: str) -> int:
-	current = frappe.db.count("Quality Check Road Test", {"parent": quality_check_name, "parentfield": "road_tests"})
+	current = frappe.db.count(
+		"Quality Check Road Test", {"parent": quality_check_name, "parentfield": "road_tests"}
+	)
 	return int(current or 0) + 1
 
 
@@ -193,4 +211,3 @@ def _insert_row(doctype: str, columns: tuple[str, ...], values: dict):
 		f"INSERT INTO `{table_name}` ({column_sql}) VALUES ({placeholder_sql})",
 		[values[column] for column in columns],
 	)
-

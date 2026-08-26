@@ -32,9 +32,15 @@ class TestPhase25InvoicePaymentBackfill(unittest.TestCase):
 		fake_frappe = FakeFrappe(["RJ-1", "RJ-2"])
 		calls = []
 
-		with patch("auto_service_management.patches.phase16_backfill_invoice_payment_summaries.frappe", fake_frappe), patch(
-			"auto_service_management.patches.phase16_backfill_invoice_payment_summaries.sync_repair_job_related_tables",
-			side_effect=lambda repair_job_name: calls.append(repair_job_name),
+		with (
+			patch(
+				"auto_service_management.patches.phase16_backfill_invoice_payment_summaries.frappe",
+				fake_frappe,
+			),
+			patch(
+				"auto_service_management.patches.phase16_backfill_invoice_payment_summaries.sync_repair_job_related_tables",
+				side_effect=lambda repair_job_name: calls.append(repair_job_name),
+			),
 		):
 			_backfill_invoice_payment_summaries()
 
@@ -44,9 +50,15 @@ class TestPhase25InvoicePaymentBackfill(unittest.TestCase):
 		fake_frappe = FakeFrappe(["RJ-1"], tables=False)
 		calls = []
 
-		with patch("auto_service_management.patches.phase16_backfill_invoice_payment_summaries.frappe", fake_frappe), patch(
-			"auto_service_management.patches.phase16_backfill_invoice_payment_summaries.sync_repair_job_related_tables",
-			side_effect=lambda repair_job_name: calls.append(repair_job_name),
+		with (
+			patch(
+				"auto_service_management.patches.phase16_backfill_invoice_payment_summaries.frappe",
+				fake_frappe,
+			),
+			patch(
+				"auto_service_management.patches.phase16_backfill_invoice_payment_summaries.sync_repair_job_related_tables",
+				side_effect=lambda repair_job_name: calls.append(repair_job_name),
+			),
 		):
 			_backfill_invoice_payment_summaries()
 

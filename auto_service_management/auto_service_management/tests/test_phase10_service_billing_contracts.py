@@ -8,7 +8,9 @@ from frappe.tests import UnitTestCase
 MODULE_ROOT = next(
 	base / "auto_service_management"
 	for base in Path(__file__).resolve().parents
-	if (base / "auto_service_management" / "doctype" / "repair_job_service" / "repair_job_service.json").is_file()
+	if (
+		base / "auto_service_management" / "doctype" / "repair_job_service" / "repair_job_service.json"
+	).is_file()
 )
 APP_ROOT = next(
 	base

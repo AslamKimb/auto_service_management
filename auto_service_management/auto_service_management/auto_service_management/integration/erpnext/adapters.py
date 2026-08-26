@@ -17,11 +17,14 @@ from auto_service_management.auto_service_management.doctype.repair_job_service.
 	iter_repair_job_components,
 	set_component_values,
 )
+from auto_service_management.auto_service_management.settings_cache import (
+	get_settings as _get_cached_settings,
+)
 
 
 def get_settings():
 	"""Return Auto Service Settings as a dict."""
-	return frappe.get_single("Auto Service Settings")
+	return _get_cached_settings(frappe_module=frappe)
 
 
 def _make_doc(values):

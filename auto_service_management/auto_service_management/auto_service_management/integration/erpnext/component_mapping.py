@@ -12,6 +12,9 @@ from auto_service_management.auto_service_management.doctype.repair_job_service.
 	ServiceComponent,
 	iter_repair_job_components,
 )
+from auto_service_management.auto_service_management.settings_cache import (
+	get_settings as _get_cached_settings,
+)
 
 MATERIAL_REQUEST_TERMINAL_STATUS = {
 	"Purchase": "Received",
@@ -21,6 +24,10 @@ MATERIAL_REQUEST_TERMINAL_STATUS = {
 	"Subcontracting": "Ordered",
 	"Customer Provided": "Received",
 }
+
+
+def _get_settings():
+	return _get_cached_settings(frappe_module=frappe)
 
 
 def get_material_request_types() -> list[str]:
@@ -92,7 +99,7 @@ def map_sales_invoice(
 	if reserved:
 		_show_reservation_notice(reserved)
 
-	_settings = frappe.get_single("Auto Service Settings")
+	_settings = _get_settings()
 	_validate_company(target, _settings.company)
 	_set_if_empty(target, "customer", repair_job.customer)
 	_set_if_empty(target, "company", _settings.company)
@@ -131,7 +138,9 @@ def map_sales_order(
 	service_names = set(service_names or [])
 	target = _get_target_doc("Sales Order", target_doc)
 	if target.is_new() and not target.name:
-		target.name = f"new-{frappe.scrub(target.doctype).replace('_', '-')}-{frappe.generate_hash(length=10)}"
+		target.name = (
+			f"new-{frappe.scrub(target.doctype).replace('_', '-')}-{frappe.generate_hash(length=10)}"
+		)
 	_validate_target_job(target, repair_job)
 	_validate_service_scope(repair_job.name, service_names, None, document_label=_("Sales Order"))
 	_validate_requested_component_refs(repair_job.name, requested_refs, service_names)
@@ -152,7 +161,7 @@ def map_sales_order(
 			_("No billable Parts, Consumables, or Labour components are available on this Repair Job.")
 		)
 
-	settings = frappe.get_single("Auto Service Settings")
+	settings = _get_settings()
 	_validate_company(target, settings.company)
 	_set_if_empty(target, "customer", repair_job.customer)
 	_set_if_empty(target, "company", settings.company)
@@ -258,7 +267,7 @@ def map_quotation(
 			_("No billable Parts, Consumables, or Labour components are available on this Repair Job.")
 		)
 
-	settings = frappe.get_single("Auto Service Settings")
+	settings = _get_settings()
 	_validate_company(target, settings.company)
 	target.quotation_to = "Customer"
 	_set_if_empty(target, "party_name", repair_job.customer)
@@ -361,7 +370,7 @@ def map_campaign_sales_order(
 	if not components:
 		frappe.throw(_("No available billable components are available for this Fleet Service Campaign."))
 
-	settings = frappe.get_single("Auto Service Settings")
+	settings = _get_settings()
 	_validate_company(target, settings.company)
 	_set_if_empty(target, "customer", campaign.customer)
 	_set_if_empty(target, "company", settings.company)
@@ -414,7 +423,7 @@ def map_campaign_sales_invoice(
 	if not components:
 		frappe.throw(_("No directly invoiceable components are available for this Fleet Service Campaign."))
 
-	settings = frappe.get_single("Auto Service Settings")
+	settings = _get_settings()
 	_validate_company(target, settings.company)
 	_set_if_empty(target, "customer", campaign.customer)
 	_set_if_empty(target, "company", settings.company)
@@ -544,7 +553,7 @@ def map_material_request(
 	if not components:
 		frappe.throw(_("No approved, unrequested Part or Consumable components are available."))
 
-	settings = frappe.get_single("Auto Service Settings")
+	settings = _get_settings()
 	_validate_company(target, settings.company)
 	_set_if_empty(target, "company", settings.company)
 	if target.name and not target.is_new():
@@ -582,7 +591,7 @@ def get_material_request_components(
 		)
 
 	history = _material_request_history(repair_job.name, service_name)
-	settings = frappe.get_single("Auto Service Settings")
+	settings = _get_settings()
 	rows = []
 	counts = {"Not Requested": 0, "Active": 0, "Completed": 0}
 	for service, component in iter_repair_job_components(

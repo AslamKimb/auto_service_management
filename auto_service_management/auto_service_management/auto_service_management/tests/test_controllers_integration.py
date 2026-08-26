@@ -21,6 +21,11 @@ from auto_service_management.auto_service_management.workflow_compatibility impo
 )
 
 TEST_COMPONENT_ITEM_CODE = "TEST-WORKSHOP-PART-001"
+# The test site hostname is intentionally not published in the backend
+# container's DNS namespace.  Use the Docker frontend service only while
+# wkhtmltopdf fetches app-owned assets; production print branding continues to
+# use frappe.utils.get_url().
+TEST_PDF_ASSET_BASE_URL = "http://frontend"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -816,12 +821,14 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 		return job.name, walkaround.name, authorization.name, quality_check.name, gate_pass.name
 
 	def _render_pdf(self, doctype, name, print_format_name):
+		import socket
+
 		import frappe.utils.jinja_globals as frappe_jinja_globals
 		import frappe.utils.pdf as frappe_pdf
 		from frappe.utils.pdf import get_pdf
-		from frappe.website.utils import abs_url
 		from frappe.www.printview import get_rendered_template
 
+		asset_base_url = f"http://{socket.gethostbyname('frontend')}"
 		doc = frappe.get_doc(doctype, name)
 		print_format = frappe.get_doc("Print Format", print_format_name)
 		assets_json = frappe.parse_json(frappe.read_file("assets/assets.json")) or {}
@@ -836,13 +843,28 @@ class TestPhase7HardeningIntegration(IntegrationTestCase):
 				if path.endswith(".css") and rtl:
 					path = f"rtl_{path}"
 				path = assets_json.get(path) or path
-			return abs_url(path)
+			return f"{asset_base_url.rstrip('/')}/{path.lstrip('/')}"
 
 		frappe_pdf.bundled_asset = deterministic_bundled_asset
 		frappe_jinja_globals.bundled_assets = assets_json
 		frappe.flags.ignore_print_permissions = True
 		try:
-			html = get_rendered_template(doc, print_format=print_format, meta=frappe.get_meta(doctype))
+			asset_url = deterministic_bundled_asset("/assets/frappe/dist/css/print.bundle.css")
+			self.assertTrue(asset_url.startswith(f"{asset_base_url}/assets/"))
+			with patch("frappe.utils.get_url", return_value=asset_base_url):
+				html = get_rendered_template(doc, print_format=print_format, meta=frappe.get_meta(doctype))
+			# Frappe print templates may emit root-relative app assets (for example
+			# the Job Card vehicle diagram). wkhtmltopdf needs the Docker frontend
+			# address, not a browser-only relative URL.
+			has_root_relative_assets = any(
+				marker in html for marker in ('="/assets/', "='/assets/", "url(/assets/")
+			)
+			html = html.replace('="/assets/', f'="{asset_base_url}/assets/')
+			html = html.replace("='/assets/", f"='{asset_base_url}/assets/")
+			html = html.replace("url(/assets/", f"url({asset_base_url}/assets/")
+			if has_root_relative_assets:
+				self.assertIn(asset_base_url, html)
+			self.assertNotIn(frappe.local.site, html)
 			pdf = get_pdf(
 				html, options={"load-error-handling": "ignore", "load-media-error-handling": "ignore"}
 			)

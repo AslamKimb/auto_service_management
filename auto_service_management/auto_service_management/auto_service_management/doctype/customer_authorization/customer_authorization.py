@@ -2,13 +2,14 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
+from frappe.model.document import Document
+from frappe.utils import getdate
+
 from auto_service_management.auto_service_management.workflow_compatibility import (
 	recompute_repair_job_state,
 	sync_customer_authorization_snapshot,
 )
-from frappe import _
-from frappe.model.document import Document
-from frappe.utils import getdate
 
 
 class CustomerAuthorization(Document):

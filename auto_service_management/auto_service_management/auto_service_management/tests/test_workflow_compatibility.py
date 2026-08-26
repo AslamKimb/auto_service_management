@@ -150,7 +150,9 @@ class TestWorkflowCompatibility(unittest.TestCase):
 
 		fake_frappe = SimpleNamespace(db=_FakeDB())
 
-		with patch("auto_service_management.auto_service_management.workflow_compatibility.frappe", fake_frappe):
+		with patch(
+			"auto_service_management.auto_service_management.workflow_compatibility.frappe", fake_frappe
+		):
 			bump_repair_job_scope_revision("RJ-1")
 
 		self.assertEqual(
@@ -161,15 +163,19 @@ class TestWorkflowCompatibility(unittest.TestCase):
 	def test_derive_repair_job_status_does_not_change_for_invoice_coverage(self):
 		job = SimpleNamespace(name="RJ-1", job_status="Billing")
 
-		with patch(
-			"auto_service_management.auto_service_management.workflow_compatibility._all_billable_components_submitted",
-			return_value=True,
-		), patch(
-			"auto_service_management.auto_service_management.workflow_compatibility._has_any_billable_invoice",
-			return_value=True,
-		), patch(
-			"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
-			return_value=None,
+		with (
+			patch(
+				"auto_service_management.auto_service_management.workflow_compatibility._all_billable_components_submitted",
+				return_value=True,
+			),
+			patch(
+				"auto_service_management.auto_service_management.workflow_compatibility._has_any_billable_invoice",
+				return_value=True,
+			),
+			patch(
+				"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
+				return_value=None,
+			),
 		):
 			self.assertEqual("Billing", _derive_repair_job_status(job))
 
@@ -177,18 +183,25 @@ class TestWorkflowCompatibility(unittest.TestCase):
 		job = SimpleNamespace(name="RJ-1", job_status="In Repair")
 		authorization = SimpleNamespace(docstatus=1)
 
-		with patch(
-			"auto_service_management.auto_service_management.workflow_compatibility._all_billable_components_submitted",
-			return_value=False,
-		), patch(
-			"auto_service_management.auto_service_management.workflow_compatibility._has_any_billable_invoice",
-			return_value=False,
-		), patch(
-			"auto_service_management.auto_service_management.workflow_compatibility._has_work_started",
-			return_value=True,
-		), patch(
-			"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
-			side_effect=lambda repair_job_name, doctype: authorization if doctype == "Customer Authorization" else None,
+		with (
+			patch(
+				"auto_service_management.auto_service_management.workflow_compatibility._all_billable_components_submitted",
+				return_value=False,
+			),
+			patch(
+				"auto_service_management.auto_service_management.workflow_compatibility._has_any_billable_invoice",
+				return_value=False,
+			),
+			patch(
+				"auto_service_management.auto_service_management.workflow_compatibility._has_work_started",
+				return_value=True,
+			),
+			patch(
+				"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
+				side_effect=lambda repair_job_name, doctype: authorization
+				if doctype == "Customer Authorization"
+				else None,
+			),
 		):
 			self.assertEqual("In Repair", _derive_repair_job_status(job))
 
@@ -198,7 +211,9 @@ class TestWorkflowCompatibility(unittest.TestCase):
 
 		with patch(
 			"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
-			side_effect=lambda repair_job_name, doctype: quality_check if doctype == "Quality Check" else None,
+			side_effect=lambda repair_job_name, doctype: quality_check
+			if doctype == "Quality Check"
+			else None,
 		):
 			self.assertEqual("Billing", _derive_repair_job_status(job))
 
@@ -207,7 +222,9 @@ class TestWorkflowCompatibility(unittest.TestCase):
 
 		with patch(
 			"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
-			side_effect=lambda repair_job_name, doctype: quality_check if doctype == "Quality Check" else None,
+			side_effect=lambda repair_job_name, doctype: quality_check
+			if doctype == "Quality Check"
+			else None,
 		):
 			self.assertEqual(
 				"In Repair",
@@ -219,7 +236,9 @@ class TestWorkflowCompatibility(unittest.TestCase):
 
 		with patch(
 			"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
-			side_effect=lambda repair_job_name, doctype: quality_check if doctype == "Quality Check" else None,
+			side_effect=lambda repair_job_name, doctype: quality_check
+			if doctype == "Quality Check"
+			else None,
 		):
 			self.assertEqual(
 				"In Repair",
@@ -235,7 +254,9 @@ class TestWorkflowCompatibility(unittest.TestCase):
 
 		with patch(
 			"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
-			side_effect=lambda repair_job_name, doctype: authorization if doctype == "Customer Authorization" else None,
+			side_effect=lambda repair_job_name, doctype: authorization
+			if doctype == "Customer Authorization"
+			else None,
 		):
 			self.assertEqual(
 				"In Repair",
@@ -249,12 +270,17 @@ class TestWorkflowCompatibility(unittest.TestCase):
 	def test_optional_diagnosis_only_advances_from_assessment(self):
 		diagnosis = SimpleNamespace(docstatus=1)
 
-		with patch(
-			"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
-			side_effect=lambda repair_job_name, doctype: diagnosis if doctype == "Diagnosis Report" else None,
-		), patch(
-			"auto_service_management.auto_service_management.workflow_compatibility._has_any_service_rows",
-			return_value=False,
+		with (
+			patch(
+				"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
+				side_effect=lambda repair_job_name, doctype: diagnosis
+				if doctype == "Diagnosis Report"
+				else None,
+			),
+			patch(
+				"auto_service_management.auto_service_management.workflow_compatibility._has_any_service_rows",
+				return_value=False,
+			),
 		):
 			self.assertEqual(
 				"Billing",
@@ -268,7 +294,9 @@ class TestWorkflowCompatibility(unittest.TestCase):
 	def test_optional_walkaround_only_advances_from_draft(self):
 		with patch(
 			"auto_service_management.auto_service_management.workflow_compatibility._get_linked_doc",
-			side_effect=lambda repair_job_name, doctype: object() if doctype == "Walkaround Inspection" else None,
+			side_effect=lambda repair_job_name, doctype: object()
+			if doctype == "Walkaround Inspection"
+			else None,
 		):
 			self.assertEqual(
 				"Assessment",
@@ -291,12 +319,15 @@ class TestWorkflowCompatibility(unittest.TestCase):
 			get_doc=lambda doctype, name: job,
 		)
 
-		with patch(
-			"auto_service_management.auto_service_management.workflow_compatibility.frappe",
-			fake_frappe,
-		), patch(
-			"auto_service_management.auto_service_management.workflow_compatibility._derive_repair_job_status",
-			return_value="Ready for Release",
+		with (
+			patch(
+				"auto_service_management.auto_service_management.workflow_compatibility.frappe",
+				fake_frappe,
+			),
+			patch(
+				"auto_service_management.auto_service_management.workflow_compatibility._derive_repair_job_status",
+				return_value="Ready for Release",
+			),
 		):
 			recompute_repair_job_state("RJ-1")
 
@@ -310,26 +341,32 @@ class TestWorkflowCompatibility(unittest.TestCase):
 			total_amount=125,
 		)
 
-		with patch(
-			"auto_service_management.auto_service_management.workflow_compatibility.get_repair_job_services",
-			return_value=[service],
-		), patch(
-			"auto_service_management.auto_service_management.workflow_compatibility._service_payment_status",
-			return_value="Paid",
+		with (
+			patch(
+				"auto_service_management.auto_service_management.workflow_compatibility.get_repair_job_services",
+				return_value=[service],
+			),
+			patch(
+				"auto_service_management.auto_service_management.workflow_compatibility._service_payment_status",
+				return_value="Paid",
+			),
 		):
 			rows = build_repair_job_service_rows("RJ-1")
 
-		self.assertEqual(rows, [
-			{
-				"repair_job": "RJ-1",
-				"repair_job_service": "SVC-1",
-				"service_name": "Diagnosis",
-				"workshop_bay": "BAY-1",
-				"total_amount": 125,
-				"payment_status": "Paid",
-				"is_completed": 0,
-			}
-		])
+		self.assertEqual(
+			rows,
+			[
+				{
+					"repair_job": "RJ-1",
+					"repair_job_service": "SVC-1",
+					"service_name": "Diagnosis",
+					"workshop_bay": "BAY-1",
+					"total_amount": 125,
+					"payment_status": "Paid",
+					"is_completed": 0,
+				}
+			],
+		)
 
 	def test_build_quality_check_road_test_rows_mirrors_legacy_report(self):
 		quality_check = _FakeDoc(

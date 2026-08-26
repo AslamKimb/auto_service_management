@@ -3,7 +3,6 @@ from __future__ import annotations
 import frappe
 from frappe import _
 
-
 DEFAULT_LABOUR_ITEM = "ASM-WORKSHOP-LABOUR"
 
 
@@ -66,12 +65,14 @@ def _ensure_labour_item(item_code):
 	)
 	item.insert(ignore_permissions=True)
 
-	price_list = frappe.db.get_single_value("Auto Service Settings", "selling_price_list") or frappe.db.get_single_value(
-		"Auto Service Settings", "price_list"
-	)
+	price_list = frappe.db.get_single_value(
+		"Auto Service Settings", "selling_price_list"
+	) or frappe.db.get_single_value("Auto Service Settings", "price_list")
 	rate = frappe.db.get_single_value("Auto Service Settings", "default_labour_rate")
-	if price_list and rate and not frappe.db.exists(
-		"Item Price", {"item_code": item.name, "price_list": price_list}
+	if (
+		price_list
+		and rate
+		and not frappe.db.exists("Item Price", {"item_code": item.name, "price_list": price_list})
 	):
 		frappe.get_doc(
 			{
@@ -115,7 +116,13 @@ def _is_valid_labour_item(item_code):
 		["disabled", "is_stock_item", "is_sales_item", "stock_uom"],
 		as_dict=True,
 	)
-	return bool(item and not item.disabled and not item.is_stock_item and item.is_sales_item and item.stock_uom == "Hour")
+	return bool(
+		item
+		and not item.disabled
+		and not item.is_stock_item
+		and item.is_sales_item
+		and item.stock_uom == "Hour"
+	)
 
 
 def _repair_draft_invoice_items():

@@ -320,7 +320,7 @@ class TestDoubleBillingPrevention(IntegrationTestCase):
 		)
 
 		with (
-			patch.object(component_mapping.frappe, "get_single", return_value=_MOCK_SETTINGS),
+			patch.object(component_mapping, "_get_settings", return_value=_MOCK_SETTINGS),
 			patch("frappe.model.document.Document.run_method"),
 		):
 			job_invoice = component_mapping.map_sales_invoice(job_name)

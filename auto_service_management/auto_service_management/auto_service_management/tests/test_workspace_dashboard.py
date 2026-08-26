@@ -18,6 +18,9 @@ from auto_service_management.auto_service_management.workspace_dashboard import 
 	WORKSPACE_SIDEBAR_SECTIONS,
 	get_auto_service_settings_configured_card_data,
 	get_component_child_card_data,
+	get_repair_job_service_consumables_card_data,
+	get_repair_job_service_labour_card_data,
+	get_repair_job_service_parts_card_data,
 )
 
 LEGACY_COMPONENT_DOCTYPES = {
@@ -39,6 +42,16 @@ CATALOG_MASTER_DOCTYPES = {
 
 
 class TestWorkspaceDashboardContracts(UnitTestCase):
+	def test_dashboard_card_methods_are_read_only_get_endpoints(self):
+		for method in (
+			get_auto_service_settings_configured_card_data,
+			get_repair_job_service_parts_card_data,
+			get_repair_job_service_labour_card_data,
+			get_repair_job_service_consumables_card_data,
+		):
+			with self.subTest(method=method.__name__):
+				self.assertEqual(frappe.allowed_http_methods_for_whitelisted_func[method], ["GET"])
+
 	def test_boot_payload_excludes_legacy_navigation_keys(self):
 		from auto_service_management.auto_service_management.desktop import remove_auto_generated_sidebar
 
@@ -117,13 +130,9 @@ class TestWorkspaceDashboardContracts(UnitTestCase):
 				self.assertEqual(set(role["role"] for role in workspace["roles"]), set(hub["roles"]))
 				links = json.loads(workspace["content"])
 				fixture_links = [
-					(item["label"], item["link_type"], item["link_to"])
-					for item in workspace["links"]
+					(item["label"], item["link_type"], item["link_to"]) for item in workspace["links"]
 				]
-				hub_links = [
-					(item["label"], item["link_type"], item["link_to"])
-					for item in hub["links"]
-				]
+				hub_links = [(item["label"], item["link_type"], item["link_to"]) for item in hub["links"]]
 				self.assertEqual(fixture_links, hub_links)
 				link_targets = [item.get("link_to") for item in workspace["shortcuts"]]
 				self.assertEqual(len(link_targets), len(set(link_targets)))
@@ -174,9 +183,9 @@ class TestWorkspaceDashboardContracts(UnitTestCase):
 		for label, hub in WORKSPACE_HUBS.items():
 			with self.subTest(hub=label):
 				self.assertTrue(hub["logo_url"].startswith("/assets/auto_service_management/"))
-				asset_path = app_root / "public" / hub["logo_url"].split(
-					"/assets/auto_service_management/", 1
-				)[1]
+				asset_path = (
+					app_root / "public" / hub["logo_url"].split("/assets/auto_service_management/", 1)[1]
+				)
 				self.assertTrue(asset_path.is_file(), asset_path)
 
 	def test_singleton_settings_number_card_returns_one_when_configured(self):

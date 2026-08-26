@@ -30,8 +30,13 @@ class TestPrinting(UnitTestCase):
 		)
 
 	def test_logo_urls_preserve_absolute_and_data_urls(self):
-		self.assertEqual(normalize_logo_url("https://cdn.test/logo.svg", "https://dms.test"), "https://cdn.test/logo.svg")
-		self.assertEqual(normalize_logo_url("data:image/svg+xml;base64,abc", "https://dms.test"), "data:image/svg+xml;base64,abc")
+		self.assertEqual(
+			normalize_logo_url("https://cdn.test/logo.svg", "https://dms.test"), "https://cdn.test/logo.svg"
+		)
+		self.assertEqual(
+			normalize_logo_url("data:image/svg+xml;base64,abc", "https://dms.test"),
+			"data:image/svg+xml;base64,abc",
+		)
 
 	def test_empty_logo_is_not_replaced_with_workspace_icon(self):
 		self.assertIsNone(resolve_logo_url(None, None, None, "https://dms.test"))

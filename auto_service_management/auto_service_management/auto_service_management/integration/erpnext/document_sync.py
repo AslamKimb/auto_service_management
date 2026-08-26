@@ -11,6 +11,9 @@ from auto_service_management.auto_service_management.doctype.repair_job_service.
 from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
 	is_material_request_active,
 )
+from auto_service_management.auto_service_management.settings_cache import (
+	get_settings as _get_cached_settings,
+)
 from auto_service_management.auto_service_management.workflow_compatibility import (
 	_service_payment_total as _compat_service_payment_total,
 )
@@ -31,6 +34,10 @@ CAMPAIGN_SALES_ITEM_TRACE_FIELDS = (
 	"repair_component_row",
 	"project",
 )
+
+
+def _get_settings():
+	return _get_cached_settings(frappe_module=frappe)
 
 
 def validate_sales_invoice(doc, method=None):
@@ -235,7 +242,7 @@ def trash_material_request(doc, method=None):
 
 
 def validate_job_invoices_for_gate_pass(repair_job_name: str) -> list[str]:
-	settings = frappe.get_single("Auto Service Settings")
+	settings = _get_settings()
 	policy = settings.get("gate_pass_payment_policy") or "Full Payment Required"
 	invoices = get_repair_job_sales_invoices(repair_job_name)
 	_missing_invoices = [invoice for invoice in invoices if not frappe.db.exists("Sales Invoice", invoice)]
@@ -335,9 +342,18 @@ def _all_billable_components_submitted(repair_job_name: str) -> bool:
 	]
 	if not components:
 		return False
+	invoice_names = sorted({component.sales_invoice for component in components if component.sales_invoice})
+	invoice_statuses = {
+		row.name: row.docstatus
+		for row in frappe.get_all(
+			"Sales Invoice",
+			filters={"name": ["in", invoice_names]},
+			fields=["name", "docstatus"],
+			limit_page_length=len(invoice_names),
+		)
+	}
 	return all(
-		component.sales_invoice
-		and frappe.db.get_value("Sales Invoice", component.sales_invoice, "docstatus") == 1
+		component.sales_invoice and invoice_statuses.get(component.sales_invoice) == 1
 		for component in components
 	)
 

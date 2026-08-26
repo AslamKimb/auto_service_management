@@ -50,6 +50,7 @@ WORKSHOP_REPORTS = {
 		permission_doctype="Repair Job",
 		parent_field="repair_job",
 		permission_parent_doctype="Repair Job",
+		child_parent_doctype="Repair Job Service",
 		columns=(
 			column("Repair Job", "repair_job", "Link", "Repair Job"),
 			column("Service", "repair_job_service", "Link", "Repair Job Service"),
@@ -75,6 +76,7 @@ WORKSHOP_REPORTS = {
 		permission_doctype="Repair Job",
 		parent_field="repair_job",
 		permission_parent_doctype="Repair Job",
+		child_parent_doctype="Repair Job Service",
 		columns=(
 			column("Technician", "assigned_to", "Link", "User"),
 			column("Jobs", "job_count", "Int"),
@@ -97,6 +99,7 @@ WORKSHOP_REPORTS = {
 		permission_doctype="Repair Job",
 		parent_field="repair_job",
 		permission_parent_doctype="Repair Job",
+		child_parent_doctype="Repair Job Service",
 		columns=(
 			column("Technician", "assigned_to", "Link", "User"),
 			column("Actual Hours", "hours", "Float"),
@@ -112,6 +115,7 @@ WORKSHOP_REPORTS = {
 		permission_doctype="Repair Job",
 		parent_field="repair_job",
 		permission_parent_doctype="Repair Job",
+		child_parent_doctype="Repair Job Service",
 		columns=(
 			column("Repair Job", "repair_job", "Link", "Repair Job"),
 			column("Service", "repair_job_service", "Link", "Repair Job Service"),

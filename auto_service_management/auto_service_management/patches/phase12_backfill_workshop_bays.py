@@ -20,7 +20,9 @@ def _backfill_workshop_bays():
 		return
 
 	exceptions = []
-	for repair_job_name in frappe.get_all("Repair Job", pluck="name", order_by="creation asc", limit_page_length=0):
+	for repair_job_name in frappe.get_all(
+		"Repair Job", pluck="name", order_by="creation asc", limit_page_length=0
+	):
 		rows, job_exceptions = build_repair_job_service_workshop_bay_rows(repair_job_name)
 		exceptions.extend(job_exceptions)
 		for row in rows:

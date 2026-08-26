@@ -4,11 +4,15 @@ from pathlib import Path
 
 APP_ROOT = Path(__file__).resolve().parents[2]
 REPAIR_JOB_JS = APP_ROOT / "auto_service_management" / "doctype" / "repair_job" / "repair_job.js"
-REPAIR_JOB_SERVICE_JS = APP_ROOT / "auto_service_management" / "doctype" / "repair_job_service" / "repair_job_service.js"
+REPAIR_JOB_SERVICE_JS = (
+	APP_ROOT / "auto_service_management" / "doctype" / "repair_job_service" / "repair_job_service.js"
+)
 BILLING_JS = APP_ROOT / "public" / "js" / "repair_job_billing.js"
 PRINTING_PY = APP_ROOT / "auto_service_management" / "printing.py"
 PROFORMA_TEMPLATE = APP_ROOT / "templates" / "includes" / "auto_service_print" / "proforma_invoice.html"
-PROFORMA_FORMAT = APP_ROOT / "auto_service_management" / "print_format" / "proforma_invoice" / "proforma_invoice.json"
+PROFORMA_FORMAT = (
+	APP_ROOT / "auto_service_management" / "print_format" / "proforma_invoice" / "proforma_invoice.json"
+)
 
 
 class TestProformaUIContracts(unittest.TestCase):
@@ -17,7 +21,11 @@ class TestProformaUIContracts(unittest.TestCase):
 		service = REPAIR_JOB_SERVICE_JS.read_text(encoding="utf-8")
 		for path in (
 			APP_ROOT / "auto_service_management" / "doctype" / "repair_job" / "repair_job.json",
-			APP_ROOT / "auto_service_management" / "doctype" / "repair_job_service" / "repair_job_service.json",
+			APP_ROOT
+			/ "auto_service_management"
+			/ "doctype"
+			/ "repair_job_service"
+			/ "repair_job_service.json",
 		):
 			fields = json.loads(path.read_text(encoding="utf-8"))["fields"]
 			self.assertTrue(any(field.get("fieldname") == "sales_orders_html" for field in fields))
@@ -39,7 +47,7 @@ class TestProformaUIContracts(unittest.TestCase):
 		printing = PRINTING_PY.read_text(encoding="utf-8")
 		template = PROFORMA_TEMPLATE.read_text(encoding="utf-8")
 		fmt = json.loads(PROFORMA_FORMAT.read_text(encoding="utf-8"))
-		self.assertIn('(\"Proforma Invoice\", \"Sales Order\")', printing)
+		self.assertIn('("Proforma Invoice", "Sales Order")', printing)
 		self.assertIn('print_title = "Proforma Invoice"', template)
 		self.assertEqual(fmt["name"], "Proforma Invoice")
 		self.assertEqual(fmt["doc_type"], "Sales Order")

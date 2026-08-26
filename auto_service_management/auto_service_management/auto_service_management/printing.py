@@ -254,9 +254,7 @@ def get_print_branding(doc):
 		company=company,
 		company_name=company.company_name or company_name or "Auto Service Workshop",
 		logo=logo,
-		contact=" · ".join(
-			value for value in (company.phone_no, company.email, company.website) if value
-		),
+		contact=" · ".join(value for value in (company.phone_no, company.email, company.website) if value),
 	)
 
 
@@ -272,7 +270,10 @@ def _builder_format_data(template=None, html=None):
 				}
 			]
 		)
-	options = html or f'{{% set _doc = doc %}}{{% include "templates/includes/auto_service_print/{template}.html" %}}'
+	options = (
+		html
+		or f'{{% set _doc = doc %}}{{% include "templates/includes/auto_service_print/{template}.html" %}}'
+	)
 	return json.dumps(
 		[
 			{
@@ -311,9 +312,7 @@ def _ensure_builder_format(name, doc_type, format_data=None):
 	)
 	doc.insert(ignore_permissions=True)
 	if doc.print_format_builder_beta:
-		frappe.db.set_value(
-			"Print Format", doc.name, "print_format_builder_beta", 0, update_modified=False
-		)
+		frappe.db.set_value("Print Format", doc.name, "print_format_builder_beta", 0, update_modified=False)
 
 
 def _workshop_builder_format_data(doc_type):

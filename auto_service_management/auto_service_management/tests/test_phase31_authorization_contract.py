@@ -1,17 +1,19 @@
 from __future__ import annotations
 
+import unittest
 from datetime import date, timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
-import unittest
 
-from auto_service_management.auto_service_management.doctype.customer_authorization.customer_authorization import (
-	CustomerAuthorization,
+from auto_service_management.auto_service_management import (
+	workflow_compatibility as workflow_compatibility_module,
 )
 from auto_service_management.auto_service_management.doctype.customer_authorization import (
 	customer_authorization as customer_authorization_module,
 )
-from auto_service_management.auto_service_management import workflow_compatibility as workflow_compatibility_module
+from auto_service_management.auto_service_management.doctype.customer_authorization.customer_authorization import (
+	CustomerAuthorization,
+)
 
 
 class TestPhase31AuthorizationContract(unittest.TestCase):
@@ -25,7 +27,10 @@ class TestPhase31AuthorizationContract(unittest.TestCase):
 			throw=lambda message: (_ for _ in ()).throw(Exception(message)),
 		)
 
-		with patch.object(customer_authorization_module, "frappe", fake_frappe), self.assertRaises(Exception) as ctx:
+		with (
+			patch.object(customer_authorization_module, "frappe", fake_frappe),
+			self.assertRaises(Exception) as ctx,
+		):
 			CustomerAuthorization.validate_amount(auth)
 
 		self.assertIn("full Repair Job amount", str(ctx.exception))
@@ -40,7 +45,10 @@ class TestPhase31AuthorizationContract(unittest.TestCase):
 			throw=lambda message: (_ for _ in ()).throw(Exception(message)),
 		)
 
-		with patch.object(customer_authorization_module, "frappe", fake_frappe), self.assertRaises(Exception) as ctx:
+		with (
+			patch.object(customer_authorization_module, "frappe", fake_frappe),
+			self.assertRaises(Exception) as ctx,
+		):
 			CustomerAuthorization.check_expiry(auth)
 
 		self.assertIn("expired", str(ctx.exception).lower())
@@ -53,7 +61,10 @@ class TestPhase31AuthorizationContract(unittest.TestCase):
 
 		fake_frappe = SimpleNamespace(throw=lambda message: (_ for _ in ()).throw(Exception(message)))
 
-		with patch.object(customer_authorization_module, "frappe", fake_frappe), self.assertRaises(Exception) as ctx:
+		with (
+			patch.object(customer_authorization_module, "frappe", fake_frappe),
+			self.assertRaises(Exception) as ctx,
+		):
 			CustomerAuthorization.reject(auth)
 
 		self.assertIn("rejection reason", str(ctx.exception))

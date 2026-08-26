@@ -292,7 +292,7 @@ WORKSPACE_SIDEBAR_HOME = {
 WORKSPACE_SIDEBAR_SECTIONS = {label: hub["links"] for label, hub in WORKSPACE_HUBS.items()}
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_auto_service_settings_configured_card_data():
 	configured = 1 if frappe.db.exists("Auto Service Settings", "Auto Service Settings") else 0
 	return {
@@ -312,16 +312,16 @@ def get_component_child_card_data(card_label: str):
 	}
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_repair_job_service_parts_card_data():
 	return get_component_child_card_data("Repair Job Service Parts")
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_repair_job_service_labour_card_data():
 	return get_component_child_card_data("Repair Job Service Labour")
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET"])
 def get_repair_job_service_consumables_card_data():
 	return get_component_child_card_data("Repair Job Service Consumables")

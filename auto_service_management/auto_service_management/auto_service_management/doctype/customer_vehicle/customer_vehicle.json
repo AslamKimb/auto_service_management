@@ -51,6 +51,7 @@
    "fieldname": "vin_chassis_number",
    "fieldtype": "Data",
    "label": "VIN / Chassis Number",
+   "unique": 1,
    "in_list_view": 1
   },
   {

@@ -216,9 +216,7 @@ def get_trace_custom_fields():
 	for doctype, fields in PARENT_TRACE_FIELDS.items():
 		if isinstance(fields, dict):
 			fields = [fields]
-		custom_fields[doctype] = [
-			{**field, "module": "Auto Service Management"} for field in fields
-		]
+		custom_fields[doctype] = [{**field, "module": "Auto Service Management"} for field in fields]
 	return custom_fields
 
 

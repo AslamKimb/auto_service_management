@@ -27,10 +27,22 @@ WORKFLOW_TRANSITIONS = (
 	("In Repair", "Send to QC", "Quality Check", "Workshop Manager", None),
 	("Quality Check", "Return to Repair", "In Repair", "Workshop Manager", None),
 	("Quality Check", "Pass QC", "Billing", "Workshop Manager", None),
-	("Billing", "Mark Ready for Release", "Ready for Release", "Accounts Manager", "doc.payment_status == 'Paid'"),
+	(
+		"Billing",
+		"Mark Ready for Release",
+		"Ready for Release",
+		"Accounts Manager",
+		"doc.payment_status == 'Paid'",
+	),
 	("Billing", "Reopen Approval", "Awaiting Approval", "Service Advisor", None),
 	("Ready for Release", "Reopen Billing", "Billing", "Accounts Manager", None),
-	("Ready for Release", "Close Job", "Closed", "Security Gate Officer", "doc.gate_pass and frappe.db.get_value('Gate Pass', doc.gate_pass, 'status') == 'Used'"),
+	(
+		"Ready for Release",
+		"Close Job",
+		"Closed",
+		"Security Gate Officer",
+		"doc.gate_pass and frappe.db.get_value('Gate Pass', doc.gate_pass, 'status') == 'Used'",
+	),
 )
 
 

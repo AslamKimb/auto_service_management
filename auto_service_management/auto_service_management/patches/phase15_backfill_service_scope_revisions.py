@@ -44,7 +44,9 @@ def _backfill_service_scope_revisions():
 		approvals_by_job.setdefault(authorization.repair_job, []).append(authorization)
 
 	exceptions = list(orphaned_approvals)
-	for repair_job_name in frappe.get_all("Repair Job", pluck="name", order_by="creation asc, name asc", limit_page_length=0):
+	for repair_job_name in frappe.get_all(
+		"Repair Job", pluck="name", order_by="creation asc, name asc", limit_page_length=0
+	):
 		scope_revision, scope_total_amount = _submitted_service_scope(repair_job_name)
 		frappe.db.set_value(
 			"Repair Job",
@@ -68,7 +70,10 @@ def _backfill_service_scope_revisions():
 			continue
 
 		for authorization in job_authorizations:
-			if int(authorization.scope_revision or 0) != scope_revision or flt(authorization.scope_total_amount) != scope_total_amount:
+			if (
+				int(authorization.scope_revision or 0) != scope_revision
+				or flt(authorization.scope_total_amount) != scope_total_amount
+			):
 				exceptions.append(
 					{
 						"repair_job": repair_job_name,

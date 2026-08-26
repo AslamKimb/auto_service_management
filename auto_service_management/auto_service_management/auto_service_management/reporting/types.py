@@ -14,6 +14,7 @@ class ReportDefinition:
 	group_by: str | None = None
 	parent_field: str | None = None
 	permission_parent_doctype: str | None = None
+	child_parent_doctype: str | None = None
 
 
 def column(label, fieldname, fieldtype="Data", options=None, width=140):

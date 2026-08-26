@@ -132,10 +132,7 @@ class TestFleetServiceCampaign(UnitTestCase):
 		campaign.name = "FSC-2026-00001"
 		campaign.save = MagicMock()
 		job.get_doc_before_save = MagicMock(return_value=None)
-		module = (
-			"auto_service_management.auto_service_management.doctype."
-			"repair_job.repair_job.frappe"
-		)
+		module = "auto_service_management.auto_service_management.doctype.repair_job.repair_job.frappe"
 		with patch(f"{module}.get_doc", return_value=campaign):
 			job.sync_fleet_campaign_membership()
 
@@ -163,10 +160,7 @@ class TestFleetServiceCampaign(UnitTestCase):
 		campaign = self._campaign("CUST-OTHER")
 		campaign.name = "FSC-2026-00001"
 		campaign.status = "Ongoing"
-		module = (
-			"auto_service_management.auto_service_management.doctype."
-			"repair_job.repair_job.frappe"
-		)
+		module = "auto_service_management.auto_service_management.doctype.repair_job.repair_job.frappe"
 		with patch(f"{module}.get_doc", return_value=campaign):
 			self.assertRaises(frappe.ValidationError, job.validate_fleet_service_campaign)
 
@@ -183,10 +177,7 @@ class TestFleetServiceCampaign(UnitTestCase):
 		campaign.name = "FSC-2026-00001"
 		campaign.status = "Closed"
 		campaign.check_permission = MagicMock()
-		module = (
-			"auto_service_management.auto_service_management.doctype."
-			"repair_job.repair_job.frappe"
-		)
+		module = "auto_service_management.auto_service_management.doctype.repair_job.repair_job.frappe"
 		with patch(f"{module}.get_doc", return_value=campaign):
 			self.assertRaises(frappe.ValidationError, job.validate_fleet_service_campaign)
 		campaign.check_permission.assert_called_once_with("write")
@@ -200,9 +191,7 @@ class TestFleetServiceCampaign(UnitTestCase):
 				"fleet_service_campaign": "FSC-NEW",
 			}
 		)
-		job.get_doc_before_save = MagicMock(
-			return_value=frappe._dict(fleet_service_campaign="FSC-OLD")
-		)
+		job.get_doc_before_save = MagicMock(return_value=frappe._dict(fleet_service_campaign="FSC-OLD"))
 		old_campaign = self._campaign("CUST-0001", "RJ-0001")
 		old_campaign.name = "FSC-OLD"
 		old_campaign.save = MagicMock()
@@ -211,10 +200,7 @@ class TestFleetServiceCampaign(UnitTestCase):
 		new_campaign.name = "FSC-NEW"
 		new_campaign.save = MagicMock()
 		new_campaign.check_permission = MagicMock()
-		module = (
-			"auto_service_management.auto_service_management.doctype."
-			"repair_job.repair_job.frappe"
-		)
+		module = "auto_service_management.auto_service_management.doctype.repair_job.repair_job.frappe"
 		with patch(f"{module}.get_doc", side_effect=[old_campaign, new_campaign]):
 			job.sync_fleet_campaign_membership()
 

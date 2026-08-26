@@ -11,7 +11,9 @@ def execute():
 	if not frappe.db.table_exists("Repair Job"):
 		return
 
-	for name in frappe.get_all("Repair Job", pluck="name", order_by="creation asc, name asc", limit_page_length=0):
+	for name in frappe.get_all(
+		"Repair Job", pluck="name", order_by="creation asc, name asc", limit_page_length=0
+	):
 		job = frappe.get_doc("Repair Job", name)
 		job_status = _derive_repair_job_status(job) or "Draft"
 		if job_status != job.job_status and job_status != "Closed":

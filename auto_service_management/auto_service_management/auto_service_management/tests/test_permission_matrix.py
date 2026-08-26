@@ -6,6 +6,9 @@ from frappe.tests import IntegrationTestCase
 
 from auto_service_management.auto_service_management.integration.erpnext import component_mapping
 from auto_service_management.auto_service_management.tests.test_controllers_integration import (
+	_append_service_component,
+	_create_job_service,
+	_create_repair_job,
 	_create_test_vehicle,
 	_ensure_erpnext_basics,
 	_get_or_create_customer,
@@ -170,6 +173,108 @@ class TestPermissionMatrix(IntegrationTestCase):
 				with self.subTest(role=role, report=report_name):
 					result = run_query_report(report_name, filters={})
 					self.assertIn("result", result)
+
+	def test_parts_report_allows_parts_interpreter_and_denies_workshop_technician(self):
+		matrix_job = frappe.get_doc("Repair Job", _create_repair_job(self.customer, self.vehicle))
+		matrix_service = _create_job_service(matrix_job, service_name="Permission matrix components")
+		_append_service_component(
+			matrix_service,
+			service_type="Part",
+			description="Matrix part",
+			quantity=1,
+			rate=1,
+		)
+		_append_service_component(
+			matrix_service,
+			service_type="Consumable",
+			description="Matrix consumable",
+			quantity=1,
+			rate=1,
+		)
+
+		for role, should_run in (("Parts Interpreter", True), ("Workshop Technician", False)):
+			with self.subTest(role=role):
+				user = _create_role_user(role)
+				self.users_to_delete.append(user)
+				frappe.set_user(user)
+
+				if should_run:
+					result = run_query_report("Jobs Waiting for Parts", filters={})
+					self.assertIn("result", result)
+					reported_descriptions = {row.get("description") for row in result["result"]}
+					self.assertIn("Matrix part", reported_descriptions)
+					self.assertIn("Matrix consumable", reported_descriptions)
+				else:
+					with self.assertRaises(frappe.PermissionError):
+						run_query_report("Jobs Waiting for Parts", filters={})
+
+	def test_parts_report_excludes_unpermitted_jobs_and_customers(self):
+		suffix = frappe.generate_hash(length=6).upper()
+		denied_customer = frappe.get_doc(
+			{
+				"doctype": "Customer",
+				"customer_name": f"Permission Matrix Denied {suffix}",
+				"customer_group": "Commercial",
+				"territory": "Uganda",
+			}
+		).insert(ignore_permissions=True)
+		denied_vehicle = frappe.get_doc(
+			{
+				"doctype": "Customer Vehicle",
+				"customer": denied_customer.name,
+				"registration_number": f"PM-{suffix}",
+				"vin_chassis_number": f"PMVIN-{suffix}",
+				"engine_number": f"PMENG-{suffix}",
+				"year_of_manufacture": 2022,
+			}
+		).insert(ignore_permissions=True)
+
+		allowed_job = frappe.get_doc("Repair Job", _create_repair_job(self.customer, self.vehicle))
+		denied_job = frappe.get_doc(
+			"Repair Job", _create_repair_job(denied_customer.name, denied_vehicle.name)
+		)
+		same_customer_denied_job = frappe.get_doc(
+			"Repair Job", _create_repair_job(self.customer, self.vehicle)
+		)
+		for job, label in (
+			(allowed_job, "Allowed parts"),
+			(denied_job, "Denied parts"),
+			(same_customer_denied_job, "Same customer denied parts"),
+		):
+			service = _create_job_service(job, service_name=label)
+			row = _append_service_component(
+				service, service_type="Part", description=label, quantity=1, rate=1
+			)
+			if job is denied_job:
+				# Deliberately corrupt the denormalized child link. The child query
+				# must still honor the immediate Repair Job Service parent scope.
+				frappe.db.set_value(row.doctype, row.name, "repair_job", allowed_job.name)
+
+		user = _create_role_user("Parts Interpreter")
+		self.users_to_delete.append(user)
+		user_permission = frappe.get_doc(
+			{
+				"doctype": "User Permission",
+				"user": user,
+				"allow": "Repair Job",
+				"for_value": allowed_job.name,
+			}
+		).insert(ignore_permissions=True)
+		try:
+			frappe.set_user(user)
+			result = run_query_report("Jobs Waiting for Parts", filters={})["result"]
+			reported_jobs = {row.get("repair_job") for row in result}
+			self.assertIn(allowed_job.name, reported_jobs)
+			self.assertNotIn(denied_job.name, reported_jobs)
+			self.assertNotIn(same_customer_denied_job.name, reported_jobs)
+			self.assertNotIn("Denied parts", {row.get("description") for row in result})
+			# Other permitted fixtures may already have parts; the scope assertion is
+			# specifically that this user's allowed job is visible and both
+			# cross-customer and same-customer jobs are absent.
+			self.assertTrue(all(row.get("repair_job") != denied_job.name for row in result))
+		finally:
+			frappe.set_user("Administrator")
+			frappe.delete_doc("User Permission", user_permission.name, ignore_permissions=True, force=True)
 
 	def test_system_manager_has_full_dms_and_erpnext_permissions(self):
 		phase25_system_manager_permissions.execute()

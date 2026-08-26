@@ -22,9 +22,7 @@ class TestCustomerLPO(UnitTestCase):
 				"authorized_amount": 1_000,
 			}
 		)
-		module = (
-			"auto_service_management.auto_service_management.doctype.customer_lpo.customer_lpo.frappe"
-		)
+		module = "auto_service_management.auto_service_management.doctype.customer_lpo.customer_lpo.frappe"
 		with patch(
 			f"{module}.get_all",
 			return_value=[frappe._dict(amount_increase=150), frappe._dict(amount_increase=50)],
@@ -39,9 +37,7 @@ class TestCustomerLPO(UnitTestCase):
 				"expiry_date": "2026-03-31",
 			}
 		)
-		module = (
-			"auto_service_management.auto_service_management.doctype.customer_lpo.customer_lpo.frappe"
-		)
+		module = "auto_service_management.auto_service_management.doctype.customer_lpo.customer_lpo.frappe"
 		with patch(
 			f"{module}.get_all",
 			return_value=[
@@ -63,9 +59,7 @@ class TestCustomerLPO(UnitTestCase):
 
 	def test_customer_vehicle_must_belong_to_lpo_customer(self):
 		lpo = self._lpo([{"registration_number": "UBA 482M", "customer_vehicle": "UBA-482M"}])
-		module = (
-			"auto_service_management.auto_service_management.doctype.customer_lpo.customer_lpo.frappe"
-		)
+		module = "auto_service_management.auto_service_management.doctype.customer_lpo.customer_lpo.frappe"
 		with patch(f"{module}.db.get_value", return_value="OTHER CUSTOMER"):
 			with self.assertRaises(frappe.ValidationError):
 				lpo.validate_customer_vehicle_ownership()

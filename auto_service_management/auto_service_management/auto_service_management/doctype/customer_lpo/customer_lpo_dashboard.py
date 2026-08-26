@@ -6,7 +6,10 @@ def get_data(data=None):
 	return {
 		"fieldname": "customer_lpo",
 		"transactions": [
-			{"label": _("Fleet Operations"), "items": ["Fleet Service Campaign", "Repair Job", "Customer Vehicle"]},
+			{
+				"label": _("Fleet Operations"),
+				"items": ["Fleet Service Campaign", "Repair Job", "Customer Vehicle"],
+			},
 			{"label": _("Billing"), "items": ["Sales Order", "Sales Invoice", "Customer LPO Amendment"]},
 		],
 	}

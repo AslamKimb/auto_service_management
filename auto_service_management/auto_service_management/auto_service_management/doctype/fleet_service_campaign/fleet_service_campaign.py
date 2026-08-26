@@ -201,7 +201,9 @@ class FleetServiceCampaign(Document):
 		if not lpo:
 			frappe.throw(_("Customer LPO {0} does not exist.").format(self.customer_lpo))
 		if lpo.customer != self.customer:
-			frappe.throw(_("Customer LPO {0} customer does not match this campaign.").format(self.customer_lpo))
+			frappe.throw(
+				_("Customer LPO {0} customer does not match this campaign.").format(self.customer_lpo)
+			)
 
 	def sync_job_links(self, clear_all=False):
 		linked_jobs = set(

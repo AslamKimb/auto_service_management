@@ -25,6 +25,28 @@ class TestCustomerLPOWorkflow(UnitTestCase):
 			with self.subTest(method=method.__name__):
 				self.assertEqual(frappe.allowed_http_methods_for_whitelisted_func[method], [allowed])
 
+	def test_controller_methods_have_typed_public_inputs(self):
+		from inspect import signature
+
+		methods = (
+			customer_lpo.preview_vehicle_csv,
+			customer_lpo.import_vehicle_csv,
+			customer_lpo.resolve_vehicle_rows,
+			customer_lpo.create_campaign_and_repair_jobs,
+			customer_lpo.get_lpo_summary,
+			customer_lpo.make_sales_order,
+			customer_lpo.make_sales_invoice,
+			customer_lpo.close_lpo,
+		)
+		for method in methods:
+			with self.subTest(method=method.__name__):
+				self.assertTrue(
+					all(
+						parameter.annotation is not parameter.empty
+						for parameter in signature(method).parameters.values()
+					)
+				)
+
 	def test_mutating_csv_import_rejects_get(self):
 		original_request = getattr(frappe.local, "request", None)
 		frappe.local.request = frappe._dict(method="GET")
@@ -66,36 +88,47 @@ class TestCustomerLPOWorkflow(UnitTestCase):
 		self.assertEqual(customer_lpo_workflow._invoice_amount(invoice, "Tax Inclusive"), 0)
 
 	def test_native_lpo_document_cannot_duplicate_active_document(self):
-		with patch.object(
-			customer_lpo_workflow.frappe,
-			"get_list",
-			return_value=["SO-OLD"],
-		), self.assertRaisesRegex(frappe.ValidationError, "already has an active"):
+		with (
+			patch.object(
+				customer_lpo_workflow.frappe,
+				"get_list",
+				return_value=["SO-OLD"],
+			),
+			self.assertRaisesRegex(frappe.ValidationError, "already has an active"),
+		):
 			customer_lpo_workflow._assert_one_active_document("Sales Order", "LPO-1")
 
 	def test_named_target_does_not_bypass_active_document_guard(self):
-		with patch.object(
-			customer_lpo_workflow.frappe,
-			"get_list",
-			return_value=["SO-OTHER"],
-		) as get_list, self.assertRaisesRegex(frappe.ValidationError, "already has an active"):
+		with (
+			patch.object(
+				customer_lpo_workflow.frappe,
+				"get_list",
+				return_value=["SO-OTHER"],
+			) as get_list,
+			self.assertRaisesRegex(frappe.ValidationError, "already has an active"),
+		):
 			customer_lpo_workflow._assert_one_active_document("Sales Order", "LPO-1", "SO-TARGET")
 		filters = get_list.call_args.kwargs["filters"]
 		self.assertEqual(filters["name"], ["!=", "SO-TARGET"])
 
 	def test_effective_authority_uses_permission_scoped_amendments(self):
 		lpo = frappe._dict(name="LPO-1", authorized_amount=100)
-		with patch.object(customer_lpo_workflow.frappe.db, "exists", return_value=True), patch.object(
-			customer_lpo_workflow.frappe,
-			"get_list",
-			return_value=[frappe._dict(amount_increase=25)],
-		) as get_list:
+		with (
+			patch.object(customer_lpo_workflow.frappe.db, "exists", return_value=True),
+			patch.object(
+				customer_lpo_workflow.frappe,
+				"get_list",
+				return_value=[frappe._dict(amount_increase=25)],
+			) as get_list,
+		):
 			self.assertEqual(customer_lpo_workflow._effective_authorized_amount(lpo), 125)
 		get_list.assert_called_once_with(
 			"Customer LPO Amendment",
 			filters={"customer_lpo": "LPO-1", "docstatus": 1},
 			fields=["amount_increase"],
-			limit_page_length=0,
+			order_by="creation asc, name asc",
+			limit_page_length=500,
+			limit_start=0,
 		)
 
 	def test_lpo_invoice_uses_native_sales_order_mapper_when_order_is_submitted(self):
@@ -191,8 +224,9 @@ class TestCustomerLPOWorkflow(UnitTestCase):
 			rounded_total=120,
 			disable_rounded_total=0,
 		)
-		with patch.object(customer_lpo_workflow, "_get_lpo", return_value=lpo), patch.object(
-			customer_lpo_workflow.frappe, "get_all", return_value=[]
+		with (
+			patch.object(customer_lpo_workflow, "_get_lpo", return_value=lpo),
+			patch.object(customer_lpo_workflow.frappe, "get_all", return_value=[]),
 		):
 			with self.assertRaisesRegex(frappe.ValidationError, "ceiling exceeded"):
 				customer_lpo_workflow.validate_lpo_invoice_ceiling(doc)

@@ -290,8 +290,8 @@ class TestFleetCampaignBillingBackend(UnitTestCase):
 				},
 			),
 			patch.object(
-				component_mapping.frappe,
-				"get_single",
+				component_mapping,
+				"_get_settings",
 				return_value=frappe._dict(company="Company", selling_price_list="Standard Selling"),
 			),
 		):

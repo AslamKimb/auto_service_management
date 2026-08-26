@@ -3,6 +3,8 @@
 
 from datetime import date
 from decimal import Decimal, InvalidOperation
+from hashlib import sha256
+from typing import Any
 
 import frappe
 from frappe import _
@@ -15,7 +17,12 @@ from auto_service_management.auto_service_management.doctype.customer_lpo_vehicl
 
 
 @frappe.whitelist(methods=["GET"])
-def preview_vehicle_csv(lpo_name, csv_text=None, file_url=None, rows=None):
+def preview_vehicle_csv(
+	lpo_name: str,
+	csv_text: str | None = None,
+	file_url: str | None = None,
+	rows: list[dict[str, Any]] | str | None = None,
+):
 	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
 		preview_vehicle_csv as _preview_vehicle_csv,
 	)
@@ -24,7 +31,12 @@ def preview_vehicle_csv(lpo_name, csv_text=None, file_url=None, rows=None):
 
 
 @frappe.whitelist(methods=["POST"])
-def import_vehicle_csv(lpo_name, csv_text=None, file_url=None, rows=None):
+def import_vehicle_csv(
+	lpo_name: str,
+	csv_text: str | None = None,
+	file_url: str | None = None,
+	rows: list[dict[str, Any]] | str | None = None,
+):
 	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
 		import_vehicle_csv as _import_vehicle_csv,
 	)
@@ -33,7 +45,11 @@ def import_vehicle_csv(lpo_name, csv_text=None, file_url=None, rows=None):
 
 
 @frappe.whitelist(methods=["POST"])
-def resolve_vehicle_rows(lpo_name, row_names=None, create_confirmed=False):
+def resolve_vehicle_rows(
+	lpo_name: str,
+	row_names: list[str] | str | None = None,
+	create_confirmed: bool = False,
+):
 	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
 		resolve_vehicle_rows as _resolve_vehicle_rows,
 	)
@@ -42,7 +58,7 @@ def resolve_vehicle_rows(lpo_name, row_names=None, create_confirmed=False):
 
 
 @frappe.whitelist(methods=["POST"])
-def create_campaign_and_repair_jobs(lpo_name):
+def create_campaign_and_repair_jobs(lpo_name: str):
 	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
 		create_campaign_and_repair_jobs as _create_campaign_and_repair_jobs,
 	)
@@ -51,7 +67,7 @@ def create_campaign_and_repair_jobs(lpo_name):
 
 
 @frappe.whitelist(methods=["GET"])
-def get_lpo_summary(lpo_name):
+def get_lpo_summary(lpo_name: str):
 	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
 		get_lpo_summary as _get_lpo_summary,
 	)
@@ -60,7 +76,12 @@ def get_lpo_summary(lpo_name):
 
 
 @frappe.whitelist(methods=["POST"])
-def make_sales_order(lpo_name=None, target_doc=None, component_refs=None, source_name=None):
+def make_sales_order(
+	lpo_name: str | None = None,
+	target_doc: dict[str, Any] | str | None = None,
+	component_refs: list[dict[str, Any]] | str | None = None,
+	source_name: str | None = None,
+):
 	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
 		make_sales_order as _make_sales_order,
 	)
@@ -69,7 +90,12 @@ def make_sales_order(lpo_name=None, target_doc=None, component_refs=None, source
 
 
 @frappe.whitelist(methods=["POST"])
-def make_sales_invoice(lpo_name=None, target_doc=None, component_refs=None, source_name=None):
+def make_sales_invoice(
+	lpo_name: str | None = None,
+	target_doc: dict[str, Any] | str | None = None,
+	component_refs: list[dict[str, Any]] | str | None = None,
+	source_name: str | None = None,
+):
 	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
 		make_sales_invoice as _make_sales_invoice,
 	)
@@ -78,7 +104,7 @@ def make_sales_invoice(lpo_name=None, target_doc=None, component_refs=None, sour
 
 
 @frappe.whitelist(methods=["POST"])
-def close_lpo(lpo_name):
+def close_lpo(lpo_name: str):
 	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
 		close_lpo as _close_lpo,
 	)
@@ -142,12 +168,14 @@ class CustomerLPO(Document):
 			frappe.throw(_("Expiry Date cannot be before Issue Date."))
 
 	def validate_unique_lpo_number(self):
-		if not self.company or not self.customer or not self.lpo_number:
+		self.lpo_number = normalize_lpo_number(self.lpo_number)
+		self.lpo_uniqueness_key = build_lpo_uniqueness_key(self.company, self.customer, self.lpo_number)
+		if not self.lpo_uniqueness_key:
 			return
 		filters = {
 			"company": self.company,
 			"customer": self.customer,
-			"lpo_number": self.lpo_number.strip(),
+			"lpo_number": self.lpo_number,
 		}
 		if self.name:
 			filters["name"] = ["!=", self.name]
@@ -158,6 +186,16 @@ class CustomerLPO(Document):
 				)
 			)
 
+	def show_unique_validation_message(self, error):
+		"""Turn the database race winner into a clear LPO-domain error."""
+		if "lpo_uniqueness_key" in str(error):
+			frappe.throw(
+				_("Customer LPO number {0} already exists for this Company and Customer.").format(
+					self.lpo_number
+				)
+			)
+		super().show_unique_validation_message(error)
+
 	def validate_vehicle_rows(self):
 		seen = set()
 		for row in self.vehicle_rows or []:
@@ -166,7 +204,9 @@ class CustomerLPO(Document):
 				frappe.throw(_("Every Customer LPO vehicle row requires a registration number."))
 			if normalized in seen:
 				frappe.throw(
-					_("Registration number {0} appears more than once in this Customer LPO.").format(normalized)
+					_("Registration number {0} appears more than once in this Customer LPO.").format(
+						normalized
+					)
 				)
 			seen.add(normalized)
 			row.registration_number = normalized
@@ -177,7 +217,11 @@ class CustomerLPO(Document):
 			if not row.customer_vehicle:
 				continue
 			if row.customer_vehicle in seen:
-				frappe.throw(_("Customer Vehicle {0} appears more than once on this Customer LPO.").format(row.customer_vehicle))
+				frappe.throw(
+					_("Customer Vehicle {0} appears more than once on this Customer LPO.").format(
+						row.customer_vehicle
+					)
+				)
 			seen.add(row.customer_vehicle)
 			vehicle_customer = frappe.db.get_value("Customer Vehicle", row.customer_vehicle, "customer")
 			if not vehicle_customer:
@@ -208,10 +252,16 @@ class CustomerLPO(Document):
 				)
 			job_vehicle = frappe.db.get_value("Repair Job", row.repair_job, "customer_vehicle")
 			if row.customer_vehicle and job_vehicle and job_vehicle != row.customer_vehicle:
-				frappe.throw(_("Repair Job {0} does not match Customer Vehicle {1}.").format(row.repair_job, row.customer_vehicle))
+				frappe.throw(
+					_("Repair Job {0} does not match Customer Vehicle {1}.").format(
+						row.repair_job, row.customer_vehicle
+					)
+				)
 			job_lpo = frappe.db.get_value("Repair Job", row.repair_job, "customer_lpo")
 			if job_lpo and job_lpo != self.name:
-				frappe.throw(_("Repair Job {0} is already linked to Customer LPO {1}.").format(row.repair_job, job_lpo))
+				frappe.throw(
+					_("Repair Job {0} is already linked to Customer LPO {1}.").format(row.repair_job, job_lpo)
+				)
 
 	def validate_campaign_ownership(self):
 		if not self.fleet_service_campaign:
@@ -252,9 +302,9 @@ class CustomerLPO(Document):
 		for row in old_doc.vehicle_rows or []:
 			if row.name and row.name not in current_names and row.repair_job:
 				frappe.throw(
-					_("Vehicle row {0} cannot be removed while Repair Job {1} is linked. Cancel the job instead.").format(
-						row.registration_number, row.repair_job
-					)
+					_(
+						"Vehicle row {0} cannot be removed while Repair Job {1} is linked. Cancel the job instead."
+					).format(row.registration_number, row.repair_job)
 				)
 
 	def get_effective_authorized_amount(self) -> Decimal:
@@ -292,7 +342,9 @@ class CustomerLPO(Document):
 			return "Completed"
 		if self.get_effective_expiry_date() and self.get_effective_expiry_date() < getdate(as_of or today()):
 			return "Expired"
-		if self.get("effective_authorized_amount") and self.get("invoiced_amount") >= self.get("effective_authorized_amount"):
+		if self.get("effective_authorized_amount") and self.get("invoiced_amount") >= self.get(
+			"effective_authorized_amount"
+		):
 			return "Exhausted"
 		if self.get_effective_authorized_amount() <= 0:
 			return "Exhausted"
@@ -333,4 +385,19 @@ def _to_decimal(value) -> Decimal:
 		return Decimal(str(value or 0))
 	except (InvalidOperation, TypeError, ValueError):
 		frappe.throw(_("Amount must be a valid number."))
-		return Decimal("0")
+	return Decimal("0")
+
+
+def normalize_lpo_number(value: str | None) -> str | None:
+	"""Canonicalize external LPO numbers without changing meaningful spacing."""
+	normalized = str(value or "").strip().upper()
+	return normalized or None
+
+
+def build_lpo_uniqueness_key(company: str | None, customer: str | None, lpo_number: str | None) -> str | None:
+	"""Build a compact DB-safe key for the scoped LPO uniqueness invariant."""
+	components = [company, customer, lpo_number]
+	if any(not str(component or "").strip() for component in components):
+		return None
+	canonical = "\x1f".join(str(component).strip().casefold() for component in components)
+	return sha256(canonical.encode("utf-8")).hexdigest()

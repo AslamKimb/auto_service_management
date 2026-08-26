@@ -1,16 +1,16 @@
 # Copyright (c) 2026, Aslam Kimbugwe and contributors
 # For license information, please see license.txt
 
+import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
-import unittest
 
+from auto_service_management.auto_service_management.workflow_compatibility import (
+	build_quality_check_road_test_row,
+)
 from auto_service_management.patches.phase13_migrate_road_tests import (
 	_migrate_road_tests,
 	_quality_check_road_test_exists,
-)
-from auto_service_management.auto_service_management.workflow_compatibility import (
-	build_quality_check_road_test_row,
 )
 
 
@@ -132,7 +132,10 @@ class TestPhase22RoadTestMigration(unittest.TestCase):
 
 		with (
 			patch("auto_service_management.patches.phase13_migrate_road_tests.frappe", fake_frappe),
-			patch("auto_service_management.patches.phase13_migrate_road_tests.set_new_name", lambda doc: setattr(doc, "name", "QC-1")),
+			patch(
+				"auto_service_management.patches.phase13_migrate_road_tests.set_new_name",
+				lambda doc: setattr(doc, "name", "QC-1"),
+			),
 		):
 			_migrate_road_tests()
 
@@ -140,4 +143,6 @@ class TestPhase22RoadTestMigration(unittest.TestCase):
 		self.assertEqual(len(sql_calls), 2)
 		self.assertTrue(sql_calls[0][0].startswith("INSERT INTO `tabQuality Check`"))
 		self.assertTrue(sql_calls[1][0].startswith("INSERT INTO `tabQuality Check Road Test`"))
-		set_value.assert_called_once_with("Repair Job", "RJ-1", "quality_check", "QC-1", update_modified=False)
+		set_value.assert_called_once_with(
+			"Repair Job", "RJ-1", "quality_check", "QC-1", update_modified=False
+		)

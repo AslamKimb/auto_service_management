@@ -26,7 +26,9 @@ class TestRepairWorkflowCharacterization(unittest.TestCase):
 		self.assertIn("phase18_reconcile_repair_job_state", patches)
 
 	def test_repair_job_status_contract_is_reduced_and_automatic(self):
-		statuses = [value for value in _doctype_fields("repair_job")["job_status"]["options"].splitlines() if value]
+		statuses = [
+			value for value in _doctype_fields("repair_job")["job_status"]["options"].splitlines() if value
+		]
 
 		self.assertEqual(
 			statuses,

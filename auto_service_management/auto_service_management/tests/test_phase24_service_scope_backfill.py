@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
-import unittest
 
-from auto_service_management.patches.phase15_backfill_service_scope_revisions import _backfill_service_scope_revisions
+from auto_service_management.patches.phase15_backfill_service_scope_revisions import (
+	_backfill_service_scope_revisions,
+)
 
 
 class FakeDB:
@@ -85,17 +87,26 @@ class TestPhase24ServiceScopeBackfill(unittest.TestCase):
 			],
 		}
 
-		with patch(
-			"auto_service_management.patches.phase15_backfill_service_scope_revisions.frappe",
-			fake_frappe,
-		), patch(
-			"auto_service_management.patches.phase15_backfill_service_scope_revisions.get_repair_job_services",
-			side_effect=lambda repair_job_name: services[repair_job_name],
+		with (
+			patch(
+				"auto_service_management.patches.phase15_backfill_service_scope_revisions.frappe",
+				fake_frappe,
+			),
+			patch(
+				"auto_service_management.patches.phase15_backfill_service_scope_revisions.get_repair_job_services",
+				side_effect=lambda repair_job_name: services[repair_job_name],
+			),
 		):
 			_backfill_service_scope_revisions()
 
-		self.assertIn(("Repair Job", "RJ-1", {"scope_revision": 1, "total_amount": 100.0}, False), fake_frappe.db.set_values)
-		self.assertIn(("Repair Job", "RJ-2", {"scope_revision": 1, "total_amount": 250.0}, False), fake_frappe.db.set_values)
+		self.assertIn(
+			("Repair Job", "RJ-1", {"scope_revision": 1, "total_amount": 100.0}, False),
+			fake_frappe.db.set_values,
+		)
+		self.assertIn(
+			("Repair Job", "RJ-2", {"scope_revision": 1, "total_amount": 250.0}, False),
+			fake_frappe.db.set_values,
+		)
 		self.assertIn(
 			("Customer Authorization", "AUTH-1", {"scope_revision": 1, "scope_total_amount": 100.0}, False),
 			fake_frappe.db.set_values,
@@ -120,12 +131,15 @@ class TestPhase24ServiceScopeBackfill(unittest.TestCase):
 			existing_auths={"AUTH-ORPHAN"},
 		)
 
-		with patch(
-			"auto_service_management.patches.phase15_backfill_service_scope_revisions.frappe",
-			fake_frappe,
-		), patch(
-			"auto_service_management.patches.phase15_backfill_service_scope_revisions.get_repair_job_services",
-			return_value=[SimpleNamespace(status="Approved", total_amount=80)],
+		with (
+			patch(
+				"auto_service_management.patches.phase15_backfill_service_scope_revisions.frappe",
+				fake_frappe,
+			),
+			patch(
+				"auto_service_management.patches.phase15_backfill_service_scope_revisions.get_repair_job_services",
+				return_value=[SimpleNamespace(status="Approved", total_amount=80)],
+			),
 		):
 			_backfill_service_scope_revisions()
 
@@ -135,7 +149,12 @@ class TestPhase24ServiceScopeBackfill(unittest.TestCase):
 			],
 			[call for call in fake_frappe.db.set_values if call[0] == "Repair Job"],
 		)
-		self.assertTrue(any("not linked to an existing Repair Job" in message for _, message in fake_frappe.logger_obj.messages))
+		self.assertTrue(
+			any(
+				"not linked to an existing Repair Job" in message
+				for _, message in fake_frappe.logger_obj.messages
+			)
+		)
 
 	def test_backfill_is_noop_when_tables_missing(self):
 		fake_frappe = FakeFrappe(jobs=["RJ-1"], authorizations=[])

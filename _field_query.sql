@@ -1,1 +1,0 @@
-SELECT fieldname FROM tabDocField WHERE parent='Repair Service Line' AND fieldname IN ('requested_qty','issued_qty','stock_request_status','material_request','stock_entry');

@@ -7,13 +7,13 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
+	get_repair_job_services,
+)
 from auto_service_management.auto_service_management.workflow_compatibility import (
 	build_repair_job_invoice_rows,
 	build_repair_job_payment_rows,
 	build_repair_job_service_workshop_bay_rows,
-)
-from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
-	get_repair_job_services,
 )
 
 RELEASE_A_PATCH = "auto_service_management.patches.phase11_materialize_template_services"
@@ -96,7 +96,9 @@ def _workshop_bay_issues() -> list[dict]:
 	issues = []
 	if not frappe.db.table_exists("Repair Job Service"):
 		return issues
-	for repair_job_name in frappe.get_all("Repair Job", pluck="name", order_by="creation asc, name asc", limit_page_length=0):
+	for repair_job_name in frappe.get_all(
+		"Repair Job", pluck="name", order_by="creation asc, name asc", limit_page_length=0
+	):
 		_, job_issues = build_repair_job_service_workshop_bay_rows(repair_job_name)
 		issues.extend({"check": "workshop_bay", **issue} for issue in job_issues)
 	return issues
@@ -104,7 +106,9 @@ def _workshop_bay_issues() -> list[dict]:
 
 def _financial_issues() -> list[dict]:
 	issues = []
-	for repair_job_name in frappe.get_all("Repair Job", pluck="name", order_by="creation asc, name asc", limit_page_length=0):
+	for repair_job_name in frappe.get_all(
+		"Repair Job", pluck="name", order_by="creation asc, name asc", limit_page_length=0
+	):
 		job = frappe.get_doc("Repair Job", repair_job_name)
 		invoice_rows = build_repair_job_invoice_rows(repair_job_name)
 		payment_rows = build_repair_job_payment_rows(repair_job_name)

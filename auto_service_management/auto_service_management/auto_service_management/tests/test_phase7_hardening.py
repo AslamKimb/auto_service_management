@@ -42,7 +42,10 @@ class TestPhase7HardeningContracts(UnitTestCase):
 		import json
 
 		module_root = Path(__file__).parents[1]
-		workspaces = [json.loads(path.read_text(encoding="utf-8")) for path in (module_root / "workspace").glob("*/*.json")]
+		workspaces = [
+			json.loads(path.read_text(encoding="utf-8"))
+			for path in (module_root / "workspace").glob("*/*.json")
+		]
 		overview = next(workspace for workspace in workspaces if workspace["name"] == "Workshop Management")
 		declared_shortcuts = {shortcut["label"] for shortcut in overview["shortcuts"]}
 		declared_roles = {row["role"] for workspace in workspaces for row in workspace["roles"]}

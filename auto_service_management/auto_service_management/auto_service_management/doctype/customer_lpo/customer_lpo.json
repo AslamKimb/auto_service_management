@@ -46,6 +46,15 @@
       "in_list_view": 1
     },
     {
+      "fieldname": "lpo_uniqueness_key",
+      "fieldtype": "Data",
+      "label": "LPO Uniqueness Key",
+      "length": 64,
+      "hidden": 1,
+      "read_only": 1,
+      "unique": 1
+    },
+    {
       "fieldname": "issue_date",
       "fieldtype": "Date",
       "label": "Issue Date",

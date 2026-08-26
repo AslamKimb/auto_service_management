@@ -28,9 +28,7 @@ def make_sales_invoice(source_name, target_doc=None, args=None):
 
 	sales_order_items = sales_order.get("items") or []
 	invoice_items = invoice.get("items") or []
-	items_by_source = {
-		item.get("so_detail"): item for item in invoice_items if item.get("so_detail")
-	}
+	items_by_source = {item.get("so_detail"): item for item in invoice_items if item.get("so_detail")}
 	for index, sales_order_item in enumerate(sales_order_items):
 		invoice_item = items_by_source.get(sales_order_item.get("name"))
 		if not invoice_item and index < len(invoice_items):

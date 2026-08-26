@@ -89,11 +89,7 @@ class TestCustomerVehicle(IntegrationTestCase):
 		self.assertEqual(model_meta.title_field, "model_name")
 
 	def test_catalog_is_unique_and_idempotent(self):
-		pairs = [
-			(make, model)
-			for make, models in DEFAULT_VEHICLE_CATALOG.items()
-			for model in models
-		]
+		pairs = [(make, model) for make, models in DEFAULT_VEHICLE_CATALOG.items() for model in models]
 		self.assertEqual(len(pairs), len(set(pairs)))
 
 		seed_vehicle_catalog()
@@ -109,12 +105,8 @@ class TestCustomerVehicle(IntegrationTestCase):
 
 	def test_same_model_name_can_belong_to_multiple_makes(self):
 		seed_vehicle_catalog()
-		ford_ranger = frappe.db.get_value(
-			"Vehicle Model", {"vehicle_make": "Ford", "model_name": "Ranger"}
-		)
-		hino_ranger = frappe.db.get_value(
-			"Vehicle Model", {"vehicle_make": "Hino", "model_name": "Ranger"}
-		)
+		ford_ranger = frappe.db.get_value("Vehicle Model", {"vehicle_make": "Ford", "model_name": "Ranger"})
+		hino_ranger = frappe.db.get_value("Vehicle Model", {"vehicle_make": "Hino", "model_name": "Ranger"})
 		self.assertNotEqual(ford_ranger, hino_ranger)
 		self.assertEqual(_resolve_legacy_values("", "Ranger"), ("Unspecified", "Ranger"))
 		self.assertEqual(_resolve_legacy_values("Toyota", "Toyota - Hilux"), ("Toyota", "Hilux"))
@@ -139,7 +131,9 @@ class TestCustomerVehicle(IntegrationTestCase):
 		customer = _get_or_create_test_customer()
 		valid_registration = "TEST-LINK-VALID"
 		invalid_registration = "TEST-LINK-INVALID"
-		frappe.db.delete("Customer Vehicle", {"registration_number": ["in", [valid_registration, invalid_registration]]})
+		frappe.db.delete(
+			"Customer Vehicle", {"registration_number": ["in", [valid_registration, invalid_registration]]}
+		)
 
 		valid_vehicle = frappe.get_doc(
 			{

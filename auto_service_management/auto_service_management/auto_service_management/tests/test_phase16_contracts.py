@@ -125,7 +125,7 @@ class TestPhase16MaterialRequestContracts(UnitTestCase):
 						"_eligible_components",
 						return_value=([(service, component)], {}),
 					) as eligible,
-					patch.object(component_mapping.frappe, "get_single", return_value=settings),
+					patch.object(component_mapping, "_get_settings", return_value=settings),
 					patch.object(component_mapping, "_validate_company"),
 					patch.object(
 						component_mapping,
@@ -179,8 +179,8 @@ class TestPhase16MaterialRequestContracts(UnitTestCase):
 				return_value=([(service, component)], {}),
 			),
 			patch.object(
-				component_mapping.frappe,
-				"get_single",
+				component_mapping,
+				"_get_settings",
 				return_value=frappe._dict(company="COMPANY-1"),
 			),
 			patch.object(component_mapping, "_validate_company"),
@@ -224,9 +224,7 @@ class TestPhase16MaterialRequestContracts(UnitTestCase):
 			patch.object(
 				component_mapping, "_eligible_components", return_value=([(service, component)], {})
 			),
-			patch.object(
-				component_mapping.frappe, "get_single", return_value=frappe._dict(company="COMPANY-1")
-			),
+			patch.object(component_mapping, "_get_settings", return_value=frappe._dict(company="COMPANY-1")),
 			patch.object(component_mapping, "_validate_company"),
 			patch.object(
 				component_mapping, "get_material_request_types", return_value=list(MATERIAL_REQUEST_TYPES)
@@ -283,8 +281,8 @@ class TestPhase16MaterialRequestContracts(UnitTestCase):
 			patch.object(component_mapping, "_material_request_history", return_value=history),
 			patch.object(component_mapping, "iter_repair_job_components", return_value=components),
 			patch.object(
-				component_mapping.frappe,
-				"get_single",
+				component_mapping,
+				"_get_settings",
 				return_value=frappe._dict(default_warehouse="Stores"),
 			),
 			patch.object(component_mapping.frappe.db, "get_value", return_value=5),

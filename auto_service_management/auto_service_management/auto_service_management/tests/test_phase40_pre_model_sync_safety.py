@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
-import unittest
 
 from auto_service_management.patches.phase17_pre_model_sync_safety import (
 	_collect_release_a_safety_issues,
@@ -59,7 +59,16 @@ class TestPhase40PreModelSyncSafety(unittest.TestCase):
 			),
 			patch(
 				"auto_service_management.patches.phase17_pre_model_sync_safety.build_repair_job_service_workshop_bay_rows",
-				return_value=([], [{"repair_job": "RJ-1", "repair_job_service": "SVC-1", "reason": "Repair Job has no enabled Workshop Bay"}]),
+				return_value=(
+					[],
+					[
+						{
+							"repair_job": "RJ-1",
+							"repair_job_service": "SVC-1",
+							"reason": "Repair Job has no enabled Workshop Bay",
+						}
+					],
+				),
 			),
 			patch(
 				"auto_service_management.patches.phase17_pre_model_sync_safety._active_service_total",

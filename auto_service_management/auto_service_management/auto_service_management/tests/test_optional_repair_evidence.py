@@ -112,4 +112,3 @@ class TestOptionalRepairEvidence(IntegrationTestCase):
 		job = frappe.get_doc("Repair Job", self._job_at("Quality Check"))
 		job.return_to_repair()
 		self.assertEqual("In Repair", job.reload().job_status)
-

@@ -1,16 +1,16 @@
 # Copyright (c) 2026, Aslam Kimbugwe and contributors
 # For license information, please see license.txt
 
+import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
-import unittest
 
+from auto_service_management.auto_service_management.workflow_compatibility import (
+	_get_enabled_job_workshop_bay,
+	build_repair_job_service_workshop_bay_rows,
+)
 from auto_service_management.patches.phase12_backfill_workshop_bays import (
 	_backfill_workshop_bays,
-)
-from auto_service_management.auto_service_management.workflow_compatibility import (
-	build_repair_job_service_workshop_bay_rows,
-	_get_enabled_job_workshop_bay,
 )
 
 
@@ -42,7 +42,9 @@ class TestPhase21WorkshopBayBackfill(unittest.TestCase):
 		):
 			rows, exceptions = build_repair_job_service_workshop_bay_rows("RJ-1")
 
-		self.assertEqual(rows, [{"repair_job": "RJ-1", "repair_job_service": "SVC-1", "workshop_bay": "BAY-1"}])
+		self.assertEqual(
+			rows, [{"repair_job": "RJ-1", "repair_job_service": "SVC-1", "workshop_bay": "BAY-1"}]
+		)
 		self.assertEqual(exceptions, [])
 
 	def test_build_repair_job_service_workshop_bay_rows_flags_unassigned_active_services(self):
@@ -84,7 +86,9 @@ class TestPhase21WorkshopBayBackfill(unittest.TestCase):
 			)
 		)
 
-		with patch("auto_service_management.auto_service_management.workflow_compatibility.frappe", fake_frappe):
+		with patch(
+			"auto_service_management.auto_service_management.workflow_compatibility.frappe", fake_frappe
+		):
 			bay_name = _get_enabled_job_workshop_bay("RJ-1")
 
 		self.assertIsNone(bay_name)
@@ -111,7 +115,14 @@ class TestPhase21WorkshopBayBackfill(unittest.TestCase):
 				"auto_service_management.patches.phase12_backfill_workshop_bays.build_repair_job_service_workshop_bay_rows",
 				return_value=(
 					[{"repair_job": "RJ-1", "repair_job_service": "SVC-1", "workshop_bay": "BAY-1"}],
-					[{"repair_job": "RJ-1", "repair_job_service": "SVC-2", "docstatus": 0, "reason": "Repair Job has no enabled Workshop Bay"}],
+					[
+						{
+							"repair_job": "RJ-1",
+							"repair_job_service": "SVC-2",
+							"docstatus": 0,
+							"reason": "Repair Job has no enabled Workshop Bay",
+						}
+					],
 				),
 			),
 		):

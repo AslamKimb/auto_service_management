@@ -1,9 +1,9 @@
 # Copyright (c) 2026, Aslam Kimbugwe and contributors
 # For license information, please see license.txt
 
+import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
-import unittest
 
 from auto_service_management.patches.phase14_prepare_service_authorization_docstatus import (
 	AUTHORIZATION_DOCSTATUS_MAP,
@@ -30,8 +30,13 @@ class TestPhase23DocstatusMapping(unittest.TestCase):
 			logger=lambda name: fake_logger,
 		)
 
-		with patch("auto_service_management.patches.phase14_prepare_service_authorization_docstatus.frappe", fake_frappe):
-			_apply_docstatus_map("Repair Job Service", "status", SERVICE_DOCSTATUS_MAP, legacy_note_label="service")
+		with patch(
+			"auto_service_management.patches.phase14_prepare_service_authorization_docstatus.frappe",
+			fake_frappe,
+		):
+			_apply_docstatus_map(
+				"Repair Job Service", "status", SERVICE_DOCSTATUS_MAP, legacy_note_label="service"
+			)
 
 		set_value.assert_has_calls(
 			[
@@ -57,7 +62,10 @@ class TestPhase23DocstatusMapping(unittest.TestCase):
 			logger=lambda name: SimpleNamespace(warning=Mock()),
 		)
 
-		with patch("auto_service_management.patches.phase14_prepare_service_authorization_docstatus.frappe", fake_frappe):
+		with patch(
+			"auto_service_management.patches.phase14_prepare_service_authorization_docstatus.frappe",
+			fake_frappe,
+		):
 			_apply_docstatus_map(
 				"Customer Authorization",
 				"status",
@@ -75,5 +83,10 @@ class TestPhase23DocstatusMapping(unittest.TestCase):
 
 	def test_missing_table_is_noop(self):
 		fake_frappe = SimpleNamespace(db=SimpleNamespace(table_exists=lambda doctype: False))
-		with patch("auto_service_management.patches.phase14_prepare_service_authorization_docstatus.frappe", fake_frappe):
-			_apply_docstatus_map("Repair Job Service", "status", SERVICE_DOCSTATUS_MAP, legacy_note_label="service")
+		with patch(
+			"auto_service_management.patches.phase14_prepare_service_authorization_docstatus.frappe",
+			fake_frappe,
+		):
+			_apply_docstatus_map(
+				"Repair Job Service", "status", SERVICE_DOCSTATUS_MAP, legacy_note_label="service"
+			)

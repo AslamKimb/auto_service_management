@@ -93,11 +93,7 @@ def get_portal_repair_job(name: str) -> dict:
 	)
 	payments = _submitted_payment_allocations(invoices)
 	job_status = job.job_status
-	current_index = (
-		REPAIR_JOB_LIFECYCLE.index(job_status)
-		if job_status in REPAIR_JOB_LIFECYCLE
-		else -1
-	)
+	current_index = REPAIR_JOB_LIFECYCLE.index(job_status) if job_status in REPAIR_JOB_LIFECYCLE else -1
 	return {
 		"job": frappe._dict(
 			name=job.name,

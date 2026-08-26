@@ -34,7 +34,9 @@ class TestSalesOrderBackendContract(unittest.TestCase):
 			self.assertIn(method, hooks)
 		self.assertIn("def _validate_sales_order_submission", inspect.getsource(document_sync))
 		self.assertIn('doc.select_print_heading = "Proforma Invoice"', inspect.getsource(document_sync))
-		mapper = (ROOT / "auto_service_management" / "integration" / "sales_order_mapping.py").read_text(encoding="utf-8")
+		mapper = (ROOT / "auto_service_management" / "integration" / "sales_order_mapping.py").read_text(
+			encoding="utf-8"
+		)
 		self.assertIn("items_by_source", mapper)
 		self.assertIn('sales_order_item.get("name")', mapper)
 

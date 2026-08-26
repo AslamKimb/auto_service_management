@@ -67,9 +67,11 @@ def _ensure_make(make_name):
 	if existing:
 		return existing
 
-	return frappe.get_doc({"doctype": "Vehicle Make", "make_name": make_name}).insert(
-		ignore_permissions=True
-	).name
+	return (
+		frappe.get_doc({"doctype": "Vehicle Make", "make_name": make_name})
+		.insert(ignore_permissions=True)
+		.name
+	)
 
 
 def _ensure_model(make_name, model_name):
@@ -83,19 +85,21 @@ def _ensure_model(make_name, model_name):
 		if existing_make == make_name:
 			model_name = friendly_name
 
-	existing = frappe.db.exists(
-		"Vehicle Model", {"vehicle_make": make_name, "model_name": model_name}
-	)
+	existing = frappe.db.exists("Vehicle Model", {"vehicle_make": make_name, "model_name": model_name})
 	if existing:
 		return existing
 
-	return frappe.get_doc(
-		{
-			"doctype": "Vehicle Model",
-			"vehicle_make": make_name,
-			"model_name": model_name,
-		}
-	).insert(ignore_permissions=True).name
+	return (
+		frappe.get_doc(
+			{
+				"doctype": "Vehicle Model",
+				"vehicle_make": make_name,
+				"model_name": model_name,
+			}
+		)
+		.insert(ignore_permissions=True)
+		.name
+	)
 
 
 def _clean(value):

@@ -2,11 +2,12 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe.model.document import Document
+
 from auto_service_management.auto_service_management.workflow_compatibility import (
 	recompute_repair_job_state,
 	sync_quality_check_road_tests,
 )
-from frappe.model.document import Document
 
 
 class QualityCheck(Document):

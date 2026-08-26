@@ -40,6 +40,7 @@ CONTROL_REPORTS = {
 		source_doctype="Customer LPO Vehicle",
 		permission_doctype="Customer LPO",
 		permission_parent_doctype="Customer LPO",
+		child_parent_doctype="Customer LPO",
 		columns=(
 			column("LPO", "parent", "Link", "Customer LPO"),
 			column("Registration", "registration_number"),
@@ -49,7 +50,15 @@ CONTROL_REPORTS = {
 			column("Planned Date", "planned_date", "Date"),
 			column("Status", "status"),
 		),
-		fields=("parent", "registration_number", "customer_vehicle", "repair_job", "requested_work", "planned_date", "status"),
+		fields=(
+			"parent",
+			"registration_number",
+			"customer_vehicle",
+			"repair_job",
+			"requested_work",
+			"planned_date",
+			"status",
+		),
 		filters=("parent", "customer_vehicle", "repair_job", "status"),
 		date_field="planned_date",
 		order_by="planned_date asc, parent asc, idx asc",
@@ -59,6 +68,7 @@ CONTROL_REPORTS = {
 		permission_doctype="Repair Job",
 		parent_field="repair_job",
 		permission_parent_doctype="Repair Job",
+		child_parent_doctype="Repair Job",
 		columns=(
 			column("Closed On", "closed_on", "Datetime", width=170),
 			column("Repair Job", "repair_job", "Link", "Repair Job"),
@@ -93,6 +103,7 @@ CONTROL_REPORTS = {
 		permission_doctype="Repair Job",
 		parent_field="repair_job",
 		permission_parent_doctype="Repair Job",
+		child_parent_doctype="Repair Job",
 		columns=(
 			column("Repair Job", "repair_job", "Link", "Repair Job"),
 			column("Customer", "customer", "Link", "Customer"),

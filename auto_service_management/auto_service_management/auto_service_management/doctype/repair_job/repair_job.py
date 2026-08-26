@@ -15,9 +15,17 @@ from auto_service_management.auto_service_management.doctype.repair_job_service.
 	get_service_components,
 	iter_repair_job_components,
 )
+from auto_service_management.auto_service_management.settings_cache import (
+	get_settings as _get_cached_settings,
+)
 from auto_service_management.auto_service_management.workflow_compatibility import (
 	sync_repair_job_compatibility_views,
 )
+
+
+def _get_settings():
+	return _get_cached_settings(frappe_module=frappe)
+
 
 # ---------------------------------------------------------------------------
 # State machine - spec-aligned workflow
@@ -98,7 +106,15 @@ def get_sales_order_summary(repair_job_name: str) -> dict:
 	orders = frappe.get_all(
 		"Sales Order",
 		filters={"repair_job": repair_job_name},
-		fields=["name", "docstatus", "status", "transaction_date", "delivery_date", "grand_total", "per_billed"],
+		fields=[
+			"name",
+			"docstatus",
+			"status",
+			"transaction_date",
+			"delivery_date",
+			"grand_total",
+			"per_billed",
+		],
 		order_by="creation desc",
 		limit_page_length=0,
 	)
@@ -128,7 +144,7 @@ def can_create_final_release_gate_pass(repair_job_name: str) -> bool:
 	job.check_permission("read")
 	if job.gate_pass or any(row.sales_invoice for row in job.get("sales_invoices") or []):
 		return True
-	policy = frappe.get_single("Auto Service Settings").get("gate_pass_payment_policy")
+	policy = _get_settings().get("gate_pass_payment_policy")
 	return policy in {"Payment Not Required", "No Payment Required"}
 
 
@@ -252,15 +268,26 @@ class RepairJob(Document):
 	def validate_customer_lpo(self):
 		if not self.customer_lpo:
 			return
-		lpo = frappe.db.get_value("Customer LPO", self.customer_lpo, ["customer", "docstatus", "fleet_service_campaign"], as_dict=True)
+		lpo = frappe.db.get_value(
+			"Customer LPO",
+			self.customer_lpo,
+			["customer", "docstatus", "fleet_service_campaign"],
+			as_dict=True,
+		)
 		if not lpo:
 			frappe.throw(_("Customer LPO {0} does not exist.").format(self.customer_lpo))
 		if lpo.customer != self.customer:
-			frappe.throw(_("Customer LPO {0} customer does not match this Repair Job.").format(self.customer_lpo))
+			frappe.throw(
+				_("Customer LPO {0} customer does not match this Repair Job.").format(self.customer_lpo)
+			)
 		if lpo.docstatus != 1:
-			frappe.throw(_("Customer LPO {0} must be submitted before linking a Repair Job.").format(self.customer_lpo))
+			frappe.throw(
+				_("Customer LPO {0} must be submitted before linking a Repair Job.").format(self.customer_lpo)
+			)
 		if lpo.fleet_service_campaign and self.fleet_service_campaign != lpo.fleet_service_campaign:
-			frappe.throw(_("Repair Job Fleet Service Campaign must match Customer LPO {0}.").format(self.customer_lpo))
+			frappe.throw(
+				_("Repair Job Fleet Service Campaign must match Customer LPO {0}.").format(self.customer_lpo)
+			)
 
 	def sync_fleet_campaign_membership(self):
 		if getattr(self.flags, "skip_fleet_campaign_sync", False):
@@ -291,9 +318,7 @@ class RepairJob(Document):
 	def _update_campaign_membership(self, campaign_name, *, include):
 		campaign = frappe.get_doc("Fleet Service Campaign", campaign_name)
 		campaign.check_permission("write")
-		matching_rows = [
-			row for row in campaign.get("fleet_jobs") or [] if row.repair_job == self.name
-		]
+		matching_rows = [row for row in campaign.get("fleet_jobs") or [] if row.repair_job == self.name]
 		changed = False
 		if include and not matching_rows:
 			campaign.append("fleet_jobs", {"repair_job": self.name})
@@ -447,6 +472,7 @@ class RepairJob(Document):
 		}
 		quality_check = frappe.get_doc("Quality Check", self.quality_check) if self.quality_check else None
 		road_tests = list(quality_check.get("road_tests") or []) if quality_check else []
+
 		def linked_display_status(doctype, linked_name):
 			meta = frappe.get_meta(doctype)
 			if meta.has_field("status"):
@@ -595,18 +621,21 @@ class RepairJob(Document):
   </div>
 </div>
 """
-		return frappe.render_template(template, {
-			"doc": self,
-			"frappe": frappe,
-			"related_docs": related_docs,
-			"operations": operations,
-			"road_tests": road_tests,
-			"linked_display_status": linked_display_status,
-		})
+		return frappe.render_template(
+			template,
+			{
+				"doc": self,
+				"frappe": frappe,
+				"related_docs": related_docs,
+				"operations": operations,
+				"road_tests": road_tests,
+				"linked_display_status": linked_display_status,
+			},
+		)
 
 	def set_currency_from_settings(self):
 		if not self.currency:
-			settings = frappe.get_single("Auto Service Settings")
+			settings = _get_settings()
 			if settings and settings.default_currency:
 				self.currency = settings.default_currency
 
@@ -619,10 +648,10 @@ class RepairJob(Document):
 			vehicle = frappe.get_doc("Customer Vehicle", self.customer_vehicle)
 			self.registration_number = vehicle.registration_number
 			model_name = (
-				frappe.db.get_value("Vehicle Model", vehicle.model, "model_name")
-				if vehicle.model
-				else ""
-			) or vehicle.model or ""
+				(frappe.db.get_value("Vehicle Model", vehicle.model, "model_name") if vehicle.model else "")
+				or vehicle.model
+				or ""
+			)
 			parts = [
 				vehicle.make or "",
 				model_name,
@@ -1011,6 +1040,7 @@ class RepairJob(Document):
 				parsed = [line_names]
 			line_names = parsed if isinstance(parsed, (list, tuple, set)) else [parsed]
 		return {str(name) for name in line_names if name}
+
 	def _get_services(self):
 		return get_repair_job_services(self.name)
 
@@ -1122,6 +1152,7 @@ class RepairJob(Document):
 			history.insert(ignore_permissions=True)
 		else:
 			history.save(ignore_permissions=True)
+
 
 def _db_has_column(doctype, fieldname):
 	has_column = getattr(frappe.db, "has_column", None)

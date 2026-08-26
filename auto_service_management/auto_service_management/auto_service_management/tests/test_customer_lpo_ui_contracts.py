@@ -57,9 +57,9 @@ class TestCustomerLPOUIContracts(UnitTestCase):
 
 	def test_lpo_print_formats_are_app_owned(self):
 		fulfilment = json.loads(
-			(ROOT / "print_format/customer_lpo_fulfilment_summary/customer_lpo_fulfilment_summary.json").read_text(
-				encoding="utf-8"
-			)
+			(
+				ROOT / "print_format/customer_lpo_fulfilment_summary/customer_lpo_fulfilment_summary.json"
+			).read_text(encoding="utf-8")
 		)
 		invoice = json.loads(
 			(ROOT / "print_format/customer_lpo_invoice/customer_lpo_invoice.json").read_text(encoding="utf-8")

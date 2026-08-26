@@ -10,6 +10,15 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, now_datetime
 
+from auto_service_management.auto_service_management.settings_cache import (
+	get_settings as _get_cached_settings,
+)
+
+
+def _get_settings():
+	return _get_cached_settings(frappe_module=frappe)
+
+
 INVOICEABLE_SERVICE_STATUSES = frozenset({"Approved", "Completed"})
 EXCLUDED_SERVICE_STATUSES = frozenset({"Rejected", "Cancelled", "Canceled"})
 STOCK_COMPONENT_TYPES = {"Part", "Consumable"}
@@ -121,7 +130,9 @@ def make_repair_job_service(source_name: str, target_doc: str | None = None, rep
 		vehicle = frappe.db.get_value(
 			"Customer Vehicle", getattr(job, "customer_vehicle", None), ["make", "model"], as_dict=True
 		)
-		if not _template_is_compatible(template, getattr(vehicle, "make", None), getattr(vehicle, "model", None)):
+		if not _template_is_compatible(
+			template, getattr(vehicle, "make", None), getattr(vehicle, "model", None)
+		):
 			frappe.throw(_("This service template is not compatible with the Repair Job vehicle."))
 		service.repair_job = job.name
 		service.customer = getattr(job, "customer", None)
@@ -157,9 +168,7 @@ def make_repair_job_service_template(source_name: str, target_doc: str | None = 
 	if not vehicle_name and getattr(service, "repair_job", None):
 		vehicle_name = frappe.db.get_value("Repair Job", service.repair_job, "customer_vehicle")
 	if vehicle_name:
-		vehicle = frappe.db.get_value(
-			"Customer Vehicle", vehicle_name, ["make", "model"], as_dict=True
-		)
+		vehicle = frappe.db.get_value("Customer Vehicle", vehicle_name, ["make", "model"], as_dict=True)
 		template.vehicle_make = getattr(vehicle, "make", None)
 		template.vehicle_model = getattr(vehicle, "model", None)
 	for definition in COMPONENT_TABLES:
@@ -175,9 +184,10 @@ def get_compatible_repair_job_service_templates(repair_job: str):
 	job = frappe.get_doc("Repair Job", repair_job)
 	job.check_permission("read")
 	frappe.has_permission("Repair Job Service Template", "read", throw=True)
-	vehicle = frappe.db.get_value(
-		"Customer Vehicle", job.customer_vehicle, ["make", "model"], as_dict=True
-	) or frappe._dict()
+	vehicle = (
+		frappe.db.get_value("Customer Vehicle", job.customer_vehicle, ["make", "model"], as_dict=True)
+		or frappe._dict()
+	)
 	templates = frappe.get_list(
 		"Repair Job Service Template",
 		filters={"is_active": 1},
@@ -185,14 +195,16 @@ def get_compatible_repair_job_service_templates(repair_job: str):
 		order_by="template_name asc",
 	)
 	compatible = [
-		template
-		for template in templates
-		if _template_is_compatible(template, vehicle.make, vehicle.model)
+		template for template in templates if _template_is_compatible(template, vehicle.make, vehicle.model)
 	]
 	return sorted(
 		compatible,
 		key=lambda template: (
-			0 if template.vehicle_model == vehicle.model and vehicle.model else 1 if template.vehicle_make else 2,
+			0
+			if template.vehicle_model == vehicle.model and vehicle.model
+			else 1
+			if template.vehicle_make
+			else 2,
 			template.template_name or template.service_name or template.name,
 		),
 	)
@@ -220,7 +232,7 @@ def _template_is_compatible(template, vehicle_make, vehicle_model):
 
 def _snapshot_current_component_values(row, component_type):
 	"""Keep templates price-free; a new service captures today's price/defaults."""
-	settings = frappe.get_single("Auto Service Settings")
+	settings = _get_settings()
 	if component_type == "Labour":
 		row.item_code = row.item_code or settings.default_labour_item
 		row.hours = row.estimated_hours or 1
@@ -432,7 +444,7 @@ class RepairJobService(Document):
 				row.billable = 1
 			if component.component_type == "Labour":
 				if not getattr(row, "item_code", None):
-					settings = frappe.get_single("Auto Service Settings")
+					settings = _get_settings()
 					if settings.default_labour_item:
 						row.item_code = settings.default_labour_item
 				if row.billable:
@@ -441,7 +453,7 @@ class RepairJobService(Document):
 				else:
 					row.billing_hours = 0
 				if row.billable and not getattr(row, "billing_rate", None):
-					settings = frappe.get_single("Auto Service Settings")
+					settings = _get_settings()
 					if settings.default_labour_rate:
 						row.billing_rate = settings.default_labour_rate
 						if not row.currency and settings.default_currency:

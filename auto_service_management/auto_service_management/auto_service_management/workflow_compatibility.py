@@ -100,7 +100,9 @@ def sync_repair_job_compatibility_views(repair_job):
 		int(getattr(repair_job, "scope_revision", 0) or 0),
 		len(repair_job.get("repair_job_services") or []),
 	)
-	repair_job.payment_total = flt(sum(flt(row.get("allocated_amount")) for row in repair_job.get("payment_entries") or []))
+	repair_job.payment_total = flt(
+		sum(flt(row.get("allocated_amount")) for row in repair_job.get("payment_entries") or [])
+	)
 	repair_job.closure_type = _derive_closure_type(repair_job)
 	repair_job.payment_status = _derive_payment_status(
 		sum(flt(row.get("grand_total")) for row in repair_job.get("sales_invoices") or []),
@@ -118,7 +120,11 @@ def sync_repair_job_compatibility_views(repair_job):
 	if repair_job.get("sales_orders"):
 		ordered = sorted(
 			repair_job.get("sales_orders") or [],
-			key=lambda row: (int(row.get("docstatus") or 0) == 1, row.get("transaction_date") or "", row.get("sales_order") or ""),
+			key=lambda row: (
+				int(row.get("docstatus") or 0) == 1,
+				row.get("transaction_date") or "",
+				row.get("sales_order") or "",
+			),
 			reverse=True,
 		)
 		repair_job.sales_order = ordered[0].get("sales_order")
@@ -179,7 +185,10 @@ def invalidate_repair_job_authorizations(repair_job_name: str):
 	current_scope_revision = int(frappe.db.get_value("Repair Job", repair_job_name, "scope_revision") or 0)
 	current_total_amount = flt(frappe.db.get_value("Repair Job", repair_job_name, "total_amount") or 0)
 	for auth in approvals:
-		if int(auth.scope_revision or 0) == current_scope_revision and flt(auth.scope_total_amount) == current_total_amount:
+		if (
+			int(auth.scope_revision or 0) == current_scope_revision
+			and flt(auth.scope_total_amount) == current_total_amount
+		):
 			continue
 		frappe.db.set_value("Customer Authorization", auth.name, "docstatus", 2, update_modified=False)
 
@@ -248,7 +257,11 @@ def sync_customer_authorization_snapshot(authorization):
 
 	if not authorization.repair_job:
 		return authorization
-	if getattr(authorization, "docstatus", 0) == 1 and authorization.scope_revision and authorization.scope_total_amount:
+	if (
+		getattr(authorization, "docstatus", 0) == 1
+		and authorization.scope_revision
+		and authorization.scope_total_amount
+	):
 		return authorization
 
 	authorization.scope_revision = int(_get_job_field(authorization.repair_job, "scope_revision") or 0)
@@ -290,11 +303,23 @@ def build_repair_job_invoice_rows(repair_job_name: str) -> list[dict]:
 				"posting_date": invoice.posting_date,
 				"closed_on": job.closed_on,
 				"grand_total": flt(invoice.get("rounded_total") or invoice.grand_total),
-				"paid_amount": flt(max(flt(invoice.get("rounded_total") or invoice.grand_total) - flt(getattr(invoice, "outstanding_amount", 0)), 0)),
+				"paid_amount": flt(
+					max(
+						flt(invoice.get("rounded_total") or invoice.grand_total)
+						- flt(getattr(invoice, "outstanding_amount", 0)),
+						0,
+					)
+				),
 				"outstanding_amount": flt(getattr(invoice, "outstanding_amount", 0)),
 				"payment_status": _derive_payment_status(
 					flt(invoice.get("rounded_total") or invoice.grand_total),
-					flt(max(flt(invoice.get("rounded_total") or invoice.grand_total) - flt(getattr(invoice, "outstanding_amount", 0)), 0)),
+					flt(
+						max(
+							flt(invoice.get("rounded_total") or invoice.grand_total)
+							- flt(getattr(invoice, "outstanding_amount", 0)),
+							0,
+						)
+					),
 				),
 			}
 		)
@@ -305,7 +330,15 @@ def build_repair_job_sales_order_rows(repair_job_name: str) -> list[dict]:
 	orders = frappe.get_all(
 		"Sales Order",
 		filters={"repair_job": repair_job_name},
-		fields=["name", "transaction_date", "delivery_date", "status", "docstatus", "grand_total", "per_billed"],
+		fields=[
+			"name",
+			"transaction_date",
+			"delivery_date",
+			"status",
+			"docstatus",
+			"grand_total",
+			"per_billed",
+		],
 		order_by="creation asc",
 		limit_page_length=0,
 	)
@@ -325,7 +358,8 @@ def build_repair_job_sales_order_rows(repair_job_name: str) -> list[dict]:
 				"sales_order": order.name,
 				"transaction_date": order.transaction_date,
 				"delivery_date": order.delivery_date,
-				"status": order.status or {0: "Draft", 1: "Submitted", 2: "Cancelled"}.get(order.docstatus, "Draft"),
+				"status": order.status
+				or {0: "Draft", 1: "Submitted", 2: "Cancelled"}.get(order.docstatus, "Draft"),
 				"docstatus": order.docstatus,
 				"grand_total": flt(order.grand_total),
 				"per_billed": flt(order.per_billed),
@@ -351,7 +385,9 @@ def build_repair_job_payment_rows(repair_job_name: str) -> list[dict]:
 		order_by="creation asc, idx asc",
 	)
 	for ref in refs:
-		payment_entry = frappe.db.get_value("Payment Entry", ref.parent, ["posting_date", "docstatus"], as_dict=True)
+		payment_entry = frappe.db.get_value(
+			"Payment Entry", ref.parent, ["posting_date", "docstatus"], as_dict=True
+		)
 		if not payment_entry or payment_entry.docstatus != 1:
 			continue
 		rows.append(
@@ -370,13 +406,17 @@ def build_quality_check_road_test_rows(quality_check) -> list[dict]:
 	quality_check = _resolve_doc(quality_check, "Quality Check")
 	if quality_check.get("road_tests"):
 		return [
-			build_quality_check_road_test_row(quality_check.name, row, quality_check.repair_job, quality_check.customer_vehicle)
+			build_quality_check_road_test_row(
+				quality_check.name, row, quality_check.repair_job, quality_check.customer_vehicle
+			)
 			for row in quality_check.get("road_tests") or []
 		]
 	return []
 
 
-def build_quality_check_road_test_row(quality_check_name: str, road_test, repair_job: str, customer_vehicle: str) -> dict:
+def build_quality_check_road_test_row(
+	quality_check_name: str, road_test, repair_job: str, customer_vehicle: str
+) -> dict:
 	return {
 		"quality_check": quality_check_name,
 		"repair_job": getattr(road_test, "repair_job", None) or repair_job,
@@ -415,12 +455,12 @@ def build_repair_job_service_workshop_bay_rows(repair_job_name: str) -> tuple[li
 			)
 			continue
 		exceptions.append(
-				{
-					"repair_job": repair_job_name,
-					"repair_job_service": service.name,
-					"docstatus": getattr(service, "docstatus", 0),
-					"reason": "Repair Job has no enabled Workshop Bay",
-				}
+			{
+				"repair_job": repair_job_name,
+				"repair_job_service": service.name,
+				"docstatus": getattr(service, "docstatus", 0),
+				"reason": "Repair Job has no enabled Workshop Bay",
+			}
 		)
 	return rows, exceptions
 

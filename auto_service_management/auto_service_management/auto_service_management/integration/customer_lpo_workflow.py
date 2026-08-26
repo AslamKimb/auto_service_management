@@ -8,6 +8,7 @@ import io
 import frappe
 from frappe import _
 from frappe.utils import cint, flt, getdate, today
+from frappe.utils.background_jobs import get_job_status
 
 from auto_service_management.auto_service_management.doctype.customer_lpo_vehicle.customer_lpo_vehicle import (
 	normalize_registration_number,
@@ -23,6 +24,12 @@ CSV_COLUMNS = (
 )
 CSV_REQUIRED_COLUMNS = {"registration_number"}
 ACTIVE_DOCSTATUSES = (0, 1)
+REPAIR_JOB_LOOKUP_BATCH_SIZE = 500
+SUMMARY_PAGE_SIZE = 500
+FLEET_SYNC_MAX_VEHICLES = 20
+FLEET_JOB_TIMEOUT = 1800
+FLEET_JOB_ID_PREFIX = "fleet-campaign"
+FLEET_PROGRESS_TTL = 86400
 
 
 def _get_lpo(name: str, permission: str = "read"):
@@ -34,6 +41,53 @@ def _get_lpo(name: str, permission: str = "read"):
 def _require_submitted(lpo):
 	if lpo.docstatus != 1:
 		frappe.throw(_("Customer LPO {0} must be submitted before this action.").format(lpo.name))
+
+
+def _get_permission_scoped_repair_jobs(repair_job_names, fields, *, require_read=False):
+	"""Load linked jobs in bounded batches while preserving Frappe permissions."""
+	names = list(dict.fromkeys(name for name in repair_job_names if name))
+	if not names:
+		return {}
+	if not frappe.has_permission("Repair Job", "read", throw=require_read):
+		return {}
+	jobs = {}
+	for start in range(0, len(names), REPAIR_JOB_LOOKUP_BATCH_SIZE):
+		batch = names[start : start + REPAIR_JOB_LOOKUP_BATCH_SIZE]
+		for job in frappe.get_list(
+			"Repair Job",
+			filters={"name": ["in", batch]},
+			fields=fields,
+			limit_page_length=len(batch),
+		):
+			jobs[job.name] = job
+	return jobs
+
+
+def _get_bounded_list(
+	doctype: str,
+	*,
+	filters: dict,
+	fields: list[str],
+	order_by: str = "creation asc, name asc",
+	permission_scoped: bool = True,
+) -> list:
+	"""Read a list in bounded pages instead of requesting an unbounded result set."""
+	rows = []
+	offset = 0
+	query = frappe.get_list if permission_scoped else frappe.get_all
+	while True:
+		page = query(
+			doctype,
+			filters=filters,
+			fields=fields,
+			order_by=order_by,
+			limit_page_length=SUMMARY_PAGE_SIZE,
+			limit_start=offset,
+		)
+		rows.extend(page)
+		if len(page) < SUMMARY_PAGE_SIZE:
+			return rows
+		offset += len(page)
 
 
 def _parse_json(value, label):
@@ -131,9 +185,7 @@ def _resolve_vehicle(customer: str, registration_number: str, requested_name: st
 			return None, "Not Found"
 		if vehicle.customer != customer:
 			frappe.throw(
-				_("Customer Vehicle {0} does not belong to Customer {1}.").format(
-					requested_name, customer
-				)
+				_("Customer Vehicle {0} does not belong to Customer {1}.").format(requested_name, customer)
 			)
 		if registration_number and vehicle.registration_number != registration_number:
 			frappe.throw(
@@ -146,7 +198,7 @@ def _resolve_vehicle(customer: str, registration_number: str, requested_name: st
 		"Customer Vehicle",
 		filters={"customer": customer, "registration_number": registration_number},
 		pluck="name",
-		limit_page_length=0,
+		limit_page_length=2,
 	)
 	if len(vehicles) == 1:
 		return vehicles[0], "Resolved"
@@ -156,7 +208,9 @@ def _resolve_vehicle(customer: str, registration_number: str, requested_name: st
 
 
 @frappe.whitelist(methods=["GET"])
-def preview_vehicle_csv(lpo_name: str, csv_text: str | None = None, file_url: str | None = None, rows=None) -> dict:
+def preview_vehicle_csv(
+	lpo_name: str, csv_text: str | None = None, file_url: str | None = None, rows=None
+) -> dict:
 	"""Validate CSV/JSON rows without mutating the Customer LPO."""
 	lpo = _get_lpo(lpo_name, "read")
 	values = _normalise_rows(rows, csv_text, file_url)
@@ -167,12 +221,21 @@ def preview_vehicle_csv(lpo_name: str, csv_text: str | None = None, file_url: st
 		duplicate = registration in seen
 		seen.add(registration)
 		vehicle, status = _resolve_vehicle(lpo.customer, registration, row.get("customer_vehicle"))
-		result.append({**row, "customer_vehicle": vehicle or row.get("customer_vehicle"), "resolution": status, "duplicate": duplicate})
+		result.append(
+			{
+				**row,
+				"customer_vehicle": vehicle or row.get("customer_vehicle"),
+				"resolution": status,
+				"duplicate": duplicate,
+			}
+		)
 	return {"columns": list(CSV_COLUMNS), "count": len(result), "rows": result}
 
 
 @frappe.whitelist(methods=["POST"])
-def import_vehicle_csv(lpo_name: str, csv_text: str | None = None, file_url: str | None = None, rows=None) -> dict:
+def import_vehicle_csv(
+	lpo_name: str, csv_text: str | None = None, file_url: str | None = None, rows=None
+) -> dict:
 	"""Append validated vehicle rows atomically to a draft Customer LPO."""
 	lpo = _get_lpo(lpo_name, "write")
 	if lpo.docstatus != 0:
@@ -187,7 +250,9 @@ def import_vehicle_csv(lpo_name: str, csv_text: str | None = None, file_url: str
 				)
 			)
 		seen.add(row["registration_number"])
-		vehicle, status = _resolve_vehicle(lpo.customer, row["registration_number"], row.get("customer_vehicle"))
+		vehicle, status = _resolve_vehicle(
+			lpo.customer, row["registration_number"], row.get("customer_vehicle")
+		)
 		if status == "Ambiguous":
 			frappe.throw(
 				_("Registration number {0} matches more than one Customer Vehicle.").format(
@@ -207,7 +272,9 @@ def resolve_vehicle_rows(lpo_name: str, row_names=None, create_confirmed: bool =
 	if lpo.docstatus != 0:
 		frappe.throw(_("Vehicle rows can only be resolved on a draft Customer LPO."))
 	create_confirmed = cint(create_confirmed)
-	requested = set(str(value) for value in (_parse_json(row_names, _("Vehicle row names")) if row_names else []))
+	requested = set(
+		str(value) for value in (_parse_json(row_names, _("Vehicle row names")) if row_names else [])
+	)
 	resolved = unresolved = 0
 	for row in lpo.get("vehicle_rows") or []:
 		if requested and row.name not in requested:
@@ -241,22 +308,126 @@ def _campaign_name(lpo):
 
 @frappe.whitelist(methods=["POST"])
 def create_campaign_and_repair_jobs(lpo_name: str) -> dict:
-	"""Create one Fleet Service Campaign and one Repair Job per LPO vehicle."""
+	"""Create one Fleet Service Campaign and one Repair Job per LPO vehicle.
+
+	Small fleets retain the existing synchronous response. Larger fleets are
+	queued with a deterministic job id so retries cannot create duplicate work.
+	"""
 	lpo = _get_lpo(lpo_name, "write")
 	_require_submitted(lpo)
-	if not lpo.get("vehicle_rows"):
+	rows = _validated_fleet_rows(lpo)
+	if len(rows) > FLEET_SYNC_MAX_VEHICLES:
+		return _enqueue_fleet_creation(lpo.name, len(rows))
+	return _create_campaign_and_repair_jobs_sync(lpo, rows=rows)
+
+
+def _validated_fleet_rows(lpo):
+	rows = lpo.get("vehicle_rows") or []
+	if not rows:
 		frappe.throw(_("At least one vehicle is required before creating Repair Jobs."))
-	for row in lpo.get("vehicle_rows") or []:
+	for row in rows:
 		if not row.customer_vehicle:
 			frappe.throw(
 				_("Vehicle row {0} must resolve to a Customer Vehicle before job creation.").format(row.idx)
 			)
+	return rows
+
+
+def _fleet_job_id(lpo_name: str) -> str:
+	return f"{FLEET_JOB_ID_PREFIX}:{lpo_name}"
+
+
+def _fleet_progress_key(job_id: str) -> str:
+	return f"auto_service_management:{job_id}:progress"
+
+
+def _set_fleet_progress(job_id: str, *, status: str, completed: int, total: int, error: str | None = None):
+	payload = {
+		"job_id": job_id,
+		"status": status,
+		"completed": max(0, min(completed, total)),
+		"total": max(0, total),
+	}
+	if error:
+		payload["error"] = error
+	frappe.cache.set_value(_fleet_progress_key(job_id), payload, expires_in_sec=FLEET_PROGRESS_TTL)
+
+
+def _enqueue_fleet_creation(lpo_name: str, total: int) -> dict:
+	job_id = _fleet_job_id(lpo_name)
+	job = frappe.enqueue(
+		"auto_service_management.auto_service_management.integration.customer_lpo_workflow.run_fleet_creation_job",
+		queue="long",
+		timeout=FLEET_JOB_TIMEOUT,
+		job_id=job_id,
+		deduplicate=True,
+		enqueue_after_commit=False,
+		lpo_name=lpo_name,
+		job_id_for_progress=job_id,
+	)
+	if job is not None:
+		_set_fleet_progress(job_id, status="queued", completed=0, total=total)
+	return {"lpo": lpo_name, "job_id": job_id, "status": "Queued"}
+
+
+def run_fleet_creation_job(lpo_name: str, job_id_for_progress: str | None = None) -> dict:
+	"""Worker entry point for large fleet creation; safe to retry."""
+	job_id = job_id_for_progress or _fleet_job_id(lpo_name)
+	lpo = _get_lpo(lpo_name, "write")
+	rows = _validated_fleet_rows(lpo)
+	_set_fleet_progress(job_id, status="running", completed=0, total=len(rows))
+	try:
+		result = _create_campaign_and_repair_jobs_sync(
+			lpo,
+			rows=rows,
+			progress=lambda completed, total: _set_fleet_progress(
+				job_id, status="running", completed=completed, total=total
+			),
+		)
+	except Exception as exc:
+		_set_fleet_progress(
+			job_id,
+			status="failed",
+			completed=0,
+			total=len(rows),
+			error=exc.__class__.__name__,
+		)
+		raise
+	_set_fleet_progress(job_id, status="completed", completed=len(rows), total=len(rows))
+	return result
+
+
+@frappe.whitelist(methods=["GET"])
+def get_fleet_creation_status(lpo_name: str, job_id: str | None = None) -> dict:
+	"""Return permission-scoped progress for a queued large-fleet request."""
+	lpo = _get_lpo(lpo_name, "read")
+	expected_job_id = _fleet_job_id(lpo.name)
+	if job_id and job_id != expected_job_id:
+		frappe.throw(_("Fleet creation job does not belong to Customer LPO {0}.").format(lpo.name))
+	payload = frappe.cache.get_value(_fleet_progress_key(expected_job_id)) or {
+		"job_id": expected_job_id,
+		"status": "not_started",
+		"completed": 0,
+		"total": len(lpo.get("vehicle_rows") or []),
+	}
+	queue_status = get_job_status(expected_job_id)
+	if queue_status and payload["status"] not in {"completed", "failed"}:
+		payload["status"] = getattr(queue_status, "value", str(queue_status)).lower()
+	return payload
+
+
+def _create_campaign_and_repair_jobs_sync(lpo, *, rows, progress=None) -> dict:
+	"""Create campaign/jobs synchronously; idempotent for retries."""
 	campaign_name = lpo.get("fleet_service_campaign")
 	if campaign_name:
 		campaign = frappe.get_doc("Fleet Service Campaign", campaign_name)
 		campaign.check_permission("write")
 		if campaign.customer_lpo and campaign.customer_lpo != lpo.name:
-			frappe.throw(_("Fleet Service Campaign {0} is already linked to Customer LPO {1}.").format(campaign.name, campaign.customer_lpo))
+			frappe.throw(
+				_("Fleet Service Campaign {0} is already linked to Customer LPO {1}.").format(
+					campaign.name, campaign.customer_lpo
+				)
+			)
 	else:
 		campaign = frappe.get_doc(
 			{
@@ -272,15 +443,25 @@ def create_campaign_and_repair_jobs(lpo_name: str) -> dict:
 		)
 		campaign.insert()
 		lpo.db_set("fleet_service_campaign", campaign.name, update_modified=False)
-	for row in lpo.get("vehicle_rows") or []:
+	for index, row in enumerate(rows, start=1):
 		if row.repair_job:
 			job = frappe.get_doc("Repair Job", row.repair_job)
 			if job.customer != lpo.customer or job.customer_vehicle != row.customer_vehicle:
 				frappe.throw(_("Repair Job {0} does not match its LPO vehicle.").format(job.name))
 			if job.get("customer_lpo") and job.customer_lpo != lpo.name:
-				frappe.throw(_("Repair Job {0} is already linked to Customer LPO {1}.").format(job.name, job.customer_lpo))
+				frappe.throw(
+					_("Repair Job {0} is already linked to Customer LPO {1}.").format(
+						job.name, job.customer_lpo
+					)
+				)
 			if job.get("fleet_service_campaign") and job.fleet_service_campaign != campaign.name:
-				frappe.throw(_("Repair Job {0} does not belong to Fleet Service Campaign {1}.").format(job.name, campaign.name))
+				frappe.throw(
+					_("Repair Job {0} does not belong to Fleet Service Campaign {1}.").format(
+						job.name, campaign.name
+					)
+				)
+			if progress:
+				progress(index, len(rows))
 			continue
 		job = frappe.get_doc(
 			{
@@ -298,41 +479,67 @@ def create_campaign_and_repair_jobs(lpo_name: str) -> dict:
 		job.insert()
 		row.repair_job = job.name
 		row.status = "Job Created"
+		if progress:
+			progress(index, len(rows))
 	if not lpo.get("fleet_service_campaign"):
 		lpo.fleet_service_campaign = campaign.name
 	lpo.save()
-	return {"lpo": lpo.name, "fleet_service_campaign": campaign.name, "repair_jobs": [row.repair_job for row in lpo.vehicle_rows]}
+	return {
+		"lpo": lpo.name,
+		"fleet_service_campaign": campaign.name,
+		"repair_jobs": [row.repair_job for row in rows],
+	}
 
 
 @frappe.whitelist(methods=["GET"])
 def get_lpo_summary(lpo_name: str) -> dict:
 	lpo = _get_lpo(lpo_name, "read")
+	vehicle_rows = lpo.get("vehicle_rows") or []
+	jobs_by_name = _get_permission_scoped_repair_jobs(
+		(row.repair_job for row in vehicle_rows),
+		["name", "job_status", "total_amount", "customer_vehicle"],
+	)
 	vehicles = []
-	for row in lpo.get("vehicle_rows") or []:
-		job = None
-		if row.repair_job and frappe.has_permission("Repair Job", "read"):
-			jobs = frappe.get_list(
-				"Repair Job",
-				filters={"name": row.repair_job},
-				fields=["name", "job_status", "total_amount", "customer_vehicle"],
-				limit_page_length=1,
-			)
-			job = jobs[0] if jobs else None
-		vehicles.append({"name": row.name, "registration_number": row.registration_number, "customer_vehicle": row.customer_vehicle, "repair_job": job or row.repair_job, "status": row.status})
-	invoices = frappe.get_list(
-		"Sales Invoice",
-		filters={"customer_lpo": lpo.name},
-		fields=["name", "docstatus", "status", "posting_date", "grand_total", "rounded_total", "net_total", "outstanding_amount"],
-		order_by="posting_date desc, creation desc",
-		limit_page_length=0,
-	) if frappe.db.exists("DocType", "Sales Invoice") and frappe.has_permission("Sales Invoice", "read") else []
-	orders = frappe.get_list(
-		"Sales Order",
-		filters={"customer_lpo": lpo.name},
-		fields=["name", "docstatus", "status", "transaction_date", "grand_total", "per_billed"],
-		order_by="transaction_date desc, creation desc",
-		limit_page_length=0,
-	) if frappe.db.exists("DocType", "Sales Order") and frappe.has_permission("Sales Order", "read") else []
+	for row in vehicle_rows:
+		job = jobs_by_name.get(row.repair_job)
+		vehicles.append(
+			{
+				"name": row.name,
+				"registration_number": row.registration_number,
+				"customer_vehicle": row.customer_vehicle,
+				"repair_job": job or row.repair_job,
+				"status": row.status,
+			}
+		)
+	invoices = (
+		_get_bounded_list(
+			"Sales Invoice",
+			filters={"customer_lpo": lpo.name},
+			fields=[
+				"name",
+				"docstatus",
+				"status",
+				"posting_date",
+				"grand_total",
+				"rounded_total",
+				"net_total",
+				"outstanding_amount",
+			],
+			order_by="posting_date desc, creation desc",
+		)
+		if frappe.db.exists("DocType", "Sales Invoice") and frappe.has_permission("Sales Invoice", "read")
+		else []
+	)
+	orders = (
+		_get_bounded_list(
+			"Sales Order",
+			filters={"customer_lpo": lpo.name},
+			fields=["name", "docstatus", "status", "transaction_date", "grand_total", "per_billed"],
+			order_by="transaction_date desc, creation desc",
+		)
+		if frappe.db.exists("DocType", "Sales Order") and frappe.has_permission("Sales Order", "read")
+		else []
+	)
 	return {
 		"lpo": lpo.name,
 		"status": lpo.status,
@@ -409,7 +616,9 @@ def validate_lpo_sales_document(doc):
 	lpo = _get_lpo(lpo_name, "read")
 	_require_submitted(lpo)
 	if lpo.status in {"Expired", "Completed", "Cancelled", "Exhausted"}:
-		frappe.throw(_("Customer LPO {0} is {1} and cannot receive new billing.").format(lpo.name, lpo.status))
+		frappe.throw(
+			_("Customer LPO {0} is {1} and cannot receive new billing.").format(lpo.name, lpo.status)
+		)
 	if doc.get("customer") and doc.customer != lpo.customer:
 		frappe.throw(_("Sales document customer must match Customer LPO {0}.").format(lpo.name))
 	if doc.get("company") and lpo.company and doc.company != lpo.company:
@@ -426,17 +635,19 @@ def validate_lpo_sales_document(doc):
 
 def _validate_lpo_order_ceiling(doc, lpo):
 	used = 0
-	for row in frappe.get_all(
+	for row in _get_bounded_list(
 		"Sales Invoice",
 		filters={"customer_lpo": lpo.name, "docstatus": 1},
 		fields=["net_total", "grand_total", "rounded_total", "disable_rounded_total"],
-		limit_page_length=0,
+		permission_scoped=False,
 	):
 		used += _invoice_amount(row, lpo.ceiling_basis)
 	proposed = _invoice_amount(doc, lpo.ceiling_basis)
 	if used + proposed > _effective_authorized_amount(lpo, permission_scoped=False) + 0.0001:
 		frappe.throw(
-			_("Customer LPO {0} ceiling exceeded by Sales Order: {1} proposed against {2} remaining. Submit an LPO amendment first.").format(
+			_(
+				"Customer LPO {0} ceiling exceeded by Sales Order: {1} proposed against {2} remaining. Submit an LPO amendment first."
+			).format(
 				lpo.name,
 				proposed,
 				max(_effective_authorized_amount(lpo, permission_scoped=False) - used, 0),
@@ -453,10 +664,17 @@ def validate_lpo_sales_invoice(doc):
 def close_lpo(lpo_name: str):
 	lpo = _get_lpo(lpo_name, "write")
 	_require_submitted(lpo)
+	vehicle_rows = lpo.get("vehicle_rows") or []
+	jobs_by_name = _get_permission_scoped_repair_jobs(
+		(row.repair_job for row in vehicle_rows),
+		["name", "job_status"],
+		require_read=True,
+	)
 	open_jobs = []
-	for row in lpo.get("vehicle_rows") or []:
+	for row in vehicle_rows:
 		if row.repair_job:
-			status = frappe.db.get_value("Repair Job", row.repair_job, "job_status")
+			job = jobs_by_name.get(row.repair_job)
+			status = job.job_status if job else None
 			if status not in {"Closed", "Cancelled"}:
 				open_jobs.append(f"{row.registration_number} ({status or 'Unknown'})")
 	if open_jobs:
@@ -492,25 +710,21 @@ def _assert_one_active_document(doctype, lpo_name, target_doc=None):
 	filters = {"customer_lpo": lpo_name, "docstatus": ["in", ACTIVE_DOCSTATUSES]}
 	if target_name:
 		filters["name"] = ["!=", target_name]
-	active = frappe.get_list(
-		doctype,
-		filters=filters,
-		pluck="name",
-		limit_page_length=0,
-	)
+	active = _get_bounded_list(doctype, filters=filters, fields=["name"], permission_scoped=True)
 	if active:
-		frappe.throw(_("Customer LPO {0} already has an active {1}: {2}.").format(lpo_name, doctype, ", ".join(active)))
+		frappe.throw(
+			_("Customer LPO {0} already has an active {1}: {2}.").format(lpo_name, doctype, ", ".join(active))
+		)
 
 
 def _effective_authorized_amount(lpo, *, permission_scoped=True):
 	amount = flt(lpo.authorized_amount)
 	if frappe.db.exists("DocType", "Customer LPO Amendment"):
-		query = frappe.get_list if permission_scoped else frappe.get_all
-		for amendment in query(
+		for amendment in _get_bounded_list(
 			"Customer LPO Amendment",
 			filters={"customer_lpo": lpo.name, "docstatus": 1},
 			fields=["amount_increase"],
-			limit_page_length=0,
+			permission_scoped=permission_scoped,
 		):
 			amount += flt(amendment.amount_increase)
 	return amount
@@ -541,18 +755,20 @@ def validate_lpo_invoice_ceiling(doc):
 	lpo = _get_lpo(lpo_name, "read")
 	_require_submitted(lpo)
 	used = 0
-	for row in frappe.get_all(
+	for row in _get_bounded_list(
 		"Sales Invoice",
 		filters={"customer_lpo": lpo.name, "docstatus": 1, "name": ["!=", doc.name]},
 		fields=["name", "net_total", "grand_total", "rounded_total", "disable_rounded_total"],
-		limit_page_length=0,
+		permission_scoped=False,
 	):
 		used += _invoice_amount(row, lpo.ceiling_basis)
 	current = get_lpo_invoice_amount(doc, lpo.ceiling_basis)
 	authorized = _effective_authorized_amount(lpo, permission_scoped=False)
 	if used + current > authorized + 0.0001:
 		frappe.throw(
-			_("Customer LPO {0} ceiling exceeded: {1} used of {2} authorized ({3}). Submit an LPO amendment before invoicing.").format(
+			_(
+				"Customer LPO {0} ceiling exceeded: {1} used of {2} authorized ({3}). Submit an LPO amendment before invoicing."
+			).format(
 				lpo.name,
 				used + current,
 				authorized,

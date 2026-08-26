@@ -35,9 +35,9 @@ def _ensure_app_roles():
 	"""Insert any missing custom roles so downstream patches can reference them."""
 	for role_name in APP_ROLES:
 		if not frappe.db.exists("Role", role_name):
-			frappe.get_doc(
-				{"doctype": "Role", "role_name": role_name, "desk_access": 1}
-			).insert(ignore_permissions=True)
+			frappe.get_doc({"doctype": "Role", "role_name": role_name, "desk_access": 1}).insert(
+				ignore_permissions=True
+			)
 	frappe.clear_cache()
 
 

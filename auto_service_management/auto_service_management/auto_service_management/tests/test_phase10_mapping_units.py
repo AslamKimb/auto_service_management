@@ -183,18 +183,18 @@ class TestPhase10MappingUnits(UnitTestCase):
 			return_value=[service],
 		):
 			self.assertEqual(
-				[row.name for _service, row in iter_repair_job_components("RJ-1", service_statuses={"Approved"})],
+				[
+					row.name
+					for _service, row in iter_repair_job_components("RJ-1", service_statuses={"Approved"})
+				],
 				["PART-1"],
 			)
 
 	def test_component_summary_endpoints_and_desk_loaders_use_get(self):
 		source = inspect.getsource(component_mapping)
-		asset = (
-			Path(__file__).resolve().parents[2]
-			/ "public"
-			/ "js"
-			/ "repair_job_billing.js"
-		).read_text(encoding="utf-8")
+		asset = (Path(__file__).resolve().parents[2] / "public" / "js" / "repair_job_billing.js").read_text(
+			encoding="utf-8"
+		)
 
 		self.assertIn('@frappe.whitelist(methods=["GET"])\ndef get_sales_invoice_components', source)
 		self.assertIn('@frappe.whitelist(methods=["GET"])\ndef get_material_request_components', source)
@@ -239,12 +239,16 @@ class TestPhase10MappingUnits(UnitTestCase):
 			patch.object(component_mapping, "_validate_target_job"),
 			patch.object(component_mapping, "_validate_service_scope"),
 			patch.object(component_mapping, "_validate_requested_component_refs"),
-			patch.object(component_mapping, "iter_repair_job_components", return_value=[(service, component)]),
-			patch.object(component_mapping, "_sales_invoice_item", return_value={"item_code": "PART-1", "qty": 2}),
+			patch.object(
+				component_mapping, "iter_repair_job_components", return_value=[(service, component)]
+			),
+			patch.object(
+				component_mapping, "_sales_invoice_item", return_value={"item_code": "PART-1", "qty": 2}
+			),
 			patch.object(component_mapping, "today", return_value="2026-08-02"),
 			patch.object(
-				component_mapping.frappe,
-				"get_single",
+				component_mapping,
+				"_get_settings",
 				return_value=frappe._dict(company="Company", selling_price_list="Standard Selling"),
 			),
 		):
@@ -295,14 +299,18 @@ class TestPhase10MappingUnits(UnitTestCase):
 			patch.object(component_mapping, "_validate_company"),
 			patch.object(component_mapping, "_validate_service_scope"),
 			patch.object(component_mapping, "_validate_requested_component_refs"),
-			patch.object(component_mapping, "iter_repair_job_components", return_value=[(service, component)]),
-			patch.object(component_mapping, "_sales_order_item", return_value={"item_code": "PART-1", "qty": 2}),
+			patch.object(
+				component_mapping, "iter_repair_job_components", return_value=[(service, component)]
+			),
+			patch.object(
+				component_mapping, "_sales_order_item", return_value={"item_code": "PART-1", "qty": 2}
+			),
 			patch.object(component_mapping, "_set_if_empty"),
 			patch.object(component_mapping, "today", return_value="2026-08-02"),
 			patch.object(component_mapping.frappe, "generate_hash", return_value="testhash"),
 			patch.object(
-				component_mapping.frappe,
-				"get_single",
+				component_mapping,
+				"_get_settings",
 				return_value=frappe._dict(company="Company", selling_price_list="Standard Selling"),
 			),
 		):
@@ -360,9 +368,7 @@ class TestPhase10MappingUnits(UnitTestCase):
 			patch.object(
 				document_sync.frappe,
 				"get_all",
-				return_value=[
-					frappe._dict(name="RJS-1", service_name="Cancelled service", docstatus=2)
-				],
+				return_value=[frappe._dict(name="RJS-1", service_name="Cancelled service", docstatus=2)],
 			),
 		):
 			with self.assertRaises(frappe.ValidationError):
@@ -438,8 +444,8 @@ class TestPhase10MappingUnits(UnitTestCase):
 			patch.object(document_sync, "get_repair_job_sales_invoices", return_value=["SI-1"]),
 			patch.object(document_sync, "_all_billable_components_submitted", return_value=True),
 			patch.object(
-				document_sync.frappe,
-				"get_single",
+				document_sync,
+				"_get_settings",
 				return_value=frappe._dict(gate_pass_payment_policy="Full Payment Required"),
 			),
 			patch.object(document_sync.frappe.db, "exists", return_value=True),
@@ -451,8 +457,8 @@ class TestPhase10MappingUnits(UnitTestCase):
 		with (
 			patch.object(document_sync, "get_repair_job_sales_invoices", return_value=["SI-MISSING"]),
 			patch.object(
-				document_sync.frappe,
-				"get_single",
+				document_sync,
+				"_get_settings",
 				return_value=frappe._dict(gate_pass_payment_policy="Full Payment Required"),
 			),
 			patch.object(document_sync.frappe.db, "exists", return_value=False),
@@ -467,8 +473,8 @@ class TestPhase10MappingUnits(UnitTestCase):
 		with (
 			patch.object(document_sync, "get_repair_job_sales_invoices", return_value=[]),
 			patch.object(
-				document_sync.frappe,
-				"get_single",
+				document_sync,
+				"_get_settings",
 				return_value=frappe._dict(gate_pass_payment_policy="Payment Not Required"),
 			),
 			patch.object(document_sync, "_all_billable_components_submitted") as coverage,
@@ -482,8 +488,8 @@ class TestPhase10MappingUnits(UnitTestCase):
 		with (
 			patch.object(repair_job_module.frappe, "get_doc", return_value=job),
 			patch.object(
-				repair_job_module.frappe,
-				"get_single",
+				repair_job_module,
+				"_get_settings",
 				return_value=frappe._dict(gate_pass_payment_policy="Payment Not Required"),
 			),
 		):
@@ -495,8 +501,8 @@ class TestPhase10MappingUnits(UnitTestCase):
 		with (
 			patch.object(repair_job_module.frappe, "get_doc", return_value=job),
 			patch.object(
-				repair_job_module.frappe,
-				"get_single",
+				repair_job_module,
+				"_get_settings",
 				return_value=frappe._dict(gate_pass_payment_policy="Full Payment Required"),
 			),
 		):
@@ -510,7 +516,7 @@ class TestPhase10MappingUnits(UnitTestCase):
 			job.check_permission = lambda permission: None
 			with (
 				patch.object(repair_job_module.frappe, "get_doc", return_value=job),
-				patch.object(repair_job_module.frappe, "get_single") as settings,
+				patch.object(repair_job_module, "_get_settings") as settings,
 			):
 				self.assertTrue(repair_job_module.can_create_final_release_gate_pass("RJ-1"))
 				settings.assert_not_called()
@@ -523,10 +529,20 @@ class TestPhase10MappingUnits(UnitTestCase):
 				"iter_repair_job_components",
 				return_value=[(frappe._dict(status="Pending Approval"), component)],
 			) as components,
-			patch.object(document_sync.frappe.db, "get_value", return_value=1),
+			patch.object(
+				document_sync.frappe,
+				"get_all",
+				return_value=[frappe._dict(name="SI-1", docstatus=1)],
+			) as invoices,
 		):
 			self.assertTrue(document_sync._all_billable_components_submitted("RJ-1"))
 			self.assertEqual(components.call_args.kwargs, {"billable_only": True})
+			invoices.assert_called_once_with(
+				"Sales Invoice",
+				filters={"name": ["in", ["SI-1"]]},
+				fields=["name", "docstatus"],
+				limit_page_length=1,
+			)
 
 	def test_gate_pass_full_payment_rejects_outstanding_invoice(self):
 		def get_value(doctype, name, fields=None, as_dict=False):
@@ -538,8 +554,8 @@ class TestPhase10MappingUnits(UnitTestCase):
 			patch.object(document_sync, "get_repair_job_sales_invoices", return_value=["SI-1"]),
 			patch.object(document_sync, "_all_billable_components_submitted", return_value=True),
 			patch.object(
-				document_sync.frappe,
-				"get_single",
+				document_sync,
+				"_get_settings",
 				return_value=frappe._dict(gate_pass_payment_policy="Full Payment Required"),
 			),
 			patch.object(
@@ -562,8 +578,8 @@ class TestPhase10MappingUnits(UnitTestCase):
 			patch.object(document_sync, "get_repair_job_sales_invoices", return_value=["SI-1"]),
 			patch.object(document_sync, "_all_billable_components_submitted", return_value=False),
 			patch.object(
-				document_sync.frappe,
-				"get_single",
+				document_sync,
+				"_get_settings",
 				return_value=frappe._dict(gate_pass_payment_policy="Full Payment Required"),
 			),
 			patch.object(
@@ -737,20 +753,43 @@ class TestPhase10MappingUnits(UnitTestCase):
 		]
 		with (
 			patch.object(document_sync, "iter_repair_job_components", return_value=components),
-			patch.object(document_sync.frappe.db, "get_value", return_value=1),
+			patch.object(
+				document_sync.frappe,
+				"get_all",
+				return_value=[frappe._dict(name="SINV-1", docstatus=1)],
+			) as invoices,
 		):
 			self.assertFalse(document_sync._all_billable_components_submitted("RJ-1"))
 			document_sync.iter_repair_job_components.assert_called_once_with(
 				"RJ-1",
 				billable_only=True,
 			)
+			invoices.assert_called_once_with(
+				"Sales Invoice",
+				filters={"name": ["in", ["SINV-1"]]},
+				fields=["name", "docstatus"],
+				limit_page_length=1,
+			)
 
 		components[1][1].sales_invoice = "SINV-2"
 		with (
 			patch.object(document_sync, "iter_repair_job_components", return_value=components),
-			patch.object(document_sync.frappe.db, "get_value", return_value=1),
+			patch.object(
+				document_sync.frappe,
+				"get_all",
+				return_value=[
+					frappe._dict(name="SINV-1", docstatus=1),
+					frappe._dict(name="SINV-2", docstatus=1),
+				],
+			) as invoices,
 		):
 			self.assertTrue(document_sync._all_billable_components_submitted("RJ-1"))
+			invoices.assert_called_once_with(
+				"Sales Invoice",
+				filters={"name": ["in", ["SINV-1", "SINV-2"]]},
+				fields=["name", "docstatus"],
+				limit_page_length=2,
+			)
 
 	def test_labour_invoice_item_preserves_zero_billing_rate(self):
 		job = frappe._dict(name="RJ-1", customer_vehicle="VEH-1", project="PROJ-1")

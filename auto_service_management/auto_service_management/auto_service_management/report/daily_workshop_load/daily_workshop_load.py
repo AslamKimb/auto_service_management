@@ -21,10 +21,28 @@ def execute(filters=None):
 		conditions.append("COALESCE(rjs.is_completed, 0) = 1")
 
 	columns = [
-		{"label": _("Workshop Bay"), "fieldname": "workshop_bay", "fieldtype": "Link", "options": "Workshop Bay", "width": 150},
-		{"label": _("Repair Job"), "fieldname": "repair_job", "fieldtype": "Link", "options": "Repair Job", "width": 145},
+		{
+			"label": _("Workshop Bay"),
+			"fieldname": "workshop_bay",
+			"fieldtype": "Link",
+			"options": "Workshop Bay",
+			"width": 150,
+		},
+		{
+			"label": _("Repair Job"),
+			"fieldname": "repair_job",
+			"fieldtype": "Link",
+			"options": "Repair Job",
+			"width": 145,
+		},
 		{"label": _("Service"), "fieldname": "service_name", "fieldtype": "Data", "width": 190},
-		{"label": _("Vehicle"), "fieldname": "customer_vehicle", "fieldtype": "Link", "options": "Customer Vehicle", "width": 130},
+		{
+			"label": _("Vehicle"),
+			"fieldname": "customer_vehicle",
+			"fieldtype": "Link",
+			"options": "Customer Vehicle",
+			"width": 130,
+		},
 		{"label": _("Technicians"), "fieldname": "technicians", "fieldtype": "Data", "width": 220},
 		{"label": _("Completed"), "fieldname": "is_completed", "fieldtype": "Check", "width": 90},
 		{"label": _("Completed On"), "fieldname": "completed_on", "fieldtype": "Datetime", "width": 150},
@@ -46,7 +64,7 @@ def execute(filters=None):
 			SELECT name AS repair_job_service, assigned_technician AS technician FROM `tabRepair Job Service`
 			WHERE assigned_technician IS NOT NULL AND assigned_technician != ''
 		) labour ON labour.repair_job_service = rjs.name
-		WHERE {' AND '.join(conditions)}
+		WHERE {" AND ".join(conditions)}
 		GROUP BY wb.name, rjs.name
 		ORDER BY wb.name, rjs.modified DESC
 		""",
@@ -55,10 +73,19 @@ def execute(filters=None):
 	)
 	active = sum(not row.is_completed for row in data if row.repair_job)
 	closed_today = sum(row.closed_today for row in data)
-	return columns, data, None, {
-		"data": {"labels": [_('Active'), _('Closed Today')], "datasets": [{"name": _('Services'), "values": [active, closed_today]}]},
-		"type": "bar",
-	}, [
-		{"label": _("Active Services"), "value": active, "indicator": "blue"},
-		{"label": _("Closed Today"), "value": closed_today, "indicator": "green"},
-	]
+	return (
+		columns,
+		data,
+		None,
+		{
+			"data": {
+				"labels": [_("Active"), _("Closed Today")],
+				"datasets": [{"name": _("Services"), "values": [active, closed_today]}],
+			},
+			"type": "bar",
+		},
+		[
+			{"label": _("Active Services"), "value": active, "indicator": "blue"},
+			{"label": _("Closed Today"), "value": closed_today, "indicator": "green"},
+		],
+	)

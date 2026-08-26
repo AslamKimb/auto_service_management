@@ -46,6 +46,4 @@ class ItemVehicleFitment(Document):
 
 		existing = frappe.db.exists("Item Vehicle Fitment", filters)
 		if existing:
-			frappe.throw(
-				_("This item already has the same vehicle fitment ({0}).").format(existing)
-			)
+			frappe.throw(_("This item already has the same vehicle fitment ({0}).").format(existing))

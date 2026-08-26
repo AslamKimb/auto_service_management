@@ -62,12 +62,23 @@ def calculate_fitment_match(
 		return _snapshot("Mismatch", None, context)
 
 	_, verified, _, tier, row = max(candidates, key=lambda value: value[:4])
-	status = "Exact Match" if tier == "exact" and verified else {
-		"exact": "Provisional Match",
-		"broad": "Broad Match",
-		"universal": "Universal Match",
-	}[tier]
-	return _snapshot(status, row.get("name"), context, verification_status=row.get("verification_status"), notes=row.get("notes"), source=row.get("source"))
+	status = (
+		"Exact Match"
+		if tier == "exact" and verified
+		else {
+			"exact": "Provisional Match",
+			"broad": "Broad Match",
+			"universal": "Universal Match",
+		}[tier]
+	)
+	return _snapshot(
+		status,
+		row.get("name"),
+		context,
+		verification_status=row.get("verification_status"),
+		notes=row.get("notes"),
+		source=row.get("source"),
+	)
 
 
 @frappe.whitelist(methods=["GET"])
@@ -108,12 +119,24 @@ def search_compatible_items(
 	term = (item_search or "").strip()
 	if term:
 		like = f"%{term}%"
-		or_filters = [["Item", "name", "like", like], ["Item", "item_name", "like", like], ["Item", "description", "like", like]]
-	items = frappe.get_all("Item", filters=filters, or_filters=or_filters, fields=["name", "item_name", "description"], limit_page_length=page_length)
+		or_filters = [
+			["Item", "name", "like", like],
+			["Item", "item_name", "like", like],
+			["Item", "description", "like", like],
+		]
+	items = frappe.get_all(
+		"Item",
+		filters=filters,
+		or_filters=or_filters,
+		fields=["name", "item_name", "description"],
+		limit_page_length=page_length,
+	)
 	results = []
 	for item in items:
 		match = calculate_fitment_match(**context, fitments=_get_fitments(item.name))
-		results.append({"item_code": item.name, "item_name": item.item_name, "description": item.description, **match})
+		results.append(
+			{"item_code": item.name, "item_name": item.item_name, "description": item.description, **match}
+		)
 	results.sort(key=lambda row: (_status_rank(row["fitment_match_status"]), row["item_code"]))
 	return results
 
@@ -150,17 +173,22 @@ def apply_fitment_snapshot(row, vehicle_context: Mapping | None = None):
 def _get_fitments(item_code: str) -> list:
 	if not _doctype_exists("Item Vehicle Fitment"):
 		return []
-	return frappe.get_all("Item Vehicle Fitment", filters={"item": item_code}, fields=FITMENT_FIELDS, limit_page_length=0)
+	return frappe.get_all(
+		"Item Vehicle Fitment", filters={"item": item_code}, fields=FITMENT_FIELDS, limit_page_length=0
+	)
 
 
 def _vehicle_context(customer_vehicle, vehicle_make, vehicle_model, vehicle_engine, vehicle_year) -> dict:
 	if customer_vehicle:
-		vehicle = frappe.db.get_value(
-			"Customer Vehicle",
-			customer_vehicle,
-			["make", "model", "engine_model", "year_of_manufacture"],
-			as_dict=True,
-		) or {}
+		vehicle = (
+			frappe.db.get_value(
+				"Customer Vehicle",
+				customer_vehicle,
+				["make", "model", "engine_model", "year_of_manufacture"],
+				as_dict=True,
+			)
+			or {}
+		)
 		vehicle_make = vehicle.get("make") or vehicle_make
 		vehicle_model = vehicle.get("model") or vehicle_model
 		vehicle_engine = vehicle.get("engine_model") or vehicle_engine
@@ -181,7 +209,9 @@ def _ensure_get_request():
 	request = getattr(frappe, "request", None)
 	method = getattr(request, "method", None)
 	if method and method.upper() != "GET":
-		frappe.throw(_("Compatibility lookup is read-only and accepts GET requests only."), frappe.PermissionError)
+		frappe.throw(
+			_("Compatibility lookup is read-only and accepts GET requests only."), frappe.PermissionError
+		)
 
 
 def _ensure_read_permissions(customer_vehicle=None):
@@ -228,7 +258,9 @@ def _tier_and_score(row, context):
 
 
 def _specificity(row):
-	return sum(bool(_normalise(row.get(key))) for key in ("vehicle_make", "vehicle_model", "vehicle_engine")) + int(bool(row.get("year_from") or row.get("year_to")))
+	return sum(
+		bool(_normalise(row.get(key))) for key in ("vehicle_make", "vehicle_model", "vehicle_engine")
+	) + int(bool(row.get("year_from") or row.get("year_to")))
 
 
 def _snapshot(status, matched_fitment, context, warning_required=None, **extra):
@@ -276,4 +308,12 @@ def _doctype_exists(doctype):
 
 
 def _status_rank(status):
-	return {"Exact Match": 0, "Provisional Match": 1, "Broad Match": 2, "Universal Match": 3, "No Fitment Data": 4, "Mismatch": 5, "Not Checked": 6}.get(status, 99)
+	return {
+		"Exact Match": 0,
+		"Provisional Match": 1,
+		"Broad Match": 2,
+		"Universal Match": 3,
+		"No Fitment Data": 4,
+		"Mismatch": 5,
+		"Not Checked": 6,
+	}.get(status, 99)

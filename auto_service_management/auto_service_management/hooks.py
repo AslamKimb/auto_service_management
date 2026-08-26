@@ -148,6 +148,8 @@ after_install = [
 	"auto_service_management.auto_service_management.workflow_setup.deactivate_repair_job_workflow",
 	"auto_service_management.auto_service_management.desktop.setup_desktop",
 	"auto_service_management.auto_service_management.printing.ensure_print_branding",
+	"auto_service_management.patches.phase33_performance_indexes.execute",
+	"auto_service_management.patches.phase33_identifier_invariants.execute",
 ]
 after_migrate = [
 	"auto_service_management.auto_service_management.custom_fields.ensure_trace_custom_fields",
@@ -156,6 +158,11 @@ after_migrate = [
 	"auto_service_management.auto_service_management.workflow_setup.deactivate_repair_job_workflow",
 	"auto_service_management.auto_service_management.desktop.setup_desktop",
 	"auto_service_management.auto_service_management.printing.ensure_print_branding",
+	"auto_service_management.patches.phase33_performance_indexes.execute",
+	"auto_service_management.patches.phase33_identifier_invariants.execute",
+]
+before_migrate = [
+	"auto_service_management.patches.phase33_identifier_invariants.validate_legacy_identifier_safety",
 ]
 before_tests = [
 	"auto_service_management.auto_service_management.custom_fields.ensure_trace_custom_fields",
@@ -164,5 +171,6 @@ before_tests = [
 	"auto_service_management.auto_service_management.workflow_setup.deactivate_repair_job_workflow",
 	"auto_service_management.auto_service_management.desktop.setup_desktop",
 	"auto_service_management.auto_service_management.printing.ensure_print_branding",
+	"auto_service_management.patches.phase33_performance_indexes.execute",
 ]
 boot_session = ["auto_service_management.auto_service_management.desktop.remove_auto_generated_sidebar"]

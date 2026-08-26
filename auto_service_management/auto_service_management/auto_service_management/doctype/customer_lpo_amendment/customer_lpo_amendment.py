@@ -34,9 +34,7 @@ class CustomerLPOAmendment(Document):
 
 	def validate_identity(self):
 		missing = [
-			field
-			for field in ("customer_lpo", "external_reference", "issue_date")
-			if not self.get(field)
+			field for field in ("customer_lpo", "external_reference", "issue_date") if not self.get(field)
 		]
 		if missing:
 			frappe.throw(_("Customer LPO Amendment requires: {0}.").format(", ".join(missing)))
@@ -46,7 +44,9 @@ class CustomerLPOAmendment(Document):
 		if not lpo:
 			frappe.throw(_("Customer LPO {0} does not exist.").format(self.customer_lpo))
 		if lpo.docstatus != 1:
-			frappe.throw(_("Customer LPO {0} must be submitted before it can be amended.").format(self.customer_lpo))
+			frappe.throw(
+				_("Customer LPO {0} must be submitted before it can be amended.").format(self.customer_lpo)
+			)
 		if lpo.status == "Cancelled":
 			frappe.throw(_("Cancelled Customer LPOs cannot be amended."))
 
@@ -69,9 +69,9 @@ class CustomerLPOAmendment(Document):
 			invoiced += get_lpo_invoice_amount(invoice, lpo.ceiling_basis)
 		if invoiced > remaining_authority + Decimal("0.0001"):
 			frappe.throw(
-				_("Amendment {0} cannot be cancelled because submitted invoices exceed the resulting LPO authority.").format(
-					self.name
-				)
+				_(
+					"Amendment {0} cannot be cancelled because submitted invoices exceed the resulting LPO authority."
+				).format(self.name)
 			)
 
 	def _refresh_lpo_status(self):

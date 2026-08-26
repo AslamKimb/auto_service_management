@@ -84,7 +84,10 @@ class TestItemFitmentCompatibility(unittest.TestCase):
 	def test_missing_fitment_and_mismatch_are_visible_warnings(self):
 		missing = calculate_fitment_match("Nissan", "Navara", "YD25", 2021, [])
 		mismatch = calculate_fitment_match(
-			"Nissan", "Navara", "YD25", 2021,
+			"Nissan",
+			"Navara",
+			"YD25",
+			2021,
 			[fitment("FIT-TOYOTA", vehicle_make="Toyota", vehicle_model="Hilux")],
 		)
 
@@ -100,20 +103,24 @@ class TestItemFitmentCompatibility(unittest.TestCase):
 			fitment_override_reason="",
 		)
 
-		with patch(
-			"auto_service_management.auto_service_management.item_fitment_compatibility._doctype_exists",
-			return_value=True,
-		), patch(
-			"auto_service_management.auto_service_management.item_fitment_compatibility._get_vehicle_context",
-			return_value={
-				"vehicle_make": "Nissan",
-				"vehicle_model": "Navara",
-				"vehicle_engine": "YD25",
-				"vehicle_year": 2021,
-			},
-		), patch(
-			"auto_service_management.auto_service_management.item_fitment_compatibility._get_fitments",
-			return_value=[fitment("FIT-1", vehicle_make="Toyota", vehicle_model="Hilux")],
+		with (
+			patch(
+				"auto_service_management.auto_service_management.item_fitment_compatibility._doctype_exists",
+				return_value=True,
+			),
+			patch(
+				"auto_service_management.auto_service_management.item_fitment_compatibility._get_vehicle_context",
+				return_value={
+					"vehicle_make": "Nissan",
+					"vehicle_model": "Navara",
+					"vehicle_engine": "YD25",
+					"vehicle_year": 2021,
+				},
+			),
+			patch(
+				"auto_service_management.auto_service_management.item_fitment_compatibility._get_fitments",
+				return_value=[fitment("FIT-1", vehicle_make="Toyota", vehicle_model="Hilux")],
+			),
 		):
 			with self.assertRaisesRegex(Exception, "override reason"):
 				apply_fitment_snapshot(row)
@@ -144,13 +151,16 @@ class TestItemFitmentCompatibility(unittest.TestCase):
 				search_compatible_items(item_search="filter")
 
 	def test_fitment_lookup_uses_canonical_item_link(self):
-		with patch(
-			"auto_service_management.auto_service_management.item_fitment_compatibility._doctype_exists",
-			return_value=True,
-		), patch(
-			"auto_service_management.auto_service_management.item_fitment_compatibility.frappe.get_all",
-			return_value=[],
-		) as get_all:
+		with (
+			patch(
+				"auto_service_management.auto_service_management.item_fitment_compatibility._doctype_exists",
+				return_value=True,
+			),
+			patch(
+				"auto_service_management.auto_service_management.item_fitment_compatibility.frappe.get_all",
+				return_value=[],
+			) as get_all,
+		):
 			_get_fitments("ITEM-1")
 
 		get_all.assert_called_once()

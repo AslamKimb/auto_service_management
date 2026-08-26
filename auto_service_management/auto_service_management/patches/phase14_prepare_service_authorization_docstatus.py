@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from collections import Counter
 
 import frappe
 
@@ -51,7 +50,6 @@ def _apply_docstatus_map(doctype: str, status_field: str, mapping: dict[str, int
 		return
 
 	notes = []
-	counters = Counter()
 	for row in frappe.get_all(
 		doctype,
 		fields=["name", status_field, "docstatus"],
@@ -63,7 +61,9 @@ def _apply_docstatus_map(doctype: str, status_field: str, mapping: dict[str, int
 		if target_docstatus is None:
 			continue
 		if _row_value(row, "docstatus") != target_docstatus:
-			frappe.db.set_value(doctype, _row_value(row, "name"), "docstatus", target_docstatus, update_modified=False)
+			frappe.db.set_value(
+				doctype, _row_value(row, "name"), "docstatus", target_docstatus, update_modified=False
+			)
 		if status_value in {"Rejected", "Deferred", "Cancelled", "Expired"}:
 			notes.append(
 				{

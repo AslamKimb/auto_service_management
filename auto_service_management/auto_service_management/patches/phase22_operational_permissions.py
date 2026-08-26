@@ -4,7 +4,9 @@ import frappe
 
 
 def execute():
-	_ensure_custom_invoice_perm("Cashier", write=1, create=1, submit=1, cancel=1, amend=1, read=1, report=1, print=1)
+	_ensure_custom_invoice_perm(
+		"Cashier", write=1, create=1, submit=1, cancel=1, amend=1, read=1, report=1, print=1
+	)
 	_ensure_custom_invoice_perm("Service Advisor", write=1, create=1, submit=1, read=1, report=1, print=1)
 	frappe.clear_cache()
 

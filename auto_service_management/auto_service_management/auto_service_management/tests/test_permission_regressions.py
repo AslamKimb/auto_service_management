@@ -10,7 +10,7 @@ from frappe.tests import UnitTestCase
 
 from auto_service_management.auto_service_management.doctype.repair_job_service import repair_job_service
 from auto_service_management.auto_service_management.reporting.control_definitions import CONTROL_REPORTS
-from auto_service_management.auto_service_management.reporting.runner import run_report
+from auto_service_management.auto_service_management.reporting.runner import REPORT_PAGE_SIZE, run_report
 from auto_service_management.auto_service_management.reporting.workshop_definitions import WORKSHOP_REPORTS
 
 MODULE_ROOT = Path(__file__).resolve().parents[1]
@@ -91,6 +91,66 @@ class TestPermissionRegressions(UnitTestCase):
 				with self.subTest(report=report_name):
 					self.assertEqual(definition.permission_parent_doctype, "Repair Job")
 
+	def test_nested_component_reports_separate_service_parent_from_job_scope(self):
+		for report_name in ("Jobs Waiting for Parts", "Parts Used by Repair Job"):
+			with self.subTest(report=report_name):
+				definition = WORKSHOP_REPORTS[report_name]
+				self.assertEqual(definition.permission_doctype, "Repair Job")
+				self.assertEqual(definition.child_parent_doctype, "Repair Job Service")
+
+				def fake_get_list(doctype, **kwargs):
+					if doctype == "Repair Job":
+						self.assertEqual(kwargs["order_by"], "creation asc, name asc")
+						return [{"name": "RJ-ALLOWED"}]
+					self.assertEqual(kwargs.pop("parent_doctype"), "Repair Job Service")
+					self.assertIn(
+						[
+							doctype,
+							"repair_job",
+							"in",
+							["RJ-ALLOWED"],
+						],
+						kwargs["filters"],
+					)
+					self.assertTrue(all(filter_row[0] == doctype for filter_row in kwargs["filters"]))
+					self.assertEqual(kwargs["order_by"], "idx asc, name asc")
+					return [{"repair_job": "RJ-ALLOWED"}]
+
+				with (
+					patch(
+						"auto_service_management.auto_service_management.reporting.runner.frappe.has_permission",
+						return_value=True,
+					),
+					patch(
+						"auto_service_management.auto_service_management.reporting.runner.frappe.get_list",
+						side_effect=fake_get_list,
+					),
+				):
+					_columns, rows = run_report(report_name, {})
+
+				self.assertEqual(rows, [{"repair_job": "RJ-ALLOWED"}, {"repair_job": "RJ-ALLOWED"}])
+
+	def test_report_runner_reads_in_explicit_pages(self):
+		first_page = [{"name": f"RJ-{idx:04d}"} for idx in range(REPORT_PAGE_SIZE)]
+		last_page = [{"name": "RJ-LAST"}]
+
+		with (
+			patch(
+				"auto_service_management.auto_service_management.reporting.runner.frappe.has_permission",
+				return_value=True,
+			),
+			patch(
+				"auto_service_management.auto_service_management.reporting.runner.frappe.get_list",
+				side_effect=[first_page, last_page],
+			) as get_list,
+		):
+			_columns, data = run_report("Open Repair Jobs", {})
+
+		self.assertEqual(len(data), REPORT_PAGE_SIZE + 1)
+		self.assertEqual(get_list.call_args_list[0].kwargs["limit"], REPORT_PAGE_SIZE)
+		self.assertEqual(get_list.call_args_list[0].kwargs["limit_start"], 0)
+		self.assertEqual(get_list.call_args_list[1].kwargs["limit_start"], REPORT_PAGE_SIZE)
+
 	def test_active_component_children_declare_select_for_v16_queries(self):
 		for folder in (
 			"repair_job_service_part",
@@ -120,8 +180,9 @@ class TestPermissionRegressions(UnitTestCase):
 		):
 			run_report("Discount and Price Change Audit", {})
 
-		get_list.assert_called_once()
-		call = get_list.call_args
+		self.assertEqual(get_list.call_count, 2)
+		self.assertEqual(get_list.call_args_list[0].args[0], "Repair Job")
+		call = get_list.call_args_list[1]
 		self.assertEqual(call.args[0], "Version")
 		self.assertNotIn("parent_doctype", call.kwargs)
 
