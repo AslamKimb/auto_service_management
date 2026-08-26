@@ -47,6 +47,14 @@ docker compose -f docker-compose.dev.yml up -d
 
 First run takes 15–20 minutes (bench init, app installs, site migrations, asset builds). Re-running the same command upgrades an existing local bench in place and should not require deleting `bench-data`.
 
+If another local service already owns port `8080`, choose a free host port without changing the nginx container:
+
+```bash
+# PowerShell
+$env:DMS_FRONTEND_PORT = "18081"
+docker compose -f docker-compose.dev.yml up -d
+```
+
 4. **Verify:**
 
 ```bash
