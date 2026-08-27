@@ -68,7 +68,14 @@ jobs:
           chmod -R a+rwX bench-data/bench-home
 
       - name: Start the editable Frappe v16 stack
-        run: docker compose -f docker-compose.dev.yml up -d
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! docker compose -f docker-compose.dev.yml up -d; then
+            docker compose -f docker-compose.dev.yml ps -a || true
+            docker compose -f docker-compose.dev.yml logs --no-color setup || true
+            exit 1
+          fi
 
       - name: Wait for setup to finish
         shell: bash
