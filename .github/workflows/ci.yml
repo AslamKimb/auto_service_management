@@ -58,6 +58,15 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Prepare the editable bench bind mount
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p bench-data/bench-home
+          # Docker creates a missing bind-mount source as root. The official
+          # frappe/bench image runs the setup command as the frappe user.
+          chmod -R a+rwX bench-data/bench-home
+
       - name: Start the editable Frappe v16 stack
         run: docker compose -f docker-compose.dev.yml up -d
 
