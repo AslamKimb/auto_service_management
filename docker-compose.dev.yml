@@ -72,6 +72,12 @@ services:
 
         ensure_apps_txt_entry() {
           app_name="$$1"
+          if [ -s sites/apps.txt ]; then
+            last_byte=$$(tail -c 1 sites/apps.txt | od -An -t x1 | tr -d '[:space:]')
+            if [ "$$last_byte" != "0a" ]; then
+              printf '\n' >> sites/apps.txt
+            fi
+          fi
           grep -qx "$$app_name" sites/apps.txt 2>/dev/null || printf '%s\n' "$$app_name" >> sites/apps.txt
         }
 
