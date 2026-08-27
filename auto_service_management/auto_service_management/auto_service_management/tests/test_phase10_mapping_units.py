@@ -125,6 +125,9 @@ class TestPhase10MappingUnits(UnitTestCase):
 		path = Path(__file__).resolve().parents[1] / "doctype" / "repair_job" / "repair_job.json"
 		meta = json.loads(path.read_text(encoding="utf-8"))
 		self.assertEqual(meta["is_submittable"], 0)
+		for permission in meta["permissions"]:
+			for action in ("submit", "cancel", "amend"):
+				self.assertEqual(permission.get(action, 0), 0)
 		self.assertNotIn(
 			"before_submit",
 			inspect.getsource(
