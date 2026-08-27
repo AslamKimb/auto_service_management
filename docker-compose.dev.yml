@@ -84,7 +84,9 @@ services:
           test -d "$$app_path/.git"
           echo "=== Pinning $$app_name to $$app_commit ==="
           if [ "$(git -C "$$app_path" rev-parse HEAD)" != "$$app_commit" ]; then
-            git -C "$$app_path" fetch --no-tags "$$app_url" "$$app_branch"
+            # bench init creates shallow app clones. Fetch the exact pinned
+            # commit so checkout does not depend on the branch tip's history.
+            git -C "$$app_path" fetch --no-tags "$$app_url" "$$app_commit"
             git -C "$$app_path" checkout --detach "$$app_commit"
           fi
           test "$(git -C "$$app_path" rev-parse HEAD)" = "$$app_commit"
