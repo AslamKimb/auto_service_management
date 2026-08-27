@@ -87,7 +87,9 @@ services:
             # bench init creates shallow app clones. Fetch the exact pinned
             # commit so checkout does not depend on the branch tip's history.
             git -C "$$app_path" fetch --no-tags "$$app_url" "$$app_commit"
-            git -C "$$app_path" checkout --detach "$$app_commit"
+            # bench get-app may rewrite tracked lockfiles while installing
+            # dependencies; the pinned commit remains the source of truth.
+            git -C "$$app_path" checkout --detach --force "$$app_commit"
           fi
           test "$(git -C "$$app_path" rev-parse HEAD)" = "$$app_commit"
         }
