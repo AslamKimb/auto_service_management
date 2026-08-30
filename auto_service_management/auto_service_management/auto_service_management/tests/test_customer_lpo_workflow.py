@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import frappe
 from frappe.handler import is_valid_http_method
@@ -15,7 +15,6 @@ class TestCustomerLPOWorkflow(UnitTestCase):
 			customer_lpo.preview_vehicle_csv: "GET",
 			customer_lpo.get_lpo_summary: "GET",
 			customer_lpo.import_vehicle_csv: "POST",
-			customer_lpo.resolve_vehicle_rows: "POST",
 			customer_lpo.create_campaign_and_repair_jobs: "POST",
 			customer_lpo.make_sales_order: "POST",
 			customer_lpo.make_sales_invoice: "POST",
@@ -31,7 +30,6 @@ class TestCustomerLPOWorkflow(UnitTestCase):
 		methods = (
 			customer_lpo.preview_vehicle_csv,
 			customer_lpo.import_vehicle_csv,
-			customer_lpo.resolve_vehicle_rows,
 			customer_lpo.create_campaign_and_repair_jobs,
 			customer_lpo.get_lpo_summary,
 			customer_lpo.make_sales_order,
@@ -55,6 +53,34 @@ class TestCustomerLPOWorkflow(UnitTestCase):
 				is_valid_http_method(customer_lpo.import_vehicle_csv)
 		finally:
 			frappe.local.request = original_request
+
+	def test_obsolete_registration_first_resolver_is_not_public(self):
+		self.assertFalse(hasattr(customer_lpo, "resolve_vehicle_rows"))
+
+	def test_unresolved_csv_import_is_atomic(self):
+		lpo = MagicMock()
+		lpo.name = "LPO-1"
+		lpo.customer = "CUSTOMER-1"
+		lpo.docstatus = 0
+		lpo.get.return_value = []
+		row = {
+			"registration_number": "UBA482M",
+			"customer_vehicle": None,
+			"requested_work": "Brakes",
+			"planned_date": None,
+			"allocated_ceiling": 0,
+			"remarks": None,
+		}
+		with (
+			patch.object(customer_lpo_workflow, "_get_lpo", return_value=lpo),
+			patch.object(customer_lpo_workflow, "_normalise_rows", return_value=[row]),
+			patch.object(customer_lpo_workflow, "_resolve_vehicle", return_value=(None, "Not Found")),
+			self.assertRaisesRegex(frappe.ValidationError, "Create the Customer Vehicle first"),
+		):
+			customer_lpo_workflow.import_vehicle_csv("LPO-1", rows=[row])
+
+		lpo.append.assert_not_called()
+		lpo.save.assert_not_called()
 
 	def test_csv_header_and_registration_are_normalized(self):
 		csv_text = "registration_number,customer_vehicle,requested_work,planned_date,allocated_ceiling,remarks\n uba-482m ,,,2026-09-01,100,Priority"

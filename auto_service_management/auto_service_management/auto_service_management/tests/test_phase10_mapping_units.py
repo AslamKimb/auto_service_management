@@ -287,6 +287,9 @@ class TestPhase10MappingUnits(UnitTestCase):
 			def append(self, _fieldname, value):
 				self.items.append(value)
 
+			def remove(self, row):
+				self.items.remove(row)
+
 			def run_method(self, _method):
 				return None
 
@@ -321,6 +324,92 @@ class TestPhase10MappingUnits(UnitTestCase):
 
 		self.assertIs(result, target)
 		self.assertEqual(target.name, "new-sales-order-testhash")
+
+	def test_sales_order_mapping_sets_delivery_date_on_each_item(self):
+		class Target:
+			doctype = "Sales Order"
+			docstatus = 0
+			name = None
+
+			def __init__(self):
+				self.items = [frappe._dict(name="blank-row", item_code=None, qty=0, rate=0, description=None)]
+				self.values = {}
+
+			def is_new(self):
+				return True
+
+			def get(self, fieldname):
+				if fieldname == "items":
+					return self.items
+				return self.values.get(fieldname)
+
+			def set(self, fieldname, value):
+				self.values[fieldname] = value
+				setattr(self, fieldname, value)
+
+			def append(self, _fieldname, value):
+				self.items.append(value)
+
+			def remove(self, row):
+				self.items.remove(row)
+
+			def run_method(self, _method):
+				return None
+
+		job = frappe._dict(name="RJ-1", customer="CUST-1", customer_vehicle="VEH-1", project="PROJ-1")
+		service = frappe._dict(name="RJS-1", service_name="Brake Service")
+		component = frappe._dict(row_doctype="Repair Job Service Part", name="PART-1")
+		target = Target()
+
+		with (
+			patch.object(component_mapping, "_get_repair_job", return_value=job),
+			patch.object(component_mapping, "_get_target_doc", return_value=target),
+			patch.object(component_mapping, "_validate_target_job"),
+			patch.object(component_mapping, "_validate_company"),
+			patch.object(component_mapping, "_validate_service_scope"),
+			patch.object(component_mapping, "_validate_requested_component_refs"),
+			patch.object(component_mapping, "iter_repair_job_components", return_value=[(service, component)]),
+			patch.object(component_mapping, "_sales_order_item", return_value={"item_code": "PART-1", "qty": 2}),
+			patch.object(component_mapping, "_set_if_empty"),
+			patch.object(component_mapping, "today", return_value="2026-08-02"),
+			patch.object(component_mapping, "_get_settings", return_value=frappe._dict(company="Company")),
+		):
+			component_mapping.map_sales_order("RJ-1", service_names={"RJS-1"})
+
+		self.assertEqual(target.items[0]["delivery_date"], "2026-08-02")
+		self.assertEqual(len(target.items), 1)
+
+	def test_itemless_stock_component_is_rejected_before_sales_order_mapping(self):
+		job = frappe._dict(name="RJ-1", customer_vehicle="VEH-1", project="PROJ-1")
+		service = frappe._dict(name="RJS-1", service_name="Cleaning service")
+		row = frappe._dict(
+			doctype="Repair Job Service Part",
+			name="PART-1",
+			description="Uncatalogued part",
+			item_code=None,
+			quantity=1,
+			rate=10000,
+			discount_percentage=0,
+			legacy_repair_service_line=None,
+		)
+		component = ServiceComponent(service, row, "parts", "Part")
+
+		with self.assertRaises(frappe.ValidationError):
+			component_mapping._sales_order_item(job, service, component)
+
+	def test_submitted_sales_order_uses_native_update_boundary(self):
+		target = SimpleNamespace(docstatus=1, modified="v1")
+		target.is_new = lambda: False
+		with (
+			patch.object(component_mapping, "_get_target_doc", return_value=target),
+			patch.object(component_mapping, "_validate_sales_order_update_target"),
+			patch.object(component_mapping, "map_sales_order", return_value=target),
+			patch.object(component_mapping, "_update_submitted_sales_order") as native_update,
+		):
+			result = component_mapping.get_items_from_repair_job("RJ-1", expected_version="v1")
+
+		self.assertIs(result, native_update.return_value)
+		native_update.assert_called_once_with(target, target)
 
 	def test_quotation_and_count_mutations_have_explicit_http_methods(self):
 		job_source = inspect.getsource(repair_job_module)

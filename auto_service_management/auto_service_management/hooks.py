@@ -85,6 +85,7 @@ fixtures = [
 # DocType Events
 doctype_js = {
 	"Sales Invoice": "public/js/sales_invoice.js",
+	"Sales Order": "public/js/sales_order.js",
 	"Customer LPO": "public/js/customer_lpo.js",
 	"Material Request": "public/js/material_request.js",
 }
@@ -150,6 +151,7 @@ after_install = [
 	"auto_service_management.auto_service_management.printing.ensure_print_branding",
 	"auto_service_management.patches.phase33_performance_indexes.execute",
 	"auto_service_management.patches.phase33_identifier_invariants.execute",
+	"auto_service_management.patches.phase34_customer_vehicle_customer_associations.execute",
 ]
 after_migrate = [
 	"auto_service_management.auto_service_management.custom_fields.ensure_trace_custom_fields",
@@ -160,6 +162,7 @@ after_migrate = [
 	"auto_service_management.auto_service_management.printing.ensure_print_branding",
 	"auto_service_management.patches.phase33_performance_indexes.execute",
 	"auto_service_management.patches.phase33_identifier_invariants.execute",
+	"auto_service_management.patches.phase34_customer_vehicle_customer_associations.execute",
 ]
 before_migrate = [
 	"auto_service_management.patches.phase33_identifier_invariants.validate_legacy_identifier_safety",

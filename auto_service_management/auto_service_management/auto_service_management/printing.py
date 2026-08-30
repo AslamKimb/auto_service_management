@@ -206,6 +206,11 @@ def get_job_card_context(doc):
 	snapshot_vehicle = snapshot.get("vehicle") or {}
 	customer = {**live_customer, **{key: value for key, value in snapshot_customer.items() if value}}
 	vehicle = {**live_vehicle, **{key: value for key, value in snapshot_vehicle.items() if value}}
+	if getattr(doc, "contact_person_name_snapshot", None):
+		customer["contact_person"] = _text(doc.contact_person_name_snapshot)
+		customer["phone"] = _text(doc.contact_person_phone_snapshot)
+		customer["mobile"] = _text(doc.contact_person_mobile_snapshot)
+		customer["email"] = _text(doc.contact_person_email_snapshot)
 	return {
 		"customer": customer,
 		"vehicle": vehicle,

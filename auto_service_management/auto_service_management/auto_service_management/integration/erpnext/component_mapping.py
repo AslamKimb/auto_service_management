@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 
 import frappe
@@ -28,6 +29,24 @@ MATERIAL_REQUEST_TERMINAL_STATUS = {
 
 def _get_settings():
 	return _get_cached_settings(frappe_module=frappe)
+
+
+def _throw(code: str, message: str):
+	frappe.local.response["error_code"] = code
+	frappe.throw(message)
+
+
+SALES_ORDER_SOURCE_READY_STATES = frozenset(
+	{
+		"Assessment",
+		"Awaiting Approval",
+		"In Repair",
+		"Quality Check",
+		"Billing",
+		"Ready for Release",
+		"Closed",
+	}
+)
 
 
 def get_material_request_types() -> list[str]:
@@ -125,6 +144,8 @@ def map_sales_order(
 	target_doc: str | dict | None = None,
 	service_names: Iterable[str] | None = None,
 	component_refs: Iterable[dict] | str | None = None,
+	allow_submitted: bool = False,
+	strict_selection: bool = False,
 ) -> Document:
 	"""Map billable Repair Job components into a draft Sales Order.
 
@@ -136,7 +157,7 @@ def map_sales_order(
 	if isinstance(service_names, str):
 		service_names = frappe.parse_json(service_names)
 	service_names = set(service_names or [])
-	target = _get_target_doc("Sales Order", target_doc)
+	target = _get_target_doc("Sales Order", target_doc, allow_submitted=allow_submitted)
 	if target.is_new() and not target.name:
 		target.name = (
 			f"new-{frappe.scrub(target.doctype).replace('_', '-')}-{frappe.generate_hash(length=10)}"
@@ -144,6 +165,12 @@ def map_sales_order(
 	_validate_target_job(target, repair_job)
 	_validate_service_scope(repair_job.name, service_names, None, document_label=_("Sales Order"))
 	_validate_requested_component_refs(repair_job.name, requested_refs, service_names)
+	if strict_selection:
+		_validate_sales_order_source_ready(repair_job)
+		current_refs = _component_refs(target)
+		duplicates = (requested_refs or set()) & current_refs
+		if duplicates:
+			_throw("VALIDATION_FAILED", _("Selected component {0} is already on this Sales Order.").format(sorted(duplicates)[0][1]))
 	components = []
 	for service, component in iter_repair_job_components(
 		repair_job.name,
@@ -153,10 +180,19 @@ def map_sales_order(
 	):
 		if requested_refs is not None and (component.row_doctype, component.name) not in requested_refs:
 			continue
+		if strict_selection and (component.row_doctype, component.name) in current_refs:
+			continue
+		if strict_selection and (
+			_component_invoice_state(component) != "Unbilled"
+			or _component_sales_order_state(component) != "Available"
+		):
+			continue
 		if _component_invoice_state(component) == "Invoiced":
 			continue
 		components.append((service, component))
 	if not components:
+		if strict_selection and requested_refs:
+			_throw("VALIDATION_FAILED", _("The selected Repair Job items are no longer eligible."))
 		frappe.throw(
 			_("No billable Parts, Consumables, or Labour components are available on this Repair Job.")
 		)
@@ -170,14 +206,19 @@ def map_sales_order(
 	target.repair_job = repair_job.name
 	if len(service_names) == 1:
 		target.repair_job_service = next(iter(service_names))
+	elif service_names:
+		target.repair_job_service = None
 	target.transaction_date = target.get("transaction_date") or today()
 	target.delivery_date = target.get("delivery_date") or (
 		frappe.utils.getdate(repair_job.promised_date)
 		if repair_job.promised_date
 		else target.transaction_date
 	)
+	_remove_empty_sales_order_items(target)
 	for service, component in components:
-		target.append("items", _sales_order_item(repair_job, service, component))
+		item = _sales_order_item(repair_job, service, component)
+		item["delivery_date"] = target.delivery_date
+		target.append("items", item)
 	target.run_method("set_missing_values")
 	target.run_method("calculate_taxes_and_totals")
 	return target
@@ -187,6 +228,7 @@ def map_sales_order(
 def get_sales_order_components(repair_job_name: str, service_name: str | None = None) -> dict:
 	"""Return selectable component rows and Sales Order/Invoice history."""
 	repair_job = _get_repair_job(repair_job_name)
+	source_ready = repair_job.job_status in SALES_ORDER_SOURCE_READY_STATES
 	service_names = {service_name} if service_name else None
 	if service_name:
 		frappe.get_doc("Repair Job Service", service_name).check_permission("read")
@@ -224,10 +266,48 @@ def get_sales_order_components(repair_job_name: str, service_name: str | None = 
 				"order_state": state,
 				"sales_order_state": state,
 				"history": history.get((component.row_doctype, component.name), []),
-				"selectable": state == "Available",
+				"selectable": source_ready and state == "Available",
 			}
 		)
-	return {"repair_job": repair_job.name, "components": rows, "counts": counts}
+	return {
+		"repair_job": repair_job.name,
+		"source_state": repair_job.job_status,
+		"source_selectable": source_ready,
+		"components": rows,
+		"counts": counts,
+	}
+
+
+@frappe.whitelist(methods=["POST"])
+def get_items_from_repair_job(
+	repair_job_name: str,
+	target_doc: str | dict | None = None,
+	service_name: str | None = None,
+	component_refs: Iterable[dict] | str | None = None,
+	expected_version: str | None = None,
+) -> Document:
+	"""Fetch selected Repair Job work into a draft or natively eligible submitted order."""
+	if isinstance(target_doc, str):
+		target_doc = frappe.parse_json(target_doc)
+	if isinstance(target_doc, dict) and target_doc.get("docstatus") == 1 and target_doc.get("name"):
+		# Submitted documents are always re-fetched; client payloads cannot authorize edits.
+		target_doc = frappe.get_doc("Sales Order", target_doc["name"])
+	target = _get_target_doc("Sales Order", target_doc, allow_submitted=True)
+	if expected_version and not target.is_new() and str(target.modified) != str(expected_version):
+		_throw("STALE_REQUEST", _("Sales Order changed. Refresh and try again."))
+	_validate_sales_order_update_target(target)
+	service_names = {service_name} if service_name else None
+	result = map_sales_order(
+		repair_job_name,
+		target_doc=target,
+		service_names=service_names,
+		component_refs=component_refs,
+		allow_submitted=True,
+		strict_selection=True,
+	)
+	if result.docstatus == 1:
+		return _update_submitted_sales_order(target, result)
+	return result
 
 
 def map_quotation(
@@ -818,19 +898,134 @@ def _assert_requested_campaign_refs_mapped(component_refs, components, document_
 		)
 
 
-def _get_target_doc(doctype: str, target_doc: str | dict | None):
+def _get_target_doc(doctype: str, target_doc: str | dict | Document | None, *, allow_submitted=False):
 	if isinstance(target_doc, str):
 		target_doc = frappe.parse_json(target_doc)
-	target = frappe.get_doc(target_doc) if target_doc else frappe.new_doc(doctype)
+	target = target_doc if isinstance(target_doc, Document) else frappe.get_doc(target_doc) if target_doc else frappe.new_doc(doctype)
 	if target.doctype != doctype:
 		frappe.throw(_("Expected target document type {0}.").format(doctype))
-	if target.docstatus != 0:
+	if target.docstatus not in {0, 1} or (target.docstatus == 1 and not allow_submitted):
 		frappe.throw(_("Items can only be mapped into a draft {0}.").format(doctype))
 	if target.name and not target.is_new():
 		target.check_permission("write")
 	else:
 		frappe.has_permission(doctype, "create", throw=True)
 	return target
+
+
+def _remove_empty_sales_order_items(target):
+	"""Discard blank grid rows before ERPNext validates required item fields."""
+	for row in list(target.get("items") or []):
+		if (
+			not row.get("item_code")
+			and not row.get("repair_component_row")
+			and not row.get("description")
+			and not flt(row.get("qty"))
+			and not flt(row.get("rate"))
+		):
+			target.remove(row)
+
+
+def _update_submitted_sales_order(target, mapped_target):
+	"""Add mapped rows through ERPNext's native submitted-order item updater."""
+	from erpnext.controllers.accounts_controller import set_order_defaults, update_child_qty_rate
+
+	existing_names = {
+		row.name for row in target.get("items") or [] if getattr(row, "name", None)
+	}
+	new_items = [
+		row
+		for row in mapped_target.get("items") or []
+		if not getattr(row, "name", None) or row.name not in existing_names
+	]
+	if not new_items:
+		frappe.throw(_("No new Repair Job items were selected."))
+
+	target.check_permission("create")
+	for offset, row in enumerate(new_items, start=1):
+		child = set_order_defaults(
+			"Sales Order",
+			target.name,
+			"Sales Order Item",
+			"items",
+			row.as_dict(),
+		)
+		child.update(
+			{
+				"item_code": row.item_code,
+				"item_name": row.item_name,
+				"description": row.description,
+				"qty": row.qty,
+				"rate": row.rate,
+				"uom": row.uom,
+				"delivery_date": row.delivery_date,
+				**{
+					fieldname: row.get(fieldname)
+					for fieldname in (
+						"repair_job",
+						"customer_vehicle",
+						"repair_job_service",
+						"repair_component_doctype",
+						"repair_component_row",
+						"repair_service_line",
+					)
+					if row.get(fieldname) is not None
+				},
+			}
+		)
+		child.idx = len(existing_names) + offset
+		child.flags.ignore_validate_update_after_submit = True
+		child.insert()
+
+	updated = frappe.get_doc("Sales Order", target.name)
+	update_child_qty_rate(
+		"Sales Order",
+		json.dumps([_native_sales_order_item_payload(row) for row in updated.items], default=str),
+		target.name,
+		"items",
+	)
+
+	parent_values = {
+		fieldname: mapped_target.get(fieldname)
+		for fieldname in ("repair_job", "repair_job_service")
+		if mapped_target.get(fieldname) is not None
+	}
+	if parent_values:
+		frappe.db.set_value("Sales Order", target.name, parent_values, update_modified=False)
+	return frappe.get_doc("Sales Order", target.name)
+
+
+def _native_sales_order_item_payload(row):
+	return {
+		"docname": row.name,
+		"item_code": row.item_code,
+		"qty": row.qty,
+		"rate": row.rate,
+		"uom": row.uom,
+		"delivery_date": row.delivery_date,
+		"description": row.description,
+		"conversion_factor": row.get("conversion_factor"),
+		"warehouse": row.get("warehouse"),
+	}
+
+
+def _validate_sales_order_source_ready(repair_job):
+	if repair_job.job_status not in SALES_ORDER_SOURCE_READY_STATES:
+		_throw(
+			"SOURCE_NOT_READY",
+			_("Repair Job {0} must be in Assessment or later before items can be fetched.").format(repair_job.name),
+		)
+
+
+def _validate_sales_order_update_target(target):
+	if target.docstatus == 0:
+		return
+	if target.docstatus != 1:
+		_throw("VALIDATION_FAILED", _("Only Draft or submitted Sales Orders can receive Repair Job items."))
+	if target.status in {"Closed", "Completed", "Cancelled"}:
+		_throw("NATIVE_UPDATE_BLOCKED", _("This Sales Order is closed and cannot receive new items."))
+	if flt(target.get("per_billed")) >= 100 or flt(target.get("per_delivered")) >= 100:
+		_throw("NATIVE_UPDATE_BLOCKED", _("A fully billed or delivered Sales Order cannot receive new items."))
 
 
 def _validate_target_job(target, repair_job):
@@ -1031,6 +1226,12 @@ def _sales_invoice_item(repair_job, service, component: ServiceComponent):
 
 def _sales_order_item(repair_job, service, component: ServiceComponent):
 	item = _sales_invoice_item(repair_job, service, component)
+	if not item.get("item_code"):
+		frappe.throw(
+			_("Component {0} requires an Item before it can be added to a Sales Order.").format(
+				component.service_description
+			)
+		)
 	item.pop("sales_order", None)
 	item.pop("so_detail", None)
 	return item

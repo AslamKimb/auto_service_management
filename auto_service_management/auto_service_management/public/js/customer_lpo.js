@@ -83,8 +83,6 @@
 		if (frm.doc.docstatus === 0 && writable) {
 			frm.add_custom_button(__("Preview CSV"), () => preview_dialog(frm), __("Vehicles"));
 			frm.add_custom_button(__("Import Vehicles"), () => import_dialog(frm), __("Vehicles"));
-			frm.add_custom_button(__("Resolve Vehicles"), () => frappe.call({ method: `${CONTROLLER}.resolve_vehicle_rows`, type: "POST", args: { lpo_name: frm.doc.name } }).then(() => frm.reload_doc()), __("Vehicles"));
-			frm.add_custom_button(__("Create Missing Vehicles"), () => frappe.confirm(__("Create minimal Customer Vehicle records for every unresolved registration?"), () => frappe.call({ method: `${CONTROLLER}.resolve_vehicle_rows`, type: "POST", args: { lpo_name: frm.doc.name, create_confirmed: 1 } }).then(() => frm.reload_doc())), __("Vehicles"));
 		}
 		if (frm.doc.docstatus === 1 && !frm.doc.fleet_service_campaign && writable) {
 			frm.add_custom_button(__("Create Campaign & Jobs"), () => frappe.call({ method: `${CONTROLLER}.create_campaign_and_repair_jobs`, type: "POST", args: { lpo_name: frm.doc.name } }).then(() => frm.reload_doc()), __("Workflow"));
@@ -100,6 +98,11 @@
 	}
 
 	frappe.ui.form.on("Customer LPO", {
+		setup(frm) {
+			frm.set_query("customer_vehicle", "vehicle_rows", () => ({
+				filters: { customer: frm.doc.customer || "" },
+			}));
+		},
 		refresh(frm) {
 			add_actions(frm);
 			refresh_summary(frm);

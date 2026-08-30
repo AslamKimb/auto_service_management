@@ -57,10 +57,62 @@ class TestCustomerLPO(UnitTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			lpo.validate_vehicle_rows()
 
-	def test_customer_vehicle_must_belong_to_lpo_customer(self):
-		lpo = self._lpo([{"registration_number": "UBA 482M", "customer_vehicle": "UBA-482M"}])
+	def test_customer_vehicle_is_required_for_every_lpo_row(self):
+		lpo = self._lpo([{}])
+		with self.assertRaisesRegex(frappe.ValidationError, "Customer Vehicle"):
+			lpo.validate_customer_vehicle_ownership()
+
+	def test_customer_vehicle_cannot_appear_twice(self):
+		lpo = self._lpo(
+			[
+				{"customer_vehicle": "CV-1"},
+				{"customer_vehicle": "CV-1"},
+			]
+		)
+		with self.assertRaisesRegex(frappe.ValidationError, "appears more than once"):
+			lpo.validate_customer_vehicle_ownership()
+
+	def test_registration_is_derived_from_the_selected_customer_vehicle(self):
+		lpo = self._lpo([{"customer_vehicle": "CV-1"}])
 		module = "auto_service_management.auto_service_management.doctype.customer_lpo.customer_lpo.frappe"
-		with patch(f"{module}.db.get_value", return_value="OTHER CUSTOMER"):
+		with patch(
+			f"{module}.get_all",
+			return_value=[
+				frappe._dict(
+					name="CV-1",
+					customer="Test Customer",
+					registration_number=" uba-482m ",
+				)
+			],
+		):
+			lpo.validate_customer_vehicle_ownership()
+		self.assertEqual(lpo.vehicle_rows[0].registration_number, "UBA482M")
+
+	def test_customer_vehicle_requires_a_registration_snapshot(self):
+		lpo = self._lpo([{"customer_vehicle": "CV-1"}])
+		module = "auto_service_management.auto_service_management.doctype.customer_lpo.customer_lpo.frappe"
+		with patch(
+			f"{module}.get_all",
+			return_value=[
+				frappe._dict(name="CV-1", customer="Test Customer", registration_number=None)
+			],
+		):
+			with self.assertRaisesRegex(frappe.ValidationError, "registration number"):
+				lpo.validate_customer_vehicle_ownership()
+
+	def test_customer_vehicle_must_belong_to_lpo_customer(self):
+		lpo = self._lpo([{"customer_vehicle": "UBA-482M"}])
+		module = "auto_service_management.auto_service_management.doctype.customer_lpo.customer_lpo.frappe"
+		with patch(
+			f"{module}.get_all",
+			return_value=[
+				frappe._dict(
+					name="UBA-482M",
+					customer="OTHER CUSTOMER",
+					registration_number="UBA482M",
+				)
+			],
+		):
 			with self.assertRaises(frappe.ValidationError):
 				lpo.validate_customer_vehicle_ownership()
 

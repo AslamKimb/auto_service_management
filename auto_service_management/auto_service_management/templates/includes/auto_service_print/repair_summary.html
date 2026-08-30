@@ -4,6 +4,7 @@
 {% include "templates/includes/auto_service_print/common.html" %}
 <table class="asm-grid">
   <tr><th>Customer</th><td>{{ doc.customer or "" }}</td><th>Vehicle</th><td>{{ doc.customer_vehicle or "" }}</td></tr>
+  {% if doc.contact_person_name_snapshot %}<tr><th>Company contact</th><td colspan="3">{{ doc.contact_person_name_snapshot }}{% if doc.contact_person_phone_snapshot %} · {{ doc.contact_person_phone_snapshot }}{% endif %}{% if doc.contact_person_email_snapshot %} · {{ doc.contact_person_email_snapshot }}{% endif %}</td></tr>{% endif %}
   <tr><th>Repair Job</th><td>{{ doc.name }}</td><th>Closed On</th><td>{{ frappe.utils.format_datetime(doc.closed_on) if doc.closed_on else "" }}</td></tr>
   <tr><th>Odometer In</th><td>{{ doc.odometer_in or "" }}</td><th>Odometer Out</th><td>{{ doc.odometer_out or "" }}</td></tr>
   <tr><th>Invoice</th><td>{{ doc.sales_order or doc.quotation or "" }}</td><th>Payment Status</th><td>{{ doc.payment_status or "" }}</td></tr>

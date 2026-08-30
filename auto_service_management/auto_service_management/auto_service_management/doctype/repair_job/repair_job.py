@@ -7,6 +7,7 @@ from datetime import datetime
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import cint, now_datetime
 
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
 	STOCK_COMPONENT_TYPES,
@@ -25,6 +26,11 @@ from auto_service_management.auto_service_management.workflow_compatibility impo
 
 def _get_settings():
 	return _get_cached_settings(frappe_module=frappe)
+
+
+def _throw(code: str, message: str):
+	frappe.local.response["error_code"] = code
+	frappe.throw(message)
 
 
 # ---------------------------------------------------------------------------
@@ -122,6 +128,124 @@ def get_sales_order_summary(repair_job_name: str) -> dict:
 
 
 @frappe.whitelist(methods=["GET"])
+def get_company_contacts(
+	doctype: str | None = None,
+	txt: str | None = None,
+	searchfield: str | None = None,
+	start: int = 0,
+	page_len: int = 20,
+	filters=None,
+	reference_doctype: str | None = None,
+	ignore_user_permissions=False,
+	customer: str | None = None,
+	query: str | None = None,
+	**kwargs,
+) -> list:
+	"""Return readable Contacts linked to the selected Company Customer.
+
+	Frappe's Link search invokes custom query methods with the standard
+	``doctype, txt, searchfield, start, page_len, filters`` positional contract.
+	"""
+	if isinstance(filters, str):
+		filters = frappe.parse_json(filters)
+	filters = filters or {}
+	customer = customer or filters.get("customer") or kwargs.get("customer")
+	if not customer:
+		return []
+	customer_doc = frappe.get_doc("Customer", customer)
+	customer_doc.check_permission("read")
+	if customer_doc.customer_type != "Company":
+		return []
+	frappe.has_permission("Contact", "read", throw=True)
+	contact_names = frappe.get_all(
+		"Dynamic Link",
+		filters={"parenttype": "Contact", "link_doctype": "Customer", "link_name": customer},
+		pluck="parent",
+		limit_page_length=0,
+	)
+	if not contact_names:
+		return []
+	contacts = frappe.get_list(
+		"Contact",
+		filters={"name": ["in", contact_names]},
+		fields=["name", "first_name", "last_name", "phone", "mobile_no", "email_id"],
+		limit_page_length=0,
+	)
+	needle = str(txt or query or "").strip().lower()
+	if needle:
+		contacts = [
+			row
+			for row in contacts
+			if needle in " ".join(str(row.get(field) or "") for field in ("name", "first_name", "last_name", "phone", "mobile_no", "email_id")).lower()
+		]
+	contacts = contacts[int(start or 0) : int(start or 0) + int(page_len or 20)]
+	if kwargs.get("as_dict"):
+		return contacts
+
+	# Frappe's validate_link_and_fetch path compares custom-query rows with
+	# ``row[0]``.  Keep dict rows for callers explicitly requesting as_dict,
+	# but return standard Link-search tuples for the default path.
+	return [
+		(
+			row["name"],
+			" ".join(filter(None, (row.get("first_name"), row.get("last_name")))) or row["name"],
+			" | ".join(filter(None, (row.get("email_id"), row.get("phone"), row.get("mobile_no")))),
+		)
+		for row in contacts
+	]
+
+
+@frappe.whitelist(methods=["POST"])
+def create_company_contact(
+	customer: str,
+	first_name: str,
+	middle_name: str | None = None,
+	last_name: str | None = None,
+	salutation: str | None = None,
+	gender: str | None = None,
+	designation: str | None = None,
+	department: str | None = None,
+	email_id: str | None = None,
+	phone: str | None = None,
+	mobile_no: str | None = None,
+) -> dict:
+	"""Create a Contact and attach it to one Company Customer."""
+	if not str(first_name or "").strip():
+		frappe.throw(_("First Name is required."))
+	customer_doc = frappe.get_doc("Customer", customer)
+	customer_doc.check_permission("read")
+	if customer_doc.customer_type != "Company":
+		frappe.throw(_("Company contacts can only be added for Company Customers."))
+	frappe.has_permission("Contact", "create", throw=True)
+
+	contact = frappe.get_doc({"doctype": "Contact"})
+	contact_meta = frappe.get_meta("Contact")
+	for fieldname, value in {
+		"first_name": first_name,
+		"middle_name": middle_name,
+		"last_name": last_name,
+		"salutation": salutation,
+		"gender": gender,
+		"designation": designation,
+		"department": department,
+		"email_id": email_id,
+		"phone": phone,
+		"mobile_no": mobile_no,
+	}.items():
+		if value and contact_meta.has_field(fieldname):
+			setattr(contact, fieldname, str(value).strip())
+	if not contact_meta.has_field("links"):
+		frappe.throw(_("Contact cannot be linked to a Customer on this site."))
+	contact.append("links", {"link_doctype": "Customer", "link_name": customer})
+	contact.insert()
+	return {
+		"name": contact.name,
+		"label": " ".join(value for value in (contact.first_name, contact.middle_name, contact.last_name) if value).strip(),
+		"customer": customer,
+	}
+
+
+@frappe.whitelist(methods=["GET"])
 def get_quotation_summary(repair_job_name: str) -> dict:
 	"""Read-only legacy view retained for historical Quotation documents."""
 	job = frappe.get_doc("Repair Job", repair_job_name)
@@ -149,6 +273,12 @@ def can_create_final_release_gate_pass(repair_job_name: str) -> bool:
 
 
 class RepairJob(Document):
+	def onload(self):
+		"""Rebuild derived child tables when a persisted Repair Job is opened."""
+		if self.is_new() or not self.name:
+			return
+		sync_repair_job_compatibility_views(self)
+
 	def before_validate(self):
 		self.sync_customer_and_vehicle()
 		self.resolve_primary_related_documents()
@@ -156,6 +286,7 @@ class RepairJob(Document):
 
 	def validate(self):
 		self.validate_intake_requirements()
+		self.validate_company_contact(require_check_in=False)
 		self.validate_fleet_service_campaign()
 		self.validate_customer_lpo()
 		self.validate_primary_related_documents()
@@ -182,10 +313,42 @@ class RepairJob(Document):
 			return
 		if not self.customer:
 			self.customer = vehicle_customer
-		elif self.customer != vehicle_customer:
-			frappe.throw(
-				_("Selected Customer Vehicle does not belong to customer {0}.").format(self.customer)
-			)
+
+	def validate_company_contact(self, *, require_check_in=False):
+		"""Validate the per-visit Contact without changing the Customer master."""
+		if not self.customer:
+			return
+		customer_type = frappe.db.get_value("Customer", self.customer, "customer_type")
+		if customer_type == "Individual":
+			if self.contact_person:
+				_throw("VALIDATION_FAILED", _("Individual customers cannot have a company contact."))
+			return
+		if customer_type != "Company":
+			return
+		if require_check_in and not self.contact_person:
+			_throw("COMPANY_CONTACT_REQUIRED", _("Select a Company Contact / Responsible Person before Check In."))
+		if not self.contact_person:
+			return
+		contact = frappe.get_doc("Contact", self.contact_person)
+		contact.check_permission("read")
+		if not frappe.db.exists(
+			"Dynamic Link",
+			{"parent": contact.name, "parenttype": "Contact", "link_doctype": "Customer", "link_name": self.customer},
+		):
+			_throw("CONTACT_NOT_LINKED", _("Contact {0} is not linked to Customer {1}.").format(self.contact_person, self.customer))
+
+	def capture_contact_snapshot(self):
+		"""Capture the selected Contact once, at Check In."""
+		if self.contact_person_name_snapshot or not self.contact_person:
+			return
+		contact = frappe.get_doc("Contact", self.contact_person)
+		self.contact_person_name_snapshot = " ".join(
+			value for value in (contact.first_name, contact.last_name) if value
+		).strip()
+		self.contact_person_phone_snapshot = contact.phone
+		self.contact_person_mobile_snapshot = contact.mobile_no
+		self.contact_person_email_snapshot = contact.email_id
+		self.contact_person_captured_at = now_datetime()
 
 	def resolve_primary_related_documents(self):
 		if self.is_new() or getattr(self.flags, "skip_primary_related_resolution", False):
@@ -239,6 +402,9 @@ class RepairJob(Document):
 	def before_save(self):
 		if self.is_new():
 			return
+		old = self.get_doc_before_save()
+		if old and old.job_status != "Draft" and self.contact_person != old.contact_person:
+			_throw("VALIDATION_FAILED", _("The company contact is read-only after Check In."))
 		if self.has_value_changed("job_status"):
 			self.log_state_change()
 
@@ -687,15 +853,51 @@ class RepairJob(Document):
 			frappe.throw(_("Only a Workshop Manager can manually override Repair Job status."))
 
 	@frappe.whitelist(methods=["POST"])
-	def check_in(self):
+	def check_in(
+		self,
+		confirm_customer_association=False,
+		expected_version=None,
+		idempotency_key=None,
+		contact_person=None,
+	):
 		"""Check in the vehicle. Creates the ERPNext Project on first check-in."""
 		self._require_write_permission()
 		self.reload()
+		if expected_version and str(self.modified) != str(expected_version):
+			_throw("STALE_REQUEST", _("Repair Job changed. Refresh and try again."))
+		if contact_person is not None:
+			self.contact_person = contact_person
+		if self.job_status == "Assessment":
+			return {"status": "already_checked_in", "repair_job": self.name}
+		self.validate_intake_requirements()
+		self.validate_company_contact(require_check_in=True)
+		vehicle_customer = frappe.db.get_value("Customer Vehicle", self.customer_vehicle, "customer")
+		association = None
+		if vehicle_customer != self.customer:
+			if not cint(confirm_customer_association):
+				_throw(
+					"CONFIRMATION_REQUIRED",
+					_("Confirm that this vehicle is being serviced for Customer {0}.").format(self.customer),
+				)
+			from auto_service_management.auto_service_management.doctype.customer_vehicle_customer_association.customer_vehicle_customer_association import (
+				associate_vehicle_customer,
+			)
+
+			association = associate_vehicle_customer(
+				customer_vehicle=self.customer_vehicle,
+				customer=self.customer,
+				expected_version=None,
+				idempotency_key=idempotency_key or f"repair-job-check-in:{self.name}",
+				source_doctype="Repair Job",
+				source_name=self.name,
+			)
+		self.capture_contact_snapshot()
 		self.capture_job_card_snapshot()
 		self._transition_to("Assessment")
 		self.save()
 		self._ensure_project()
 		self._write_log("check_in")
+		return {"status": "checked_in", "repair_job": self.name, "association": association}
 
 	@frappe.whitelist(methods=["POST"])
 	def start_diagnosis(self):

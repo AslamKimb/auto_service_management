@@ -14,6 +14,9 @@ This repository contains the `auto_service_management` Frappe app for ERPNext v1
 - Use `[!]` only when a task is genuinely blocked and state the blocker plainly.
 - Do not mass-tick tasks or remove dependency evidence; if the sequence needs to change, update the plan first.
 
+## MUST CONSIDER
+Every agentic workflow in this agency must read and strictly follow `PRODUCT.md`, `DESIGN.md`, `ARCHITECTURE.md`, and `AGENTS.md` before planning or changing this project: Product governs what and why, Design governs visual and interaction behavior, Architecture governs system boundaries and technology, and AGENTS governs repository safety, Graphify, approvals, and verification. Agents must surface conflicts before acting, keep all outputs consistent with the contracts, and verify results against their acceptance gates.
+
 ## Architecture Rules
 
 - Keep all behavior inside this app. Never edit Frappe or ERPNext core files.

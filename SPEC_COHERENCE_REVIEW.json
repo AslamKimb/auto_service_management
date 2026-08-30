@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "review_id": "SCR-20260830-001",
+  "status": "PASS",
+  "package_status": "ACCEPTED",
+  "implementation_authorization": "NOT_GRANTED",
+  "review_rounds": [
+    {
+      "round": 1,
+      "phase": "INITIAL",
+      "snapshot_digest": "sha256:009e43d4fb47d0d5c0316f4cbe1dfccf7f00803f51515eeb36a165fc82a68d11",
+      "reviewers": [
+        {"role":"PRODUCT","reviewer_id":"01a052e0-68a3-7823-91b8-b9368ad81e8d","status":"FINDINGS","skip_reason":null,"scope":["PRODUCT.md","specs/SPEC-001-customer-vehicle-customer-associations.md","specs/SPEC-002-company-contact-person-on-repair-jobs.md","specs/SPEC-003-sales-order-get-items-from-repair-job.md"],"scope_digest":"sha256:d9908304a2bd7603f4e58eadaed986082f0971ad09218bc8ed8fcd944c27ceb5","finding_ids":["COH-001"]},
+        {"role":"ARCHITECTURE","reviewer_id":"01a052c9-5aee-7590-a9e9-9ba4e30ec3b0","status":"PASS","skip_reason":null,"scope":["ARCHITECTURE.md","specs/SPEC-001-customer-vehicle-customer-associations.md","specs/SPEC-002-company-contact-person-on-repair-jobs.md","specs/SPEC-003-sales-order-get-items-from-repair-job.md"],"scope_digest":"sha256:2d54e7ad93bdba8165371ef5ba726c8fa1fd993534ae6479bf2c5b7f5962d4d6","finding_ids":[]},
+        {"role":"DESIGN","reviewer_id":"01a052c9-6eb2-77c1-972c-1baf9d5d3e8f","status":"PASS","skip_reason":null,"scope":["DESIGN.md","specs/SPEC-001-customer-vehicle-customer-associations.md","specs/SPEC-002-company-contact-person-on-repair-jobs.md","specs/SPEC-003-sales-order-get-items-from-repair-job.md"],"scope_digest":"sha256:ea2ea453a2efad5e1fc2ae73dc31df418cc33bc1e6d56c24fcd1e036d81fa793","finding_ids":[]},
+        {"role":"CROSS_SPEC","reviewer_id":"01a052e0-6ad2-7951-853e-f63ef300ab70","status":"PASS","skip_reason":null,"scope":["specs/SPEC-001-customer-vehicle-customer-associations.md","specs/SPEC-002-company-contact-person-on-repair-jobs.md","specs/SPEC-003-sales-order-get-items-from-repair-job.md"],"scope_digest":"sha256:a7c16f3097d67bb37704689a6fb7c0156d58840df197761c53a0f4e200ba20e0","finding_ids":[]},
+        {"role":"DEPENDENCY","reviewer_id":"01a052d8-eb73-77f3-a259-916c94b025e7","status":"PASS","skip_reason":null,"scope":["PROGRESS.md","specs/SPEC-001-customer-vehicle-customer-associations.md","specs/SPEC-002-company-contact-person-on-repair-jobs.md","specs/SPEC-003-sales-order-get-items-from-repair-job.md"],"scope_digest":"sha256:b8541eb482a2ef5bdcb7a34fa05a89b189f4320eb9ecdab34f2105be2deb97fb","finding_ids":[]},
+        {"role":"TESTABILITY","reviewer_id":"01a052e0-7166-7170-8d38-f6c975e2b57b","status":"PASS","skip_reason":null,"scope":["specs/SPEC-001-customer-vehicle-customer-associations.md","specs/SPEC-002-company-contact-person-on-repair-jobs.md","specs/SPEC-003-sales-order-get-items-from-repair-job.md"],"scope_digest":"sha256:a7c16f3097d67bb37704689a6fb7c0156d58840df197761c53a0f4e200ba20e0","finding_ids":[]}
+      ]
+    },
+    {
+      "round": 2,
+      "phase": "FINAL",
+      "snapshot_digest": "sha256:009e43d4fb47d0d5c0316f4cbe1dfccf7f00803f51515eeb36a165fc82a68d11",
+      "reviewers": [
+        {"role":"PRODUCT","reviewer_id":"01a052e0-68a3-7823-91b8-b9368ad81e8d","status":"PASS","skip_reason":null,"scope":["PRODUCT.md","specs/SPEC-001-customer-vehicle-customer-associations.md","specs/SPEC-002-company-contact-person-on-repair-jobs.md","specs/SPEC-003-sales-order-get-items-from-repair-job.md"],"scope_digest":"sha256:d9908304a2bd7603f4e58eadaed986082f0971ad09218bc8ed8fcd944c27ceb5","finding_ids":[]},
+        {"role":"ARCHITECTURE","reviewer_id":"01a052c9-5aee-7590-a9e9-9ba4e30ec3b0","status":"PASS","skip_reason":null,"scope":["ARCHITECTURE.md","specs/SPEC-001-customer-vehicle-customer-associations.md","specs/SPEC-002-company-contact-person-on-repair-jobs.md","specs/SPEC-003-sales-order-get-items-from-repair-job.md"],"scope_digest":"sha256:2d54e7ad93bdba8165371ef5ba726c8fa1fd993534ae6479bf2c5b7f5962d4d6","finding_ids":[]},
+        {"role":"DESIGN","reviewer_id":"01a052c9-6eb2-77c1-972c-1baf9d5d3e8f","status":"PASS","skip_reason":null,"scope":["DESIGN.md","specs/SPEC-001-customer-vehicle-customer-associations.md","specs/SPEC-002-company-contact-person-on-repair-jobs.md","specs/SPEC-003-sales-order-get-items-from-repair-job.md"],"scope_digest":"sha256:ea2ea453a2efad5e1fc2ae73dc31df418cc33bc1e6d56c24fcd1e036d81fa793","finding_ids":[]},
+        {"role":"CROSS_SPEC","reviewer_id":"01a052e0-6ad2-7951-853e-f63ef300ab70","status":"PASS","skip_reason":null,"scope":["specs/SPEC-001-customer-vehicle-customer-associations.md","specs/SPEC-002-company-contact-person-on-repair-jobs.md","specs/SPEC-003-sales-order-get-items-from-repair-job.md"],"scope_digest":"sha256:a7c16f3097d67bb37704689a6fb7c0156d58840df197761c53a0f4e200ba20e0","finding_ids":[]},
+        {"role":"DEPENDENCY","reviewer_id":"01a052d8-eb73-77f3-a259-916c94b025e7","status":"PASS","skip_reason":null,"scope":["PROGRESS.md","SPEC_EXECUTION_MAP.md","specs/SPEC-001-customer-vehicle-customer-associations.md","specs/SPEC-002-company-contact-person-on-repair-jobs.md","specs/SPEC-003-sales-order-get-items-from-repair-job.md"],"scope_digest":"sha256:537219751c00aa74d44bca7ec5af1188ff2da846833e40120ec0f545121d3416","finding_ids":[]},
+        {"role":"TESTABILITY","reviewer_id":"01a052e0-7166-7170-8d38-f6c975e2b57b","status":"PASS","skip_reason":null,"scope":["specs/SPEC-001-customer-vehicle-customer-associations.md","specs/SPEC-002-company-contact-person-on-repair-jobs.md","specs/SPEC-003-sales-order-get-items-from-repair-job.md"],"scope_digest":"sha256:a7c16f3097d67bb37704689a6fb7c0156d58840df197761c53a0f4e200ba20e0","finding_ids":[]}
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "id":"COH-001",
+      "severity":"MINOR",
+      "state":"RESOLVED",
+      "reviewer_roles":["PRODUCT"],
+      "jurisdiction":"PRODUCT",
+      "affected_files":["PRODUCT.md","specs/SPEC-003-sales-order-get-items-from-repair-job.md"],
+      "affected_requirements":["AC-017","SPEC-003-AC-01"],
+      "conflict":"A legacy quotation note contains wording that can be mistaken for a current Create Quotation requirement.",
+      "evidence":["PRODUCT.md:7","PRODUCT.md:75"],
+      "source_of_truth":"PRODUCT.md:7 explicitly identifies the current approved product scope.",
+      "recommended_correction":"Dismiss the legacy wording with its own historical header and explicit no-new-Quotation-action statement; preserve the immutable historical file.",
+      "disposition":"DISMISSED_WITH_EVIDENCE",
+      "recheck_criterion":"The product recheck confirms current Sales Order/Proforma behavior and no active new Quotation action requirement."
+    }
+  ],
+  "corrections":{"count":0,"changed_files":[],"spec_changes":[]},
+  "initial_snapshot":{
+    "files":[
+      {"path":"ARCHITECTURE.md","sha256":"sha256:6a5a9c40db0fc9ce88a056f3ef4ef25eee740988b3b0e2309eeaeca53c7cacc6","semantic_sha256":"sha256:6a5a9c40db0fc9ce88a056f3ef4ef25eee740988b3b0e2309eeaeca53c7cacc6"},
+      {"path":"DESIGN.md","sha256":"sha256:86e43ad7085c3332d0cb69d3f864e0494468b7f84c119e0311029ba88ce08784","semantic_sha256":"sha256:86e43ad7085c3332d0cb69d3f864e0494468b7f84c119e0311029ba88ce08784"},
+      {"path":"PRODUCT.md","sha256":"sha256:68fb2458b201933d9f848551a0c7ddfd26733e77f51f0eee8e72cb81d901433a","semantic_sha256":"sha256:68fb2458b201933d9f848551a0c7ddfd26733e77f51f0eee8e72cb81d901433a"},
+      {"path":"PROGRESS.md","sha256":"sha256:34b6e3ed4e0c06de9f1b4eaf5e6012ae0676e4b922af112ff2cb2866d0adf95f","semantic_sha256":"sha256:34b6e3ed4e0c06de9f1b4eaf5e6012ae0676e4b922af112ff2cb2866d0adf95f"},
+      {"path":"specs/SPEC-001-customer-vehicle-customer-associations.md","sha256":"sha256:62aeb712c2bf0ef7ee25e98e3d4df9dc3c12e078d5ee1d09d35b683587780a8b","semantic_sha256":"sha256:62aeb712c2bf0ef7ee25e98e3d4df9dc3c12e078d5ee1d09d35b683587780a8b"},
+      {"path":"specs/SPEC-002-company-contact-person-on-repair-jobs.md","sha256":"sha256:d63f911e353d3dd873cdbaf59614821fe1009e6504725e152a7b00b72d1d05ec","semantic_sha256":"sha256:d63f911e353d3dd873cdbaf59614821fe1009e6504725e152a7b00b72d1d05ec"},
+      {"path":"specs/SPEC-003-sales-order-get-items-from-repair-job.md","sha256":"sha256:56937ab40fd84a85e18a971178139b581220f372d4e0959c3b30b83f682e451b","semantic_sha256":"sha256:56937ab40fd84a85e18a971178139b581220f372d4e0959c3b30b83f682e451b"}
+    ],
+    "digest":"sha256:009e43d4fb47d0d5c0316f4cbe1dfccf7f00803f51515eeb36a165fc82a68d11",
+    "spec_dependency_digest":"sha256:077c442618f4fbf600e843a881c0b268f7d6965283af664542ddbcd194470b7d"
+  },
+  "final_snapshot":{
+    "files":[
+      {"path":"ARCHITECTURE.md","sha256":"sha256:6a5a9c40db0fc9ce88a056f3ef4ef25eee740988b3b0e2309eeaeca53c7cacc6","semantic_sha256":"sha256:6a5a9c40db0fc9ce88a056f3ef4ef25eee740988b3b0e2309eeaeca53c7cacc6"},
+      {"path":"DESIGN.md","sha256":"sha256:86e43ad7085c3332d0cb69d3f864e0494468b7f84c119e0311029ba88ce08784","semantic_sha256":"sha256:86e43ad7085c3332d0cb69d3f864e0494468b7f84c119e0311029ba88ce08784"},
+      {"path":"PRODUCT.md","sha256":"sha256:68fb2458b201933d9f848551a0c7ddfd26733e77f51f0eee8e72cb81d901433a","semantic_sha256":"sha256:68fb2458b201933d9f848551a0c7ddfd26733e77f51f0eee8e72cb81d901433a"},
+      {"path":"PROGRESS.md","sha256":"sha256:34b6e3ed4e0c06de9f1b4eaf5e6012ae0676e4b922af112ff2cb2866d0adf95f","semantic_sha256":"sha256:34b6e3ed4e0c06de9f1b4eaf5e6012ae0676e4b922af112ff2cb2866d0adf95f"},
+      {"path":"specs/SPEC-001-customer-vehicle-customer-associations.md","sha256":"sha256:62aeb712c2bf0ef7ee25e98e3d4df9dc3c12e078d5ee1d09d35b683587780a8b","semantic_sha256":"sha256:62aeb712c2bf0ef7ee25e98e3d4df9dc3c12e078d5ee1d09d35b683587780a8b"},
+      {"path":"specs/SPEC-002-company-contact-person-on-repair-jobs.md","sha256":"sha256:d63f911e353d3dd873cdbaf59614821fe1009e6504725e152a7b00b72d1d05ec","semantic_sha256":"sha256:d63f911e353d3dd873cdbaf59614821fe1009e6504725e152a7b00b72d1d05ec"},
+      {"path":"specs/SPEC-003-sales-order-get-items-from-repair-job.md","sha256":"sha256:56937ab40fd84a85e18a971178139b581220f372d4e0959c3b30b83f682e451b","semantic_sha256":"sha256:56937ab40fd84a85e18a971178139b581220f372d4e0959c3b30b83f682e451b"}
+    ],
+    "digest":"sha256:009e43d4fb47d0d5c0316f4cbe1dfccf7f00803f51515eeb36a165fc82a68d11",
+    "spec_dependency_digest":"sha256:077c442618f4fbf600e843a881c0b268f7d6965283af664542ddbcd194470b7d"
+  },
+  "execution_map":{"present":true,"status":"CURRENT","dependency_digest":"sha256:077c442618f4fbf600e843a881c0b268f7d6965283af664542ddbcd194470b7d"},
+  "summary":{"reviewed_specs":3,"corrections_made":0,"unresolved_blockers":0,"unresolved_majors":0,"open_issues":0,"ready_for":"IMPLEMENTATION"}
+}

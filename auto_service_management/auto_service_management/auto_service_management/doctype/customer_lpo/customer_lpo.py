@@ -45,19 +45,6 @@ def import_vehicle_csv(
 
 
 @frappe.whitelist(methods=["POST"])
-def resolve_vehicle_rows(
-	lpo_name: str,
-	row_names: list[str] | str | None = None,
-	create_confirmed: bool = False,
-):
-	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
-		resolve_vehicle_rows as _resolve_vehicle_rows,
-	)
-
-	return _resolve_vehicle_rows(lpo_name, row_names=row_names, create_confirmed=create_confirmed)
-
-
-@frappe.whitelist(methods=["POST"])
 def create_campaign_and_repair_jobs(lpo_name: str):
 	from auto_service_management.auto_service_management.integration.customer_lpo_workflow import (
 		create_campaign_and_repair_jobs as _create_campaign_and_repair_jobs,
@@ -116,8 +103,8 @@ class CustomerLPO(Document):
 	def validate(self):
 		self.validate_dates()
 		self.validate_unique_lpo_number()
-		self.validate_vehicle_rows()
 		self.validate_customer_vehicle_ownership()
+		self.validate_vehicle_rows()
 		self.validate_repair_job_ownership()
 		self.validate_campaign_ownership()
 		self.validate_row_removals()
@@ -212,10 +199,14 @@ class CustomerLPO(Document):
 			row.registration_number = normalized
 
 	def validate_customer_vehicle_ownership(self):
+		rows = self.vehicle_rows or []
 		seen = set()
-		for row in self.vehicle_rows or []:
+		vehicle_names = []
+		for row in rows:
 			if not row.customer_vehicle:
-				continue
+				frappe.throw(
+					_("Every Customer LPO vehicle row requires a Customer Vehicle.")
+				)
 			if row.customer_vehicle in seen:
 				frappe.throw(
 					_("Customer Vehicle {0} appears more than once on this Customer LPO.").format(
@@ -223,17 +214,40 @@ class CustomerLPO(Document):
 					)
 				)
 			seen.add(row.customer_vehicle)
-			vehicle_customer = frappe.db.get_value("Customer Vehicle", row.customer_vehicle, "customer")
-			if not vehicle_customer:
+			vehicle_names.append(row.customer_vehicle)
+
+		if not vehicle_names:
+			return
+
+		vehicles = {
+			vehicle.name: vehicle
+			for vehicle in frappe.get_all(
+				"Customer Vehicle",
+				filters={"name": ["in", vehicle_names]},
+				fields=["name", "customer", "registration_number"],
+				limit=len(vehicle_names),
+			)
+		}
+		for row in rows:
+			vehicle = vehicles.get(row.customer_vehicle)
+			if not vehicle:
 				frappe.throw(_("Customer Vehicle {0} does not exist.").format(row.customer_vehicle))
-			if vehicle_customer != self.customer:
+			if vehicle.customer != self.customer:
 				frappe.throw(
 					_("Customer Vehicle {0} belongs to {1}, not {2}.").format(
 						row.customer_vehicle,
-						vehicle_customer,
+						vehicle.customer,
 						self.customer,
 					)
 				)
+			registration_number = normalize_registration_number(vehicle.registration_number)
+			if not registration_number:
+				frappe.throw(
+					_("Customer Vehicle {0} requires a registration number.").format(
+						row.customer_vehicle
+					)
+				)
+			row.registration_number = registration_number
 
 	def validate_repair_job_ownership(self):
 		for row in self.vehicle_rows or []:

@@ -1,0 +1,82 @@
+{
+ "name": "Customer Vehicle Customer Association",
+ "module": "Auto Service Management",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "autoname": "hash",
+ "track_changes": 1,
+ "fields": [
+  {
+   "fieldname": "customer_vehicle",
+   "fieldtype": "Link",
+   "label": "Customer Vehicle",
+   "options": "Customer Vehicle",
+   "on_delete": "Cascade",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "valid_from",
+   "fieldtype": "Datetime",
+   "label": "Valid From",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "valid_to",
+   "fieldtype": "Datetime",
+   "label": "Valid To",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "source_doctype",
+   "fieldtype": "Data",
+   "label": "Source DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Source",
+   "options": "source_doctype",
+   "read_only": 1
+  },
+  {
+   "fieldname": "idempotency_key",
+   "fieldtype": "Data",
+   "label": "Idempotency Key",
+   "unique": 1,
+   "read_only": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "is_current",
+   "fieldtype": "Check",
+   "label": "Is Current",
+   "read_only": 1,
+   "default": 1,
+   "in_list_view": 1
+  }
+ ],
+ "permissions": [
+  {"role": "Workshop Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+  {"role": "Auto Service Admin", "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "Service Advisor", "read": 1, "write": 1, "create": 1},
+  {"role": "Workshop Technician", "read": 1}
+ ],
+ "sort_field": "valid_from",
+ "sort_order": "DESC",
+ "search_fields": "customer_vehicle,customer,source_name"
+}

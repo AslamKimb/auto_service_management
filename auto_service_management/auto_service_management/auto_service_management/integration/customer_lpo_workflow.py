@@ -7,7 +7,7 @@ import io
 
 import frappe
 from frappe import _
-from frappe.utils import cint, flt, getdate, today
+from frappe.utils import flt, getdate, today
 from frappe.utils.background_jobs import get_job_status
 
 from auto_service_management.auto_service_management.doctype.customer_lpo_vehicle.customer_lpo_vehicle import (
@@ -187,22 +187,27 @@ def _resolve_vehicle(customer: str, registration_number: str, requested_name: st
 			frappe.throw(
 				_("Customer Vehicle {0} does not belong to Customer {1}.").format(requested_name, customer)
 			)
-		if registration_number and vehicle.registration_number != registration_number:
+		if registration_number and normalize_registration_number(vehicle.registration_number) != registration_number:
 			frappe.throw(
 				_("Customer Vehicle {0} registration does not match {1}.").format(
 					requested_name, registration_number
 				)
 			)
 		return vehicle.name, "Resolved"
-	vehicles = frappe.get_all(
+	vehicles = _get_bounded_list(
 		"Customer Vehicle",
-		filters={"customer": customer, "registration_number": registration_number},
-		pluck="name",
-		limit_page_length=2,
+		filters={"customer": customer},
+		fields=["name", "registration_number"],
+		permission_scoped=False,
 	)
-	if len(vehicles) == 1:
-		return vehicles[0], "Resolved"
-	if len(vehicles) > 1:
+	matches = [
+		vehicle.name
+		for vehicle in vehicles
+		if normalize_registration_number(vehicle.registration_number) == registration_number
+	]
+	if len(matches) == 1:
+		return matches[0], "Resolved"
+	if len(matches) > 1:
 		return None, "Ambiguous"
 	return None, "Not Found"
 
@@ -242,6 +247,7 @@ def import_vehicle_csv(
 		frappe.throw(_("Vehicle rows can only be imported into a draft Customer LPO."))
 	values = _normalise_rows(rows, csv_text, file_url)
 	seen = {row.registration_number for row in lpo.get("vehicle_rows") or []}
+	prepared_rows = []
 	for row in values:
 		if row["registration_number"] in seen:
 			frappe.throw(
@@ -259,48 +265,19 @@ def import_vehicle_csv(
 					row["registration_number"]
 				)
 			)
-		row["customer_vehicle"] = vehicle or row.get("customer_vehicle")
+		if not vehicle or status == "Not Found":
+			frappe.throw(
+				_(
+					"Registration number {0} does not match an existing Customer Vehicle for {1}. "
+					"Create the Customer Vehicle first, then import again."
+				).format(row["registration_number"], lpo.customer)
+			)
+		row["customer_vehicle"] = vehicle
+		prepared_rows.append(row)
+	for row in prepared_rows:
 		lpo.append("vehicle_rows", row)
 	lpo.save()
 	return {"lpo": lpo.name, "imported": len(values), "vehicle_count": len(lpo.get("vehicle_rows") or [])}
-
-
-@frappe.whitelist(methods=["POST"])
-def resolve_vehicle_rows(lpo_name: str, row_names=None, create_confirmed: bool = False) -> dict:
-	"""Resolve registration numbers against the customer's native vehicle master."""
-	lpo = _get_lpo(lpo_name, "write")
-	if lpo.docstatus != 0:
-		frappe.throw(_("Vehicle rows can only be resolved on a draft Customer LPO."))
-	create_confirmed = cint(create_confirmed)
-	requested = set(
-		str(value) for value in (_parse_json(row_names, _("Vehicle row names")) if row_names else [])
-	)
-	resolved = unresolved = 0
-	for row in lpo.get("vehicle_rows") or []:
-		if requested and row.name not in requested:
-			continue
-		vehicle, status = _resolve_vehicle(lpo.customer, row.registration_number, row.customer_vehicle)
-		if status == "Resolved":
-			row.customer_vehicle = vehicle
-			row.status = "Resolved"
-			resolved += 1
-		elif create_confirmed and status == "Not Found":
-			frappe.has_permission("Customer Vehicle", "create", throw=True)
-			new_vehicle = frappe.get_doc(
-				{
-					"doctype": "Customer Vehicle",
-					"customer": lpo.customer,
-					"registration_number": row.registration_number,
-				}
-			).insert()
-			row.customer_vehicle = new_vehicle.name
-			row.status = "Resolved"
-			resolved += 1
-		else:
-			unresolved += 1
-	lpo.save()
-	return {"lpo": lpo.name, "resolved": resolved, "unresolved": unresolved}
-
 
 def _campaign_name(lpo):
 	return lpo.lpo_number or lpo.name

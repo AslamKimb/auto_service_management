@@ -4,6 +4,12 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import now_datetime
+
+
+def _throw(code: str, message: str):
+	frappe.local.response["error_code"] = code
+	frappe.throw(message)
 
 
 def normalize_vin_chassis_number(value: str | None) -> str | None:
@@ -18,7 +24,18 @@ def normalize_vin_chassis_number(value: str | None) -> str | None:
 
 
 class CustomerVehicle(Document):
+	def after_insert(self):
+		if self.customer:
+			from auto_service_management.auto_service_management.doctype.customer_vehicle_customer_association.customer_vehicle_customer_association import (
+				create_initial_association,
+			)
+
+			create_initial_association(self.name, self.customer, source_name=self.name)
+
 	def validate(self):
+		old = self.get_doc_before_save()
+		if old and old.customer != self.customer and not getattr(self.flags, "allow_customer_association_update", False):
+			frappe.throw(_("Use the customer association action to change a vehicle's current customer."))
 		self.validate_make_and_model()
 		self.validate_engine_model()
 		self.validate_unique_vehicle()
@@ -65,3 +82,44 @@ class CustomerVehicle(Document):
 				)
 			)
 		super().show_unique_validation_message(error)
+
+
+@frappe.whitelist(methods=["GET"])
+def get_customer_vehicle_association_history(customer_vehicle: str) -> dict:
+	"""Return a permission-scoped, chronological customer association timeline."""
+	if not customer_vehicle:
+		_throw("VALIDATION_FAILED", _("Customer Vehicle is required."))
+	vehicle = frappe.get_doc("Customer Vehicle", customer_vehicle)
+	vehicle.check_permission("read")
+	rows = frappe.get_all(
+		"Customer Vehicle Customer Association",
+		filters={"customer_vehicle": vehicle.name},
+		fields=["name", "customer_vehicle", "customer", "valid_from", "valid_to", "source_doctype", "source_name"],
+		order_by="valid_from asc, creation asc",
+		limit_page_length=0,
+	)
+	return {"customer_vehicle": vehicle.name, "history": rows}
+
+
+@frappe.whitelist(methods=["POST"])
+def associate_customer(
+	customer_vehicle: str,
+	customer: str,
+	expected_version: str | None = None,
+	idempotency_key: str | None = None,
+	source_doctype: str = "Repair Job",
+	source_name: str | None = None,
+) -> dict:
+	"""Associate a vehicle to a customer through one audited, idempotent action."""
+	from auto_service_management.auto_service_management.doctype.customer_vehicle_customer_association.customer_vehicle_customer_association import (
+		associate_vehicle_customer,
+	)
+
+	return associate_vehicle_customer(
+		customer_vehicle=customer_vehicle,
+		customer=customer,
+		expected_version=expected_version,
+		idempotency_key=idempotency_key,
+		source_doctype=source_doctype,
+		source_name=source_name,
+	)

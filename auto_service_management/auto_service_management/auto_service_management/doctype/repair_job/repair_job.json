@@ -25,6 +25,69 @@
    "options": "Customer"
   },
   {
+   "fieldname": "company_contact_section",
+   "fieldtype": "Section Break",
+   "label": "Company Contact / Responsible Person",
+   "hidden": 1
+  },
+  {
+   "fieldname": "contact_person",
+   "fieldtype": "Link",
+   "label": "Company Contact / Responsible Person",
+   "options": "Contact",
+   "no_create": 1
+  },
+  {
+   "fieldname": "company_contact_details_html",
+   "fieldtype": "HTML",
+   "label": "Selected Contact Details"
+  },
+  {
+   "fieldname": "contact_person_name_snapshot",
+   "fieldtype": "Data",
+   "label": "Contact Name Snapshot",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "contact_person_phone_snapshot",
+   "fieldtype": "Data",
+   "label": "Contact Phone Snapshot",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "contact_person_mobile_snapshot",
+   "fieldtype": "Data",
+   "label": "Contact Mobile Snapshot",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "contact_person_email_snapshot",
+   "fieldtype": "Data",
+   "label": "Contact Email Snapshot",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "contact_person_captured_at",
+   "fieldtype": "Datetime",
+   "label": "Contact Captured At",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "vehicle_section",
+   "fieldtype": "Section Break",
+   "label": "Vehicle"
+  },
+  {
    "fieldname": "customer_vehicle",
    "fieldtype": "Link",
    "label": "Customer Vehicle",

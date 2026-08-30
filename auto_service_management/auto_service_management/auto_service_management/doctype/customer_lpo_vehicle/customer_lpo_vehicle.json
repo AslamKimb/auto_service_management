@@ -7,17 +7,19 @@
   "istable": 1,
   "fields": [
     {
-      "fieldname": "registration_number",
-      "fieldtype": "Data",
-      "label": "Registration Number",
-      "reqd": 1,
-      "in_list_view": 1
-    },
-    {
       "fieldname": "customer_vehicle",
       "fieldtype": "Link",
       "label": "Customer Vehicle",
       "options": "Customer Vehicle",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "registration_number",
+      "fieldtype": "Data",
+      "label": "Registration Number",
+      "fetch_from": "customer_vehicle.registration_number",
+      "read_only": 1,
       "in_list_view": 1
     },
     {

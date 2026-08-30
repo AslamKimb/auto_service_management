@@ -1,12 +1,12 @@
 frappe.ui.form.on("Repair Job", {
 	setup(frm) {
 		setup_realtime_handlers(frm);
-		frm.set_query("customer_vehicle", () => {
-			if (!frm.doc.customer) {
-				return {};
-			}
-			return { filters: { customer: frm.doc.customer } };
-		});
+		// A vehicle is a reusable identity; customer ownership is selected per visit.
+		frm.set_query("customer_vehicle", () => ({}));
+		frm.set_query("contact_person", () => ({
+			query: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.get_company_contacts",
+			filters: { customer: frm.doc.customer },
+		}));
 
 		for (const [fieldname] of [
 			["walkaround_inspection"],
@@ -26,6 +26,16 @@ frappe.ui.form.on("Repair Job", {
 
 	refresh(frm) {
 		show_repair_job_id(frm);
+		set_contact_field_state(frm);
+		render_company_contact_details(frm);
+		if (frm.doc.customer) {
+			frappe.db.get_value("Customer", frm.doc.customer, "customer_type").then(({ message }) => {
+				set_contact_field_state(frm, message?.customer_type);
+				setup_company_contact_action(frm, message?.customer_type);
+			});
+		} else {
+			setup_company_contact_action(frm);
+		}
 		sync_dom_field_value(frm, "odometer_in");
 		set_business_status_indicator(frm);
 		if (frm.is_new()) {
@@ -188,27 +198,125 @@ frappe.ui.form.on("Repair Job", {
 	},
 
 	customer(frm) {
-		if (!frm.doc.customer || !frm.doc.customer_vehicle) {
+		if (!frm.doc.customer) {
+			frm.set_value("contact_person", null);
+			set_contact_field_state(frm);
+			setup_company_contact_action(frm);
+			render_company_contact_details(frm);
 			return;
 		}
-		frappe.db.get_value("Customer Vehicle", frm.doc.customer_vehicle, "customer").then(({ message }) => {
-			if (message?.customer && message.customer !== frm.doc.customer) {
-				frm.set_value("customer_vehicle", null);
-			}
+		frm.set_value("contact_person", null);
+		render_company_contact_details(frm);
+		frappe.db.get_value("Customer", frm.doc.customer, "customer_type").then(({ message }) => {
+			set_contact_field_state(frm, message?.customer_type);
+			setup_company_contact_action(frm, message?.customer_type);
 		});
 	},
 
+	contact_person(frm) {
+		render_company_contact_details(frm);
+	},
+
 	customer_vehicle(frm) {
-		if (!frm.doc.customer_vehicle) {
-			return;
-		}
-		frappe.db.get_value("Customer Vehicle", frm.doc.customer_vehicle, "customer").then(({ message }) => {
-			if (message?.customer && frm.doc.customer !== message.customer) {
-				frm.set_value("customer", message.customer);
-			}
-		});
+		// Do not overwrite the visit customer: reassociation is explicit at Check In.
 	},
 });
+
+function set_contact_field_state(frm, customerType) {
+	if (!frm.fields_dict.contact_person) return;
+	const type = customerType || frm.doc.customer_type;
+	if (!frm.doc.customer || !type) {
+		frm.set_df_property("company_contact_section", "hidden", 1);
+		frm.set_df_property("contact_person", "hidden", 1);
+		return;
+	}
+	if (type === "Individual") {
+		frm.set_df_property("company_contact_section", "hidden", 1);
+		frm.set_df_property("contact_person", "hidden", 1);
+		frm.set_df_property("contact_person", "reqd", 0);
+		frm.set_df_property("contact_person", "read_only", 0);
+		return;
+	}
+	frm.set_df_property("company_contact_section", "hidden", 0);
+	frm.set_df_property("contact_person", "hidden", 0);
+	frm.set_df_property("contact_person", "reqd", frm.doc.job_status !== "Draft");
+	frm.set_df_property("contact_person", "read_only", frm.doc.job_status !== "Draft");
+}
+
+function setup_company_contact_action(frm, customerType) {
+	const label = __("Add Company Contact Person");
+	frm.remove_custom_button(label, __("Customer"));
+	if (customerType !== "Company" || !frm.doc.customer || (!frm.is_new() && frm.doc.job_status !== "Draft") || !frappe.model.can_create("Contact")) {
+		return;
+	}
+	frm.add_custom_button(label, () => show_company_contact_dialog(frm), __("Customer"));
+}
+
+function show_company_contact_dialog(frm) {
+	const dialog = new frappe.ui.Dialog({
+		title: __("Add Company Contact Person"),
+		fields: [
+			{ fieldname: "salutation", fieldtype: "Data", label: __("Salutation") },
+			{ fieldname: "first_name", fieldtype: "Data", label: __("First Name"), reqd: 1 },
+			{ fieldname: "middle_name", fieldtype: "Data", label: __("Middle Name") },
+			{ fieldname: "last_name", fieldtype: "Data", label: __("Last Name") },
+			{ fieldname: "designation", fieldtype: "Data", label: __("Designation") },
+			{ fieldname: "department", fieldtype: "Data", label: __("Department") },
+			{ fieldname: "email_id", fieldtype: "Data", options: "Email", label: __("Email") },
+			{ fieldname: "phone", fieldtype: "Data", label: __("Phone") },
+			{ fieldname: "mobile_no", fieldtype: "Data", label: __("Mobile") },
+		],
+		primary_action_label: __("Create and Select"),
+		primary_action(values) {
+			frappe.call({
+				method: "auto_service_management.auto_service_management.doctype.repair_job.repair_job.create_company_contact",
+				type: "POST",
+				args: { customer: frm.doc.customer, ...values },
+				freeze: true,
+				freeze_message: __("Creating company contact..."),
+				callback(response) {
+					if (!response.message?.name) return;
+					dialog.hide();
+					frm.set_value("contact_person", response.message.name);
+					frappe.show_alert({ message: __("Company contact created and selected."), indicator: "green" });
+				},
+			});
+		},
+	});
+	dialog.show();
+}
+
+function render_company_contact_details(frm) {
+	const field = frm.fields_dict.company_contact_details_html;
+	if (!field) return;
+	if (!frm.doc.contact_person) {
+		if (frm.doc.customer && frappe.model.can_create("Contact")) {
+			field.$wrapper.html(`<button type="button" class="btn btn-xs btn-secondary js-add-company-contact">${__("Add company contact person")}</button>`);
+			field.$wrapper.find(".js-add-company-contact").on("click", () => show_company_contact_dialog(frm));
+		} else {
+			field.$wrapper.empty();
+		}
+		return;
+	}
+	const selectedContact = frm.doc.contact_person;
+	frappe.db.get_value(
+		"Contact",
+		selectedContact,
+		["first_name", "middle_name", "last_name", "designation", "department", "email_id", "phone", "mobile_no"],
+	).then(({ message }) => {
+		if (!message || frm.doc.contact_person !== selectedContact) return;
+		const fullName = [message.first_name, message.middle_name, message.last_name].filter(Boolean).join(" ");
+		const rows = [
+			[__("Name"), fullName],
+			[__("Designation"), message.designation],
+			[__("Department"), message.department],
+			[__("Email"), message.email_id],
+			[__("Phone"), message.phone],
+			[__("Mobile"), message.mobile_no],
+		].filter(([, value]) => value);
+		field.$wrapper.html(`<div class="text-muted small">${__("Selected contact details")}</div><div class="small">${rows.map(([label, value]) => `<div><strong>${frappe.utils.escape_html(label)}:</strong> ${frappe.utils.escape_html(value)}</div>`).join("")}</div>`);
+	});
+}
 
 function setup_realtime_handlers(frm) {
 	if (frm.__auto_service_realtime_handlers_setup) {
@@ -261,12 +369,39 @@ function add_workflow_action_buttons(frm) {
 	};
 	for (const [label, method] of actions[frm.doc.job_status] || []) {
 		frm.add_custom_button(__(label), () => {
+			if (method === "check_in") {
+				check_in_with_confirmation(frm);
+				return;
+			}
 			frm.call(method).then(() => frm.reload_doc());
 		}, __("Workflow"));
 	}
 	if (can_override_status()) {
 		frm.add_custom_button(__("Set Status"), () => show_status_override_dialog(frm), __("Workflow"));
 	}
+}
+
+function check_in_with_confirmation(frm) {
+	const args = {
+		expected_version: frm.doc.modified,
+		idempotency_key: `repair-job-check-in:${frm.doc.name}`,
+		confirm_customer_association: 0,
+		contact_person: frm.doc.contact_person || null,
+	};
+	frappe.db.get_value("Customer Vehicle", frm.doc.customer_vehicle, "customer").then(({ message }) => {
+		const currentCustomer = message?.customer;
+		if (currentCustomer && currentCustomer === frm.doc.customer) {
+			frm.call("check_in", args).then(() => frm.reload_doc());
+			return;
+		}
+		frappe.confirm(
+			__("This vehicle is currently associated with {0}. Check it in for {1} and update the vehicle history?", [currentCustomer || __("no customer"), frm.doc.customer]),
+			() => {
+				args.confirm_customer_association = 1;
+				frm.call("check_in", args).then(() => frm.reload_doc());
+			},
+		);
+	});
 }
 
 function setup_optional_widget(globalName, frm, options) {

@@ -17,7 +17,6 @@
    "fieldtype": "Link",
    "label": "Customer",
    "options": "Customer",
-   "reqd": 1,
    "in_list_view": 1
   },
   {
@@ -29,6 +28,11 @@
    "fieldtype": "Read Only",
    "label": "Customer Name",
    "fetch_from": "customer.customer_name"
+  },
+  {
+   "fieldname": "customer_association_history",
+   "fieldtype": "HTML",
+   "label": "Customer Association History"
   },
   {
    "fieldname": "vehicle_section",
