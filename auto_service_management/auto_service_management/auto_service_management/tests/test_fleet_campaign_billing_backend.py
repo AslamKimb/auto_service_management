@@ -257,6 +257,94 @@ class TestFleetCampaignBillingBackend(UnitTestCase):
 		):
 			document_sync._validate_campaign_component_authority(doc)
 
+	def test_campaign_sales_order_ignores_its_own_authoritative_order_link(self):
+		doc = self._campaign_sales_doc()
+		doc.name = "SO-1"
+		authority = self._authoritative_trace()
+		authority.sales_order = "SO-1"
+		authority.sales_order_item = "SOI-1"
+		with (
+			patch.object(document_sync, "_resolve_campaign_component_authority", return_value=authority),
+			patch.object(document_sync, "_submitted_component_document", return_value=None),
+			patch.object(document_sync.frappe.db, "get_value", return_value=1),
+		):
+			document_sync._validate_campaign_component_authority(doc)
+
+	def test_submitted_component_lookup_ignores_other_repair_job_service(self):
+		row = frappe._dict(
+			repair_component_doctype="Repair Job Service Part",
+			repair_component_row="PART-1",
+			repair_job_service="RJS-2",
+		)
+		other_service_item = frappe._dict(
+			name="SOI-1",
+			parent="SO-1",
+			repair_job_service="RJS-1",
+		)
+
+		def get_all(_doctype, filters, **_kwargs):
+			self.assertEqual(filters["repair_job_service"], row.repair_job_service)
+			return (
+				[other_service_item]
+				if other_service_item.repair_job_service == filters["repair_job_service"]
+				else []
+			)
+
+		with patch.object(document_sync.frappe, "get_all", side_effect=get_all):
+			self.assertIsNone(
+				document_sync._submitted_component_document(
+					row,
+					"Sales Order",
+					"Sales Order Item",
+				)
+			)
+
+	def test_submitted_component_lookup_still_detects_same_repair_job_service(self):
+		row = frappe._dict(
+			repair_component_doctype="Repair Job Service Part",
+			repair_component_row="PART-1",
+			repair_job_service="RJS-1",
+		)
+		same_service_item = frappe._dict(
+			name="SOI-1",
+			parent="SO-1",
+			repair_job_service="RJS-1",
+		)
+
+		with (
+			patch.object(document_sync.frappe, "get_all", return_value=[same_service_item]),
+			patch.object(document_sync.frappe.db, "get_value", return_value=1),
+		):
+			result = document_sync._submitted_component_document(
+				row,
+				"Sales Order",
+				"Sales Order Item",
+			)
+
+		self.assertEqual((result.parent, result.item), ("SO-1", "SOI-1"))
+
+	def test_component_link_guard_ignores_duplicate_ref_from_other_repair_job_service(self):
+		rows = [
+			frappe._dict(
+				repair_job="RJ-1",
+				repair_job_service=service,
+				repair_component_doctype="Repair Job Service Part",
+				repair_component_row="PART-1",
+			)
+			for service in ("RJS-1", "RJS-2")
+		]
+		doc = frappe._dict(items=rows, name="SO-1")
+
+		with (
+			patch.object(document_sync.frappe.db, "exists", return_value=True),
+			patch.object(
+				document_sync.frappe.db,
+				"get_value",
+				return_value=frappe._dict(repair_job="RJ-1", sales_order=None),
+			),
+		):
+			document_sync._validate_component_links(doc, "Sales Order", "sales_order")
+
 	def test_campaign_sales_order_maps_only_explicit_available_components(self):
 		target = _Target("Sales Order")
 		campaign = frappe._dict(name="FSC-1", customer="CUST-1", campaign_end="2026-09-30", status="Ongoing")

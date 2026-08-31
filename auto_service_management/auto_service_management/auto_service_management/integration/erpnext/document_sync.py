@@ -391,14 +391,20 @@ def _validate_sales_order_submission(doc):
 		component = frappe.db.get_value(
 			row.repair_component_doctype,
 			row.repair_component_row,
-			["sales_order", "sales_invoice"],
+			["sales_order", "sales_invoice", "repair_job_service"],
 			as_dict=True,
 		)
 		if not component:
 			continue
+		same_service = (
+			not getattr(row, "repair_job_service", None)
+			or not component.get("repair_job_service")
+			or component.repair_job_service == row.repair_job_service
+		)
 		linked_order = component.get("sales_order")
 		if (
 			linked_order
+			and same_service
 			and linked_order != doc.name
 			and frappe.db.get_value("Sales Order", linked_order, "docstatus") == 1
 		):
@@ -408,24 +414,34 @@ def _validate_sales_order_submission(doc):
 				)
 			)
 		linked_invoice = component.get("sales_invoice")
-		if linked_invoice and frappe.db.get_value("Sales Invoice", linked_invoice, "docstatus") == 1:
+		if (
+			linked_invoice
+			and same_service
+			and frappe.db.get_value("Sales Invoice", linked_invoice, "docstatus") == 1
+		):
 			frappe.throw(
 				_("Repair component {0} is already invoiced in Sales Invoice {1}.").format(
 					row.repair_component_row, linked_invoice
 				)
 			)
+		service_filter = "AND soi.repair_job_service = %s" if getattr(row, "repair_job_service", None) else ""
 		conflict = frappe.db.sql(
-			"""
+			f"""
 			SELECT soi.parent
 			FROM `tabSales Order Item` soi
 			INNER JOIN `tabSales Order` so ON so.name = soi.parent
 			WHERE so.docstatus = 1
 			AND soi.repair_component_doctype = %s
 			AND soi.repair_component_row = %s
+			{service_filter}
 			AND soi.parent <> %s
 			LIMIT 1
 			""",
-			(row.repair_component_doctype, row.repair_component_row, doc.name),
+			(
+				(row.repair_component_doctype, row.repair_component_row, row.repair_job_service, doc.name)
+				if service_filter
+				else (row.repair_component_doctype, row.repair_component_row, doc.name)
+			),
 		)
 		if conflict:
 			frappe.throw(
@@ -531,7 +547,7 @@ def _validate_campaign_component_authority(doc):
 			"Sales Invoice Item",
 			exclude_parent=doc.get("name"),
 		)
-		if not invoice and authority.sales_invoice:
+		if not invoice and authority.sales_invoice and authority.sales_invoice != doc.get("name"):
 			if frappe.db.get_value("Sales Invoice", authority.sales_invoice, "docstatus") == 1:
 				invoice = frappe._dict(
 					parent=authority.sales_invoice,
@@ -551,7 +567,7 @@ def _validate_campaign_component_authority(doc):
 			"Sales Order Item",
 			exclude_parent=doc.get("name") if doc.get("doctype") == "Sales Order" else None,
 		)
-		if not order and authority.sales_order:
+		if not order and authority.sales_order and authority.sales_order != doc.get("name"):
 			if frappe.db.get_value("Sales Order", authority.sales_order, "docstatus") == 1:
 				order = frappe._dict(parent=authority.sales_order, item=authority.sales_order_item)
 		if not order:
@@ -634,12 +650,15 @@ def _submitted_component_document(
 	*,
 	exclude_parent=None,
 ):
+	filters = {
+		"repair_component_doctype": row.repair_component_doctype,
+		"repair_component_row": row.repair_component_row,
+	}
+	if getattr(row, "repair_job_service", None):
+		filters["repair_job_service"] = row.repair_job_service
 	items = frappe.get_all(
 		item_doctype,
-		filters={
-			"repair_component_doctype": row.repair_component_doctype,
-			"repair_component_row": row.repair_component_row,
-		},
+		filters=filters,
 		fields=["name", "parent"],
 		limit_page_length=0,
 	)
@@ -654,7 +673,11 @@ def _submitted_component_document(
 def _validate_component_links(doc, linked_doctype, linked_field):
 	seen_refs = set()
 	for row in _trace_items(doc):
-		ref = (row.repair_component_doctype, row.repair_component_row)
+		ref = (
+			getattr(row, "repair_job_service", None),
+			row.repair_component_doctype,
+			row.repair_component_row,
+		)
 		if ref in seen_refs:
 			frappe.throw(_("Repair component {0} appears more than once.").format(row.repair_component_row))
 		seen_refs.add(ref)
