@@ -11,6 +11,7 @@ from frappe.utils import cint, flt, today
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
 	STOCK_COMPONENT_TYPES,
 	ServiceComponent,
+	item_maintains_stock,
 	iter_repair_job_components,
 )
 from auto_service_management.auto_service_management.settings_cache import (
@@ -617,6 +618,7 @@ def map_material_request(
 		service_names,
 		billable_only=False,
 		component_types=STOCK_COMPONENT_TYPES,
+		stock_only=True,
 	)
 	current_refs = _component_refs(target)
 	components, _reserved = _eligible_components(
@@ -629,6 +631,7 @@ def map_material_request(
 		linked_doctype="Material Request",
 		linked_field="material_request",
 		component_refs=requested_refs,
+		stock_only=True,
 	)
 	if not components:
 		frappe.throw(_("No approved, unrequested Part or Consumable components are available."))
@@ -677,6 +680,7 @@ def get_material_request_components(
 	for service, component in iter_repair_job_components(
 		repair_job.name,
 		component_types=STOCK_COMPONENT_TYPES,
+		stock_only=True,
 		include_excluded=False,
 		service_names=service_names,
 	):
@@ -1056,6 +1060,7 @@ def _eligible_components(
 	billable_only=False,
 	service_names=None,
 	component_refs=None,
+	stock_only=False,
 ):
 	eligible = []
 	reserved = {}
@@ -1063,6 +1068,7 @@ def _eligible_components(
 		repair_job.name,
 		service_statuses=service_statuses,
 		component_types=component_types,
+		stock_only=stock_only,
 		billable_only=billable_only,
 		service_names=service_names,
 	):
@@ -1106,6 +1112,7 @@ def _validate_requested_component_refs(
 	*,
 	billable_only=True,
 	component_types=None,
+	stock_only=False,
 ):
 	if component_refs is None:
 		return
@@ -1128,6 +1135,10 @@ def _validate_requested_component_refs(
 			frappe.throw(_("Component {0} belongs to a cancelled Repair Job Service.").format(component.name))
 		if component_types and component.component_type not in set(component_types):
 			frappe.throw(_("Component {0} is not a stock component.").format(component.name))
+		if stock_only and not item_maintains_stock(component.item_code):
+			frappe.throw(
+				_("Selected component {0} must use an Item with Maintain Stock enabled.").format(component.name)
+			)
 		if billable_only and not component.billable:
 			frappe.throw(_("Component {0} is not billable.").format(component.name))
 

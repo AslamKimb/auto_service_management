@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, now_datetime
+from frappe.utils import cint, flt, now_datetime
 
 from auto_service_management.auto_service_management.settings_cache import (
 	get_settings as _get_cached_settings,
@@ -47,6 +47,10 @@ COMPONENT_TABLES = (
 	},
 )
 COMPONENT_TABLE_BY_TYPE = {row["component_type"]: row for row in COMPONENT_TABLES}
+
+
+def item_maintains_stock(item_code):
+	return bool(item_code and cint(frappe.db.get_value("Item", item_code, "is_stock_item")))
 
 
 @frappe.whitelist(methods=["POST"])
@@ -489,9 +493,32 @@ class RepairJobServiceComponent(Document):
 	def validate(self):
 		if self.billable is None:
 			self.billable = 1
-		if self.component_type == "Labour":
-			_validate_labour_item(self.item_code)
+		_validate_component_item(self.component_type, self.item_code)
 		calculate_component_amount(self, self.component_type)
+
+
+def _validate_component_item(component_type, item_code):
+	if component_type == "Labour":
+		_validate_labour_item(item_code)
+		return
+
+	if component_type not in STOCK_COMPONENT_TYPES:
+		return
+	label = "Part" if component_type == "Part" else "Consumable"
+	if not item_code:
+		frappe.throw(_("A {0} Item is required for every {0} component.").format(label))
+	item = frappe.db.get_value(
+		"Item",
+		item_code,
+		["disabled", "is_stock_item"],
+		as_dict=True,
+	)
+	if not item:
+		frappe.throw(_("{0} Item {1} does not exist.").format(label, item_code))
+	if not item.is_stock_item:
+		frappe.throw(
+			_("{0} Item {1} must have Maintain Stock enabled.").format(label, item_code)
+		)
 
 
 def _validate_labour_item(item_code):
@@ -617,6 +644,7 @@ def iter_repair_job_components(
 	*,
 	service_statuses=None,
 	component_types=None,
+	stock_only=False,
 	billable_only=False,
 	include_excluded=False,
 	service_names=None,
@@ -634,6 +662,8 @@ def iter_repair_job_components(
 		if service_statuses is not None and not _status_filter_allows(service, service_statuses):
 			continue
 		for component in get_service_components(service, component_types=component_types):
+			if stock_only and not item_maintains_stock(component.item_code):
+				continue
 			if billable_only and not component.billable:
 				continue
 			yield service, component

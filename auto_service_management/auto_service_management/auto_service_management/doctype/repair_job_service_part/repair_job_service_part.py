@@ -10,6 +10,7 @@ class RepairJobServicePart(RepairJobServiceComponent):
 	component_type = "Part"
 
 	def validate(self):
+		super().validate()
 		from auto_service_management.auto_service_management.item_fitment_compatibility import (
 			apply_fitment_snapshot,
 		)

@@ -19,6 +19,7 @@ WORKSPACE_OPERATIONAL_NUMBER_CARDS = (
 WORKSPACE_DOC_TYPE_COVERAGE = {
 	"Auto Service Settings": "Auto Service Settings Configured",
 	"Customer Vehicle": "Customer Vehicles",
+	"Customer Vehicle Customer Association": "Customer Vehicle Customer Associations",
 	"Workshop Bay": "Workshop Bays",
 	"Repair Job": "Repair Jobs",
 	"Repair Job Service": "Repair Job Services",

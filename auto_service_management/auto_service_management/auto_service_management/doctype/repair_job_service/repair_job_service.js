@@ -7,6 +7,12 @@ frappe.ui.form.on('Repair Job Service', {
         frm.set_query('item_code', 'labour', function() {
             return { filters: { disabled: 0, is_stock_item: 0, is_sales_item: 1, stock_uom: 'Hour' } };
         });
+        frm.set_query('item_code', 'parts', function() {
+            return { filters: { disabled: 0, is_stock_item: 1 } };
+        });
+        frm.set_query('item_code', 'consumables', function() {
+            return { filters: { disabled: 0, is_stock_item: 1 } };
+        });
         frm._default_labour_rate = 0;
         frm._default_labour_item = '';
         frm._default_warehouse = '';

@@ -6,6 +6,7 @@ from frappe.utils import flt
 
 from auto_service_management.auto_service_management.doctype.repair_job_service.repair_job_service import (
 	COMPONENT_TABLES,
+	item_maintains_stock,
 	iter_repair_job_components,
 )
 from auto_service_management.auto_service_management.integration.erpnext.component_mapping import (
@@ -690,6 +691,14 @@ def _validate_component_quantities(doc, *, labour_uses_billing_hours=False, stoc
 		if stock_only and is_labour:
 			frappe.throw(_("Material Requests cannot include Labour components."))
 		quantity_field = "billing_hours" if labour_uses_billing_hours and is_labour else "quantity"
+		if stock_only:
+			item_code = frappe.db.get_value(
+				row.repair_component_doctype,
+				row.repair_component_row,
+				"item_code",
+			)
+			if not item_maintains_stock(item_code):
+				frappe.throw(_("Material Requests can only include Items with Maintain Stock enabled."))
 		expected_qty = flt(
 			frappe.db.get_value(row.repair_component_doctype, row.repair_component_row, quantity_field)
 		)
