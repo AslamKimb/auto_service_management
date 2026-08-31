@@ -1,0 +1,30 @@
+{% set branding = get_print_branding(doc) %}
+<style>
+.dms-letterhead { border-bottom: 2px solid #e66f2a; border-collapse: collapse; margin: 0 0 8mm; width: 100%; }
+.dms-letterhead td { padding: 0 0 6px; vertical-align: middle; }
+.dms-letterhead-logo-cell { padding-right: 10px !important; width: 17%; }
+.dms-letterhead-logo { display: block; max-height: 38px; max-width: 92px; }
+.dms-letterhead-brand { border-left: 1px solid #d7d0c1; padding-left: 10px !important; }
+.dms-letterhead-name { color: #183c43; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.dms-letterhead-contact { color: #5b6472; font-size: 8px; line-height: 1.35; margin-top: 2px; }
+.dms-letterhead-meta { border-left: 1px solid #d7d0c1; padding-left: 10px !important; text-align: right; width: 25%; }
+.dms-letterhead-document { color: #183c43; font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.dms-letterhead-reference { color: #5b6472; font-size: 8px; margin-top: 2px; }
+</style>
+<table class="dms-letterhead" role="presentation">
+  <tr>
+    <td class="dms-letterhead-logo-cell">
+      {% if branding.logo %}<img class="dms-letterhead-logo" src="{{ branding.logo }}" alt="{{ branding.company_name }}">{% endif %}
+    </td>
+    <td class="dms-letterhead-brand">
+      <div class="dms-letterhead-name">{{ branding.company_name }}</div>
+      {% if branding.location %}<div class="dms-letterhead-contact">{{ branding.location }}</div>{% endif %}
+      {% if branding.address %}<div class="dms-letterhead-contact">{{ branding.address }}</div>{% endif %}
+      {% if branding.contact %}<div class="dms-letterhead-contact">{{ branding.contact }}</div>{% endif %}
+    </td>
+    <td class="dms-letterhead-meta">
+      <div class="dms-letterhead-document">{{ doc.doctype }}</div>
+      <div class="dms-letterhead-reference">{{ doc.name }}</div>
+    </td>
+  </tr>
+</table>

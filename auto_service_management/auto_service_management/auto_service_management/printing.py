@@ -35,6 +35,8 @@ WORKSHOP_PRINT_FORMATS = (
 	("Payment Entry", "Payment Entry"),
 )
 
+# This is a vehicle-condition diagram, not a branding asset. Keep it separate
+# from logo resolution because Job Card uses it as an inspection illustration.
 PUBLIC_PRINT_LOGO = "/assets/auto_service_management/images/vectorised-bb109a99.svg"
 
 
@@ -53,6 +55,61 @@ def _text(value):
 
 def _join_nonempty(*values):
 	return ", ".join(value for value in (_text(item) for item in values) if value)
+
+
+def _company_address(company_name):
+	"""Return the primary linked address and display-ready company details."""
+	if not company_name:
+		return frappe._dict()
+
+	address_names = frappe.get_all(
+		"Dynamic Link",
+		filters={
+			"link_doctype": "Company",
+			"link_name": company_name,
+			"parenttype": "Address",
+		},
+		pluck="parent",
+		limit_page_length=50,
+	)
+	if not address_names:
+		return frappe._dict()
+
+	addresses = frappe.get_all(
+		"Address",
+		filters={"name": ["in", address_names], "disabled": 0},
+		fields=[
+			"address_line1",
+			"address_line2",
+			"county",
+			"city",
+			"state",
+			"country",
+			"pincode",
+			"phone",
+			"email_id",
+		],
+		order_by="is_primary_address desc, modified desc",
+		limit_page_length=1,
+	)
+	if not addresses:
+		return frappe._dict()
+
+	address = addresses[0]
+	return frappe._dict(
+		location=_join_nonempty(address.city, address.state, address.country),
+		address=_join_nonempty(
+			address.address_line1,
+			address.address_line2,
+			address.county,
+			address.city,
+			address.state,
+			address.country,
+			address.pincode,
+		),
+		phone=_text(address.phone),
+		email=_text(address.email_id),
+	)
 
 
 def _vehicle_values(vehicle_name):
@@ -221,9 +278,13 @@ def get_job_card_context(doc):
 	}
 
 
-def resolve_logo_url(company_logo, app_logo, banner_image, base_url):
-	"""Resolve the approved company-first logo precedence."""
-	return normalize_logo_url(company_logo or app_logo or banner_image, base_url)
+def resolve_logo_url(company_logo, app_logo, navbar_logo, banner_image, base_url):
+	"""Resolve the configured company, website, navbar, or banner logo."""
+	for value in (company_logo, app_logo, navbar_logo, banner_image):
+		logo = normalize_logo_url(value, base_url)
+		if logo:
+			return logo
+	return None
 
 
 def get_print_branding(doc):
@@ -244,22 +305,32 @@ def get_print_branding(doc):
 		else frappe._dict()
 	) or frappe._dict()
 	website = frappe.get_single("Website Settings")
+	company_address = _company_address(company_name)
+	navbar_logo = frappe.db.get_single_value("Navbar Settings", "app_logo")
 	logo = resolve_logo_url(
 		company.company_logo,
 		website.app_logo,
+		navbar_logo,
 		website.banner_image,
 		frappe.utils.get_url(),
 	)
-	# Private file logos are not readable by role-scoped Desk print requests.
-	# Use the app-owned public mark so PDFs never render a broken image for
-	# Service Advisor and other non-System-Manager roles.
-	if logo and "/private/files/" in logo:
-		logo = PUBLIC_PRINT_LOGO
 	return frappe._dict(
 		company=company,
 		company_name=company.company_name or company_name or "Auto Service Workshop",
 		logo=logo,
-		contact=" · ".join(value for value in (company.phone_no, company.email, company.website) if value),
+		location=company_address.location,
+		address=company_address.address,
+		contact=" · ".join(
+			value
+			for value in (
+				company.phone_no,
+				company.email,
+				company.website,
+				company_address.phone,
+				company_address.email,
+			)
+			if value
+		),
 	)
 
 
@@ -348,15 +419,16 @@ def _migrate_sales_order_builder_format():
 		frappe.log_error(frappe.get_traceback(), "Unable to rename Sales Order print format")
 
 
-def _letterhead_content():
-	return '{% include "templates/includes/auto_service_print/letterhead.html" %}'
+def _letterhead_content(compact=False):
+	template = "letterhead_compact.html" if compact else "letterhead.html"
+	return f'{{% include "templates/includes/auto_service_print/{template}" %}}'
 
 
-def _ensure_letterhead(name, is_default):
-	content = _letterhead_content()
+def _ensure_letterhead(name, is_default, compact=False):
+	content = _letterhead_content(compact=compact)
 	if frappe.db.exists("Letter Head", name):
 		existing = frappe.get_doc("Letter Head", name)
-		if existing.content == content and existing.source != "HTML":
+		if existing.content != content or existing.source != "HTML":
 			frappe.db.set_value(
 				"Letter Head",
 				name,
@@ -418,5 +490,7 @@ def ensure_print_branding():
 		"Company Letterhead - Grey",
 		"Company Letterhead",
 	}
+	_ensure_letterhead("Company Letterhead", False)
+	_ensure_letterhead("Company Letterhead - Grey", False)
 	_ensure_letterhead("DMS Company Letterhead", use_app_default)
-	_ensure_letterhead("DMS Company Letterhead - Compact", False)
+	_ensure_letterhead("DMS Company Letterhead - Compact", False, compact=True)

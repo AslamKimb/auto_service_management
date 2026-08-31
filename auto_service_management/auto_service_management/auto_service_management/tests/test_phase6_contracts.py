@@ -99,6 +99,7 @@ class TestPhase6Contracts(UnitTestCase):
 		self.assertIn("get_print_branding", common)
 		self.assertIn("asm-brand", common)
 		self.assertNotIn("car_workshop.svg", common)
+		self.assertNotIn("vectorised-bb1099a99.svg", common)
 		self.assertNotIn("asm-logo-fallback", common)
 
 	def test_print_branding_resolver_contract(self):
@@ -138,21 +139,27 @@ class TestPhase6Contracts(UnitTestCase):
 				layout = json.loads(frappe.db.get_value("Print Format", name, "format_data"))
 				self.assertTrue(any(field.get("fieldtype") == "Custom HTML" for field in layout))
 
-	def test_branded_letterheads_are_html_and_guard_existing_records(self):
-		from auto_service_management.auto_service_management.printing import ensure_print_branding
-
-		existing = frappe.db.get_value("Letter Head", "Company Letterhead", "content")
-		ensure_print_branding()
-		ensure_print_branding()
-		self.assertEqual(
-			frappe.db.get_value("Letter Head", "Company Letterhead", "content"),
-			existing,
+	def test_all_company_letterheads_use_the_shared_native_templates(self):
+		from auto_service_management.auto_service_management.printing import (
+			_letterhead_content,
+			ensure_print_branding,
 		)
-		for name in ("DMS Company Letterhead", "DMS Company Letterhead - Compact"):
+
+		ensure_print_branding()
+		ensure_print_branding()
+		for name in (
+			"Company Letterhead",
+			"Company Letterhead - Grey",
+			"DMS Company Letterhead",
+			"DMS Company Letterhead - Compact",
+		):
 			with self.subTest(letterhead=name):
 				row = frappe.db.get_value("Letter Head", name, ["source", "content"], as_dict=True)
 				self.assertEqual(row.source, "HTML")
-				self.assertIn("letterhead.html", row.content)
+				self.assertEqual(
+					row.content,
+					_letterhead_content(compact=name.endswith("- Compact")),
+				)
 
 	def test_walkaround_print_uses_silhouette_and_damage_markers(self):
 		html = (PRINT_TEMPLATE_ROOT / "walkaround_inspection.html").read_text(encoding="utf-8")

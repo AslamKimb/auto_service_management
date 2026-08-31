@@ -1,23 +1,28 @@
 {% set branding = get_print_branding(doc) %}
 <style>
-.dms-letterhead { border-bottom: 3px solid #e66f2a; margin-bottom: 14px; padding: 0 0 10px; width: 100%; }
-.dms-letterhead td { padding: 0; vertical-align: middle; }
-.dms-letterhead-logo { max-height: 58px; max-width: 110px; }
-.dms-letterhead-name { color: #183c43; font-size: 16px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
-.dms-letterhead-contact { color: #5b6472; font-size: 9px; margin-top: 3px; }
-.dms-letterhead-document { color: #183c43; font-size: 14px; font-weight: 800; text-align: right; text-transform: uppercase; }
-.dms-letterhead-reference { color: #5b6472; font-size: 9px; text-align: right; }
+.dms-letterhead { border-bottom: 2px solid #e66f2a; border-collapse: collapse; margin: 0 0 12mm; width: 100%; }
+.dms-letterhead td { padding: 0 0 9px; vertical-align: middle; }
+.dms-letterhead-logo-cell { padding-right: 14px !important; width: 20%; }
+.dms-letterhead-logo { display: block; max-height: 54px; max-width: 118px; }
+.dms-letterhead-brand { border-left: 1px solid #d7d0c1; padding-left: 14px !important; }
+.dms-letterhead-name { color: #183c43; font-size: 15px; font-weight: 800; letter-spacing: .045em; text-transform: uppercase; }
+.dms-letterhead-contact { color: #5b6472; font-size: 9px; line-height: 1.45; margin-top: 3px; }
+.dms-letterhead-meta { border-left: 1px solid #d7d0c1; padding-left: 14px !important; text-align: right; width: 25%; }
+.dms-letterhead-document { color: #183c43; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.dms-letterhead-reference { color: #5b6472; font-size: 9px; margin-top: 3px; }
 </style>
-<table class="dms-letterhead">
+<table class="dms-letterhead" role="presentation">
   <tr>
-    <td style="width: 18%;">
+    <td class="dms-letterhead-logo-cell">
       {% if branding.logo %}<img class="dms-letterhead-logo" src="{{ branding.logo }}" alt="{{ branding.company_name }}">{% endif %}
     </td>
-    <td>
+    <td class="dms-letterhead-brand">
       <div class="dms-letterhead-name">{{ branding.company_name }}</div>
+      {% if branding.location %}<div class="dms-letterhead-contact">{{ branding.location }}</div>{% endif %}
+      {% if branding.address %}<div class="dms-letterhead-contact">{{ branding.address }}</div>{% endif %}
       {% if branding.contact %}<div class="dms-letterhead-contact">{{ branding.contact }}</div>{% endif %}
     </td>
-    <td style="width: 25%;">
+    <td class="dms-letterhead-meta">
       <div class="dms-letterhead-document">{{ doc.doctype }}</div>
       <div class="dms-letterhead-reference">{{ doc.name }}</div>
     </td>

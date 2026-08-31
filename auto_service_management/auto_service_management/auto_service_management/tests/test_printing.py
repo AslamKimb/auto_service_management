@@ -7,6 +7,7 @@ from frappe.tests import UnitTestCase
 from auto_service_management.auto_service_management.doctype.repair_job.repair_job import RepairJob
 from auto_service_management.auto_service_management.printing import (
 	_builder_format_data,
+	_company_address,
 	_damage_markers,
 	get_job_card_context,
 	normalize_logo_url,
@@ -15,19 +16,42 @@ from auto_service_management.auto_service_management.printing import (
 
 
 class TestPrinting(UnitTestCase):
-	def test_logo_precedence_is_company_then_website(self):
+	def test_logo_precedence_is_company_then_website_then_navbar_then_banner(self):
 		self.assertEqual(
-			resolve_logo_url("/files/company.svg", "/files/app.svg", "/files/banner.svg", "https://dms.test"),
+			resolve_logo_url(
+				"/files/company.svg",
+				"/files/app.svg",
+				"/private/files/navbar.svg",
+				"/files/banner.svg",
+				"https://dms.test",
+			),
 			"https://dms.test/files/company.svg",
 		)
 		self.assertEqual(
-			resolve_logo_url(None, "/files/app.svg", "/files/banner.svg", "https://dms.test"),
+			resolve_logo_url(
+				None,
+				"/files/app.svg",
+				"/private/files/navbar.svg",
+				"/files/banner.svg",
+				"https://dms.test",
+			),
 			"https://dms.test/files/app.svg",
 		)
 		self.assertEqual(
-			resolve_logo_url(None, None, "/files/banner.svg", "https://dms.test"),
+			resolve_logo_url(
+				None,
+				None,
+				"/private/files/navbar.svg",
+				"/files/banner.svg",
+				"https://dms.test",
+			),
+			"https://dms.test/private/files/navbar.svg",
+		)
+		self.assertEqual(
+			resolve_logo_url(None, None, None, "/files/banner.svg", "https://dms.test"),
 			"https://dms.test/files/banner.svg",
 		)
+		self.assertIsNone(resolve_logo_url(None, None, None, None, "https://dms.test"))
 
 	def test_logo_urls_preserve_absolute_and_data_urls(self):
 		self.assertEqual(
@@ -38,8 +62,35 @@ class TestPrinting(UnitTestCase):
 			"data:image/svg+xml;base64,abc",
 		)
 
-	def test_empty_logo_is_not_replaced_with_workspace_icon(self):
-		self.assertIsNone(resolve_logo_url(None, None, None, "https://dms.test"))
+	def test_company_address_returns_location_address_and_contact_fields(self):
+		with patch(
+			"frappe.get_all",
+			side_effect=[
+				["ADDR-1"],
+				[
+					frappe._dict(
+						address_line1="Plot 1",
+						address_line2="Industrial Area",
+						city="Kampala",
+						state="Central",
+						country="Uganda",
+						pincode="256",
+						phone="0700000000",
+						email_id="office@example.test",
+					)
+				],
+			],
+		):
+			address = _company_address("Garage")
+
+		self.assertEqual(address.location, "Kampala, Central, Uganda")
+		self.assertEqual(address.address, "Plot 1, Industrial Area, Kampala, Central, Uganda, 256")
+		self.assertEqual(address.phone, "0700000000")
+		self.assertEqual(address.email, "office@example.test")
+
+	def test_empty_logo_does_not_use_vehicle_diagram(self):
+		logo = resolve_logo_url(None, None, None, None, "https://dms.test")
+		self.assertIsNone(logo)
 
 	def test_builder_layout_uses_editable_custom_html(self):
 		data = _builder_format_data(template="estimate_summary")

@@ -2,10 +2,9 @@
 {% set company = branding.company %}
 {% set company_name = branding.company_name %}
 {% set logo = branding.logo %}
+{% set location = branding.location %}
+{% set address = branding.address %}
 {% set contact = branding.contact %}
-{% if logo and '/private/files/' in logo %}
-  {% set logo = '/assets/auto_service_management/images/vectorised-bb109a99.svg' %}
-{% endif %}
 <style>
 @page { size: A4; margin: 10mm; }
 .asm-print { color: #18212f; font-family: Inter, Arial, sans-serif; font-size: 11px; line-height: 1.42; }
@@ -56,7 +55,8 @@
   </div>
   <div class="asm-brand-copy">
     <h1>{{ company_name }}</h1>
-    <p>Auto Service Management · Workshop operations record</p>
+    {% if location %}<p>{{ location }}</p>{% endif %}
+    {% if address %}<p>{{ address }}</p>{% endif %}
     {% if contact %}<p>{{ contact }}</p>{% endif %}
   </div>
   <div class="asm-doc-chip">
