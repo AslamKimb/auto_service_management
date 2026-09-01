@@ -23,6 +23,10 @@ ARG UGANDA_COMPLIANCE_COMMIT=33743cd596c6e8c079945478d0e5b52e461fe770
 RUN for app in frappe erpnext hrms uganda_compliance; do \
       git -C "/opt/vendor/${app}" reset --hard HEAD; \
     done \
+    && git -C /opt/vendor/frappe update-ref refs/heads/version-16 "${FRAPPE_COMMIT}" \
+    && git -C /opt/vendor/erpnext update-ref refs/heads/version-16 "${ERPNEXT_COMMIT}" \
+    && git -C /opt/vendor/hrms update-ref refs/heads/version-16 "${HRMS_COMMIT}" \
+    && git -C /opt/vendor/uganda_compliance update-ref refs/heads/hotfix-v-16 "${UGANDA_COMPLIANCE_COMMIT}" \
     && test "$(git -C /opt/vendor/frappe rev-parse HEAD)" = "${FRAPPE_COMMIT}" \
     && test "$(git -C /opt/vendor/erpnext rev-parse HEAD)" = "${ERPNEXT_COMMIT}" \
     && test "$(git -C /opt/vendor/hrms rev-parse HEAD)" = "${HRMS_COMMIT}" \

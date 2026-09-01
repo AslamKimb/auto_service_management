@@ -168,6 +168,17 @@ class TestComposeAssetContract(unittest.TestCase):
 		self.assertIn("/opt/frappe-assets", containerfile)
 		self.assertIn("sync_assets.py", containerfile)
 
+	def test_image_build_checks_out_the_pinned_upstream_commits(self):
+		containerfile = (DEPLOYMENT / "Containerfile").read_text(encoding="utf-8")
+		for branch, commit in (
+			("version-16", "FRAPPE_COMMIT"),
+			("version-16", "ERPNEXT_COMMIT"),
+			("version-16", "HRMS_COMMIT"),
+			("hotfix-v-16", "UGANDA_COMPLIANCE_COMMIT"),
+		):
+			with self.subTest(branch=branch, commit=commit):
+				self.assertIn(f"update-ref refs/heads/{branch} \"${{{commit}}}\"", containerfile)
+
 	def test_environment_contract_has_one_dms_image_variable(self):
 		env_example = (DEPLOYMENT / "image.env.example").read_text(encoding="utf-8")
 		self.assertIn("CUSTOM_IMAGE=", env_example)
