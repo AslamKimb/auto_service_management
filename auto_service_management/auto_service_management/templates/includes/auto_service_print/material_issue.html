@@ -1,0 +1,68 @@
+{% set print_title = "Material Issue" %}
+{% set print_status = "Cancelled" if doc.docstatus == 2 else ("Submitted" if doc.docstatus == 1 else "Draft") %}
+{% set posting_date = frappe.utils.format_date(doc.posting_date) if doc.posting_date else "" %}
+{% set posting_time = frappe.utils.format_time(doc.posting_time) if doc.posting_time else "" %}
+{% set trace = namespace(repair_job="", material_request="", vehicle="", multiple_job=false, multiple_request=false, multiple_vehicle=false) %}
+{% for row in doc.items or [] %}
+  {% set source = frappe.db.get_value("Material Request Item", row.material_request_item, ["parent", "repair_job", "customer_vehicle", "repair_job_service", "repair_service_line", "repair_component_row", "repair_component_doctype"], as_dict=True) if row.material_request_item else none %}
+  {% set repair_job = row.repair_job or (source.repair_job if source else "") %}
+  {% set material_request = row.material_request or (source.parent if source else "") %}
+  {% set vehicle = row.customer_vehicle or (source.customer_vehicle if source else "") %}
+  {% if repair_job and not trace.repair_job %}{% set trace.repair_job = repair_job %}{% elif repair_job and repair_job != trace.repair_job %}{% set trace.multiple_job = true %}{% endif %}
+  {% if material_request and not trace.material_request %}{% set trace.material_request = material_request %}{% elif material_request and material_request != trace.material_request %}{% set trace.multiple_request = true %}{% endif %}
+  {% if vehicle and not trace.vehicle %}{% set trace.vehicle = vehicle %}{% elif vehicle and vehicle != trace.vehicle %}{% set trace.multiple_vehicle = true %}{% endif %}
+{% endfor %}
+{% set uoms = namespace(values=[]) %}
+{% for row in doc.items or [] %}{% set uom = row.uom or row.stock_uom %}{% if uom and uom not in uoms.values %}{% set _ = uoms.values.append(uom) %}{% endif %}{% endfor %}
+<div class="asm-print">
+{% include "templates/includes/auto_service_print/common.html" %}
+
+<div class="asm-kicker">Inventory movement record</div>
+<div class="asm-document-title">Issue stock to workshop operations</div>
+<div class="asm-control"><strong>Purpose:</strong> {{ doc.purpose or "Material Issue" }} <span class="asm-muted">·</span> <strong>Stock entry type:</strong> {{ doc.stock_entry_type or "" }}</div>
+
+<table class="asm-grid asm-break">
+  <tr><th>Company</th><td>{{ doc.company or company_name }}</td><th>Posting date / time</th><td>{{ posting_date }}{% if posting_time %} · {{ posting_time }}{% endif %}</td></tr>
+  <tr><th>Source warehouse</th><td>{{ doc.from_warehouse or "Not specified" }}</td><th>Destination</th><td>{{ doc.to_warehouse or "Workshop / job use" }}</td></tr>
+  <tr><th>Repair Job</th><td>{% if trace.multiple_job %}Multiple — see line trace{% else %}{{ trace.repair_job or "Not linked" }}{% endif %}</td><th>Material request</th><td>{% if trace.multiple_request %}Multiple — see line trace{% else %}{{ trace.material_request or "Not linked" }}{% endif %}</td></tr>
+  <tr><th>Customer vehicle</th><td colspan="3">{% if trace.multiple_vehicle %}Multiple — see line trace{% else %}{{ trace.vehicle or "Not linked" }}{% endif %}</td></tr>
+  <tr><th>Project / cost centre</th><td>{{ doc.project or "" }}</td><th>Prepared by</th><td>{{ doc.owner or "" }}</td></tr>
+</table>
+
+<div class="asm-section-title">Issued items</div>
+<table class="asm-lines">
+  <thead><tr><th style="width:4%">#</th><th style="width:27%">Item</th><th style="width:17%">Source warehouse</th><th style="width:9%" class="asm-money">Qty</th><th style="width:9%">UOM</th><th style="width:14%" class="asm-money">Rate</th><th style="width:15%" class="asm-money">Value</th></tr></thead>
+  <tbody>
+  {% for row in doc.items or [] %}
+    {% set source = frappe.db.get_value("Material Request Item", row.material_request_item, ["parent", "repair_job", "customer_vehicle", "repair_job_service", "repair_service_line", "repair_component_row", "repair_component_doctype"], as_dict=True) if row.material_request_item else none %}
+    {% set repair_job = row.repair_job or (source.repair_job if source else "") %}
+    {% set material_request = row.material_request or (source.parent if source else "") %}
+    {% set vehicle = row.customer_vehicle or (source.customer_vehicle if source else "") %}
+    {% set repair_job_service = row.repair_job_service or (source.repair_job_service if source else "") %}
+    {% set repair_service_line = row.repair_service_line or (source.repair_service_line if source else "") %}
+    {% set repair_component_row = row.repair_component_row or (source.repair_component_row if source else "") %}
+    {% set repair_component_doctype = row.repair_component_doctype or (source.repair_component_doctype if source else "") %}
+    <tr>
+      <td>{{ row.idx or loop.index }}</td>
+      <td><div class="asm-item-name">{{ row.item_name or row.item_code or "" }}</div><div class="asm-item-code">{{ row.item_code or "" }}</div>{% if row.description and row.description != row.item_name %}<div class="asm-subtext">{{ row.description|striptags }}</div>{% endif %}{% if row.serial_no or row.batch_no %}<div class="asm-trace">{% if row.serial_no %}Serial: {{ row.serial_no|striptags }}{% endif %}{% if row.batch_no %}{% if row.serial_no %} · {% endif %}Batch: {{ row.batch_no }}{% endif %}</div>{% endif %}</td>
+      <td>{{ row.s_warehouse or doc.from_warehouse or "—" }}</td>
+      <td class="asm-money asm-nowrap">{{ row.get_formatted("qty", doc) }}</td>
+      <td>{{ row.uom or row.stock_uom or "" }}</td>
+      <td class="asm-money">{{ row.get_formatted("basic_rate", doc) }}</td>
+      <td class="asm-money">{{ row.get_formatted("basic_amount", doc) }}</td>
+    </tr>
+    {% if repair_job or repair_job_service or vehicle or repair_component_row or repair_component_doctype or repair_service_line or material_request %}<tr><td></td><td colspan="6" class="asm-trace"><strong>Trace:</strong> {% if repair_job %}Job {{ repair_job }}{% endif %}{% if repair_job_service %} · Service {{ repair_job_service }}{% endif %}{% if vehicle %} · Vehicle {{ vehicle }}{% endif %}{% if repair_component_row %} · Component {{ repair_component_row }}{% endif %}{% if repair_component_doctype %} · Type {{ repair_component_doctype }}{% endif %}{% if repair_service_line %} · Legacy line {{ repair_service_line }}{% endif %}{% if material_request %} · Request {{ material_request }}{% endif %}</td></tr>{% endif %}
+  {% endfor %}
+  {% if not doc.items %}<tr><td colspan="7" class="asm-muted">No stock lines have been added.</td></tr>{% endif %}
+  </tbody>
+</table>
+
+<table class="asm-summary">
+  <tr><td><div class="label">Line items</div><div class="value">{{ (doc.items or [])|length }}</div></td><td><div class="label">UOMs issued</div><div class="value">{{ uoms.values|join(", ") or "Not specified" }}</div></td><td><div class="label">Transfer progress</div><div class="value">{{ doc.per_transferred or 0 }}%</div></td></tr>
+  <tr><td><div class="label">Outgoing value</div><div class="value">{{ doc.get_formatted("total_outgoing_value", doc) }}</div></td><td><div class="label">Additional costs</div><div class="value">{{ doc.get_formatted("total_additional_costs", doc) }}</div></td><td class="highlight"><div class="label">Total issue value</div><div class="value">{{ doc.get_formatted("total_amount", doc) }}</div></td></tr>
+</table>
+
+{% if doc.remarks %}<div class="asm-section-title">Remarks</div><div class="asm-note">{{ doc.remarks }}</div>{% endif %}
+<div class="asm-signatures asm-break"><div class="asm-signature"><div class="asm-signature-line">Prepared by<br><span class="asm-muted">{{ doc.owner or "Name / signature / date" }}</span></div></div><div class="asm-signature"><div class="asm-signature-line">Authorised by<br><span class="asm-muted">Name / signature / date</span></div></div><div class="asm-signature"><div class="asm-signature-line">Received by<br><span class="asm-muted">Name / signature / date</span></div></div></div>
+<div class="asm-footer">Material issue · {{ doc.name }} · Values and stock balances are governed by the submitted ERPNext stock transaction.</div>
+</div>

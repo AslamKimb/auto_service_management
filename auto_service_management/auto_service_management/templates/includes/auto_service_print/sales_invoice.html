@@ -1,0 +1,64 @@
+{% set print_title = "Sales Invoice" %}
+{% set print_status = doc.status or ("Submitted" if doc.docstatus == 1 else ("Cancelled" if doc.docstatus == 2 else "Draft")) %}
+{% set posting_date = frappe.utils.format_date(doc.posting_date) if doc.posting_date else "" %}
+{% set due_date = frappe.utils.format_date(doc.due_date) if doc.due_date else "" %}
+<div class="asm-print">
+{% include "templates/includes/auto_service_print/common.html" %}
+
+<div class="asm-kicker">Customer billing document</div>
+<div class="asm-document-title">Invoice for supplied parts and workshop services</div>
+
+<div class="asm-two-col">
+  <div class="asm-panel"><h2>Bill from</h2><p><strong>{{ doc.company or company_name }}</strong></p>{% if doc.company_address_display %}<div>{{ doc.company_address_display }}</div>{% elif address %}<div>{{ address }}</div>{% endif %}{% if contact %}<p class="asm-subtext">{{ contact }}</p>{% endif %}{% if doc.company_tax_id %}<p class="asm-subtext">Tax ID: {{ doc.company_tax_id }}</p>{% endif %}</div>
+  <div class="asm-panel"><h2>Bill to</h2><p><strong>{{ doc.customer_name or doc.customer or "" }}</strong></p>{% if doc.address_display %}<div>{{ doc.address_display }}</div>{% endif %}{% if doc.contact_person %}<p><strong>Contact:</strong> {{ doc.contact_person }}</p>{% endif %}{% if doc.contact_mobile or doc.contact_email %}<p class="asm-subtext">{% if doc.contact_mobile %}{{ doc.contact_mobile }}{% endif %}{% if doc.contact_mobile and doc.contact_email %} · {% endif %}{% if doc.contact_email %}{{ doc.contact_email }}{% endif %}</p>{% endif %}{% if doc.tax_id %}<p class="asm-subtext">Tax ID: {{ doc.tax_id }}</p>{% endif %}</div>
+</div>
+
+<table class="asm-grid asm-break">
+  <tr><th>Invoice no.</th><td>{{ doc.name }}</td><th>Invoice date</th><td>{{ posting_date }}</td></tr>
+  <tr><th>Payment due</th><td>{{ due_date or "On receipt" }}</td><th>Currency</th><td>{{ doc.currency or "" }}{% if doc.conversion_rate and doc.conversion_rate != 1 %} · Rate {{ doc.conversion_rate }}{% endif %}</td></tr>
+  {% if doc.repair_job or doc.fleet_service_campaign %}<tr><th>Repair Job</th><td>{{ doc.repair_job or "Consolidated billing" }}</td><th>Fleet campaign</th><td>{{ doc.fleet_service_campaign or "Not linked" }}</td></tr>{% endif %}
+  {% if doc.customer_lpo or doc.po_no %}<tr><th>Customer LPO / PO</th><td>{{ doc.customer_lpo or doc.po_no }}</td><th>PO date</th><td>{{ frappe.utils.format_date(doc.po_date) if doc.po_date else "" }}</td></tr>{% endif %}
+</table>
+
+<div class="asm-section-title">Invoice items</div>
+<table class="asm-lines">
+  <thead><tr><th style="width:4%">#</th><th style="width:30%">Item / description</th><th style="width:17%">Workshop trace</th><th style="width:8%" class="asm-money">Qty</th><th style="width:7%">UOM</th><th style="width:15%" class="asm-money">Rate</th><th style="width:15%" class="asm-money">Amount</th></tr></thead>
+  <tbody>
+  {% for row in doc.items or [] %}
+    <tr>
+      <td>{{ row.idx or loop.index }}</td>
+      <td><div class="asm-item-name">{{ row.item_name or row.item_code or "" }}</div><div class="asm-item-code">{{ row.item_code or "" }}</div>{% if row.description and row.description != row.item_name %}<div class="asm-subtext">{{ row.description|striptags }}</div>{% endif %}{% if row.discount_percentage %}<div class="asm-trace">Discount: {{ row.discount_percentage }}%</div>{% endif %}</td>
+      <td class="asm-trace">{% if row.repair_job_service %}Service: {{ row.repair_job_service }}{% elif row.repair_job %}Job: {{ row.repair_job }}{% else %}{{ row.warehouse or "—" }}{% endif %}{% if row.customer_vehicle %}<br>Vehicle: {{ row.customer_vehicle }}{% endif %}{% if row.repair_component_row %}<br>Component: {{ row.repair_component_row }}{% endif %}{% if row.repair_component_doctype %}<br>Type: {{ row.repair_component_doctype }}{% endif %}{% if row.repair_service_line %}<br>Legacy line: {{ row.repair_service_line }}{% endif %}</td>
+      <td class="asm-money asm-nowrap">{{ row.get_formatted("qty", doc) }}</td>
+      <td>{{ row.uom or row.stock_uom or "" }}</td>
+      <td class="asm-money">{{ row.get_formatted("net_rate", doc) }}</td>
+      <td class="asm-money">{{ row.get_formatted("net_amount", doc) }}</td>
+    </tr>
+  {% endfor %}
+  {% if not doc.items %}<tr><td colspan="7" class="asm-muted">No invoice lines have been added.</td></tr>{% endif %}
+  </tbody>
+</table>
+
+<table style="width:100%; margin-top: 10px"><tr><td style="vertical-align:top; width:58%; padding-right:14px">
+  {% if doc.in_words %}<div class="asm-panel"><h2>Total in words</h2><div>{{ doc.in_words }}</div></div>{% endif %}
+  {% if doc.remarks %}<div class="asm-panel"><h2>Remarks</h2><div>{{ doc.remarks }}</div></div>{% endif %}
+</td><td style="vertical-align:top; width:42%">
+  <table class="asm-summary">
+    <tr><td class="label">Total quantity</td><td class="value">{{ doc.get_formatted("total_qty", doc) }}</td></tr>
+    <tr><td class="label">Net total</td><td class="value">{{ doc.get_formatted("net_total", doc) }}</td></tr>
+    {% if doc.discount_amount %}<tr><td class="label">Discount</td><td class="value">{{ doc.get_formatted("discount_amount", doc) }}</td></tr>{% endif %}
+    {% for tax in doc.taxes or [] %}{% if tax.tax_amount or print_settings.print_taxes_with_zero_amount %}<tr><td class="label">{{ tax.description or "Tax" }}{% if tax.rate %} ({{ tax.rate }}%){% endif %}</td><td class="value">{{ tax.get_formatted("tax_amount") }}</td></tr>{% endif %}{% endfor %}
+    {% if doc.rounding_adjustment %}<tr><td class="label">Rounding</td><td class="value">{{ doc.get_formatted("rounding_adjustment", doc) }}</td></tr>{% endif %}
+    <tr class="highlight"><td class="label">Grand total</td><td class="value">{{ doc.get_formatted("grand_total", doc) }}</td></tr>
+    {% if doc.paid_amount %}<tr><td class="label">Paid</td><td class="value">{{ doc.get_formatted("paid_amount", doc) }}</td></tr>{% endif %}
+    <tr><td class="label">Outstanding</td><td class="value">{{ doc.get_formatted("outstanding_amount", doc) }}</td></tr>
+  </table>
+</td></tr></table>
+
+{% if doc.payment_schedule %}<div class="asm-section-title">Payment schedule</div><table class="asm-lines"><thead><tr><th>Due date</th><th>Payment term</th><th class="asm-money">Invoice portion</th><th class="asm-money">Amount</th></tr></thead><tbody>{% for row in doc.payment_schedule %}<tr><td>{{ frappe.utils.format_date(row.due_date) if row.due_date else "" }}</td><td>{{ row.payment_term or "" }}</td><td class="asm-money">{{ row.invoice_portion or 0 }}%</td><td class="asm-money">{{ row.get_formatted("payment_amount", doc) }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+{% if doc.taxes %}<div class="asm-section-title">Tax detail</div><table class="asm-lines"><thead><tr><th>Description</th><th class="asm-money">Rate</th><th class="asm-money">Taxable basis</th><th class="asm-money">Tax amount</th></tr></thead><tbody>{% for tax in doc.taxes %}<tr><td>{{ tax.description or "Tax" }}</td><td class="asm-money">{{ tax.rate or 0 }}%</td><td class="asm-money">{{ tax.get_formatted("tax_amount_after_discount_amount") }}</td><td class="asm-money">{{ tax.get_formatted("tax_amount") }}</td></tr>{% endfor %}</tbody></table>{% endif %}
+{% if doc.terms %}<div class="asm-section-title">Terms and conditions</div><div class="asm-note">{{ doc.terms }}</div>{% endif %}
+{% if doc.efris_irn or doc.efris_einvoice_status %}<div class="asm-panel"><h2>Electronic invoice reference</h2>{% if doc.efris_irn %}<span><strong>FDN:</strong> {{ doc.efris_irn }}</span>{% endif %}{% if doc.efris_einvoice_status %}<span{% if doc.efris_irn %} class="asm-muted"{% endif %}> · Status: {{ doc.efris_einvoice_status }}</span>{% endif %}</div>{% endif %}
+<div class="asm-signatures asm-break"><div class="asm-signature"><div class="asm-signature-line">Prepared by<br><span class="asm-muted">{{ doc.owner or "Name / signature / date" }}</span></div></div><div class="asm-signature"><div class="asm-signature-line">Customer acknowledgement<br><span class="asm-muted">Name / signature / date</span></div></div><div class="asm-signature"><div class="asm-signature-line">{% if doc.outstanding_amount %}Payment status{% else %}Payment verified{% endif %}<br><span class="asm-muted">{% if doc.outstanding_amount %}Outstanding balance remains{% else %}Paid in full{% endif %}</span></div></div></div>
+<div class="asm-footer">Sales Invoice · {{ doc.name }} · ERPNext remains authoritative for tax, payment, outstanding, and ledger values.</div>
+</div>

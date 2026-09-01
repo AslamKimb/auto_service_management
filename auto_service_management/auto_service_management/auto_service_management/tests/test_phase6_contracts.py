@@ -119,6 +119,7 @@ class TestPhase6Contracts(UnitTestCase):
 		from auto_service_management.auto_service_management.printing import (
 			DMS_PRINT_FORMATS,
 			WORKSHOP_PRINT_FORMATS,
+			WORKSHOP_PRINT_TEMPLATES,
 		)
 
 		expected = [f"DMS Editable - {name}" for name, _, *_ in DMS_PRINT_FORMATS]
@@ -133,11 +134,16 @@ class TestPhase6Contracts(UnitTestCase):
 				)
 				self.assertTrue(row, f"Missing builder copy: {name}")
 				self.assertEqual(row.standard, "No")
-				self.assertFalse(row.custom_format)
-				self.assertTrue(row.print_format_builder)
 				self.assertFalse(row.disabled)
-				layout = json.loads(frappe.db.get_value("Print Format", name, "format_data"))
-				self.assertTrue(any(field.get("fieldtype") == "Custom HTML" for field in layout))
+				if name.removeprefix("DMS Editable - ") in WORKSHOP_PRINT_TEMPLATES:
+					self.assertTrue(row.custom_format)
+					self.assertFalse(row.print_format_builder)
+					self.assertIn("auto_service_print/", frappe.db.get_value("Print Format", name, "html"))
+				else:
+					self.assertFalse(row.custom_format)
+					self.assertTrue(row.print_format_builder)
+					layout = json.loads(frappe.db.get_value("Print Format", name, "format_data"))
+					self.assertTrue(any(field.get("fieldtype") == "HTML" for field in layout))
 
 	def test_all_company_letterheads_use_the_shared_native_templates(self):
 		from auto_service_management.auto_service_management.printing import (

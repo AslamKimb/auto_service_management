@@ -35,6 +35,15 @@ WORKSHOP_PRINT_FORMATS = (
 	("Payment Entry", "Payment Entry"),
 )
 
+# These three operational documents are intentionally app-owned templates.
+# Keep their existing Print Format records and names, but give them a stable
+# source-controlled layout instead of copying ERPNext's generic builder output.
+WORKSHOP_PRINT_TEMPLATES = {
+	"Sales Invoice": "sales_invoice",
+	"Material Request": "material_issue_request",
+	"Stock Entry": "material_issue",
+}
+
 # This is a vehicle-condition diagram, not a branding asset. Keep it separate
 # from logo resolution because Job Card uses it as an inspection illustration.
 PUBLIC_PRINT_LOGO = "/assets/auto_service_management/images/vectorised-bb109a99.svg"
@@ -340,7 +349,7 @@ def _builder_format_data(template=None, html=None):
 			[
 				{
 					"fieldname": "_custom_html",
-					"fieldtype": "Custom HTML",
+					"fieldtype": "HTML",
 					"label": "Custom HTML",
 					"options": "<h3>{{ doc.name }}</h3>",
 				}
@@ -354,12 +363,16 @@ def _builder_format_data(template=None, html=None):
 		[
 			{
 				"fieldname": "_custom_html",
-				"fieldtype": "Custom HTML",
+				"fieldtype": "HTML",
 				"label": "Custom HTML",
 				"options": options,
 			}
 		]
 	)
+
+
+def _custom_format_html(template):
+	return f'{{% include "templates/includes/auto_service_print/{template}.html" %}}'
 
 
 def _ensure_builder_format(name, doc_type, format_data=None):
@@ -389,6 +402,27 @@ def _ensure_builder_format(name, doc_type, format_data=None):
 	doc.insert(ignore_permissions=True)
 	if doc.print_format_builder_beta:
 		frappe.db.set_value("Print Format", doc.name, "print_format_builder_beta", 0, update_modified=False)
+
+
+def _ensure_custom_format(name, doc_type, template):
+	"""Create an app-owned Jinja format without replacing later user edits."""
+	if not frappe.db.exists("DocType", doc_type) or frappe.db.exists("Print Format", name):
+		return
+
+	doc = frappe.get_doc(
+		{
+			"doctype": "Print Format",
+			"name": name,
+			"doc_type": doc_type,
+			"standard": "No",
+			"custom_format": 1,
+			"print_format_builder": 0,
+			"print_format_builder_beta": 0,
+			"disabled": 0,
+			"html": _custom_format_html(template),
+		}
+	)
+	doc.insert(ignore_permissions=True)
 
 
 def _workshop_builder_format_data(doc_type):
@@ -479,11 +513,15 @@ def ensure_print_branding():
 		)
 
 	for name, doc_type in WORKSHOP_PRINT_FORMATS:
-		_ensure_builder_format(
-			f"DMS Editable - {name}",
-			doc_type,
-			_workshop_builder_format_data(doc_type),
-		)
+		template = WORKSHOP_PRINT_TEMPLATES.get(name)
+		if template:
+			_ensure_custom_format(f"DMS Editable - {name}", doc_type, template)
+		else:
+			_ensure_builder_format(
+				f"DMS Editable - {name}",
+				doc_type,
+				_workshop_builder_format_data(doc_type),
+			)
 
 	current_default = frappe.db.get_value("Letter Head", {"is_default": 1}, "name")
 	use_app_default = not current_default or current_default in {

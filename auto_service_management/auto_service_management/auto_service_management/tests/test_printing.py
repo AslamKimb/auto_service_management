@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from unittest.mock import patch
 
 import frappe
@@ -13,6 +14,8 @@ from auto_service_management.auto_service_management.printing import (
 	normalize_logo_url,
 	resolve_logo_url,
 )
+
+PRINT_TEMPLATE_ROOT = Path(__file__).resolve().parents[2] / "templates" / "includes" / "auto_service_print"
 
 
 class TestPrinting(UnitTestCase):
@@ -94,13 +97,47 @@ class TestPrinting(UnitTestCase):
 
 	def test_builder_layout_uses_editable_custom_html(self):
 		data = _builder_format_data(template="estimate_summary")
-		self.assertIn('"fieldtype": "Custom HTML"', data)
+		self.assertIn('"fieldtype": "HTML"', data)
 		self.assertIn("estimate_summary.html", data)
 
 	def test_builder_layout_has_a_printable_fallback(self):
 		data = _builder_format_data()
-		self.assertIn('"fieldtype": "Custom HTML"', data)
+		self.assertIn('"fieldtype": "HTML"', data)
 		self.assertIn("{{ doc.name }}", data)
+
+	def test_operational_print_formats_use_source_controlled_templates(self):
+		from auto_service_management.auto_service_management.printing import WORKSHOP_PRINT_TEMPLATES
+
+		self.assertEqual(
+			WORKSHOP_PRINT_TEMPLATES,
+			{
+				"Sales Invoice": "sales_invoice",
+				"Material Request": "material_issue_request",
+				"Stock Entry": "material_issue",
+			},
+		)
+		for template, required_tokens in {
+			"sales_invoice.html": ("Bill from", "Bill to", "Invoice items", "Payment schedule", "Outstanding"),
+			"material_issue_request.html": ("Requested materials", "Repair trace", "Transfer status", "Approved by"),
+			"material_issue.html": ("Issued items", "Source warehouse", "Outgoing value", "Received by"),
+		}.items():
+			with self.subTest(template=template):
+				html = (PRINT_TEMPLATE_ROOT / template).read_text(encoding="utf-8")
+				for token in required_tokens:
+					self.assertIn(token, html)
+
+	def test_operational_prints_preserve_source_trace_and_safe_migration(self):
+		material_issue = (PRINT_TEMPLATE_ROOT / "material_issue.html").read_text(encoding="utf-8")
+		common = (PRINT_TEMPLATE_ROOT / "common.html").read_text(encoding="utf-8")
+		patch = (
+			Path(__file__).resolve().parents[2] / "patches" / "phase35_operational_print_formats.py"
+		).read_text(encoding="utf-8")
+
+		self.assertIn('"Material Request Item"', material_issue)
+		self.assertIn("repair_component_doctype", material_issue)
+		self.assertIn("format_time", material_issue)
+		self.assertIn("table-layout: fixed", common)
+		self.assertIn("not current.custom_format and current.print_format_builder", patch)
 
 	def test_job_card_snapshot_is_write_once(self):
 		job = RepairJob(

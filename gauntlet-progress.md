@@ -405,3 +405,36 @@ Last update: 2026-08-25 setup
 | 2026-08-25 | M5 | BLOCKED -> BUILDING | Test-site migration and focused runtime regressions passed; editable dev-site migration completed without error; backend restart, asset build, live probes, and visual inspection remain | Complete runtime/build/visual evidence, then pause for Aslam UAT |
 | 2026-08-25 | M5 | BUILDING -> RUNTIME VERIFIED / VISUAL BLOCKED | Dev migration exited cleanly; backend restarted and cache cleared; app assets built; `/api/method/ping` returned 200; Customer LPO JS returned 200; live metadata confirmed LPO DocTypes, trace links, Cashier select access, Admin read access, and Fleet & History workspace. Browser session opened `/desk/customer-lpo` on localhost, but Page.captureScreenshot timed out; no direct Desk/PDF visual claim made | Aslam UAT editable stack; retry browser/PDF inspection when screenshot capability is available; no image build |
 | 2026-08-25 | M4 | USER REPRO -> FIX -> VERIFIED | Reproduced `get_data() got an unexpected keyword argument 'data'` by invoking the registered Customer LPO dashboard override with Frappe's `data` keyword. Changed the signature to `get_data(data=None)`, added a regression, synced source, restarted backend, cleared cache, and called the authenticated live `frappe.desk.form.load.getdoctype` endpoint: HTTP 200, Customer LPO metadata present, TypeError absent. Focused UI contracts pass 5/5 | Aslam hard-refresh and confirm the LPO Desk route; no image build |
+
+## Current run — Operational Print Format Redesign
+
+Goal: redesign the existing Material Issue Request, Material Issue, and Sales Invoice print formats with a professional shared workshop system, comprehensive ERPNext/ASM data, navbar-logo branding, robust source traceability, and clean A4 output.
+
+Quality bar: preserve the existing format names; use app-owned source-controlled Jinja; never edit Frappe/ERPNext core; show truthful status, totals, payment, warehouses, and line trace; preserve source Material Request trace in Stock Entry; wrap long values; render and inspect fresh PDFs for every format; pass focused contracts and static checks.
+
+Overall state: PASSED (source/runtime/PDF visual)
+Current wave: W1 — final visual and critic closeout
+Required modules: 5 / 5
+Active: none
+Blocked: none for this print-format scope
+Whole-system gate: PASSED for the three requested formats
+Parallel now: none
+Sequential chains: M1 -> M2/M3/M4 -> M5
+Dispatch batch: M1 -> Wegener + Avicenna (field/design audits); M5 -> Confucius (fresh final critic)
+Last update: 2026-08-31 final PDF and contract verification
+
+| ID | Output | Depends on | Quality gate | Owner | Round | Status | Last verdict | Largest gap | Evidence | Next action |
+|---|---|---|---|---|---:|---|---|---|---|---|
+| M1 | ERPNext field/trace audit and shared print contract | None | PRINT-DATA | Bro + Wegener/Avicenna | 1 | PASSED | PASS | None | Live parent/child metadata audit; source/design review | Integrated |
+| M2 | Material Issue Request redesign | M1 | PRINT-MR | Bro | 1 | PASSED | PASS | None | Source template, migrated custom format, 1-page A4 PDF raster inspected | Closed |
+| M3 | Material Issue redesign with source-request fallback trace | M1 | PRINT-STE | Bro | 1 | PASSED | PASS | None | Source template, `material_request_item` fallback, normalized time, 1-page A4 PDF raster inspected | Closed |
+| M4 | Sales Invoice redesign | M1 | PRINT-SI | Bro | 1 | PASSED | PASS | None | Source template, 2-page A4 PDF raster inspected, full-width party panels | Closed |
+| M5 | Integrated runtime, contracts, and fresh critic | M2+M3+M4 | PRINT-RUNTIME/PRINT-VISUAL | Bro | 1 | PASSED | PASS | None | 11/11 print tests; 27/27 Phase 6 contracts; live PDFs; fresh critic findings resolved; static checks and Graphify refresh | Preserve evidence |
+
+### Operational print event log
+
+| When | Module | Transition | Evidence or decision | Unlocked / next |
+|---|---|---|---|---|
+| 2026-08-31 | M1 | SETUP -> BUILDING | Existing names mapped: Material Request -> Material Issue Request; Stock Entry -> Material Issue; Sales Invoice retained. Shared company/Navbar Application Logo header and line-level source trace selected. | M2/M3/M4 |
+| 2026-08-31 | M2/M3/M4 | BUILDING -> CRITIC -> FIX | First live render exposed Frappe v16 builder `Custom HTML` incompatibility and blank/duplicate native output; custom Jinja format path and phase35 migration added. Fresh critic then found missing Stock Entry source fallback, raw microsecond time, narrow invoice party panels, and migration overwrite risk. | Final closeout |
+| 2026-08-31 | M5 | FIX -> PASSED | Repaired source fallback and time; made migration conditional; forced invoice columns; rerendered fresh A4 PDFs and directly inspected all pages. Print tests 11/11 and Phase 6 contracts 27/27 pass; compileall/Ruff/diff check pass; Graphify 3944/5791/584. No core edit or image deployment. | Scope closed |
