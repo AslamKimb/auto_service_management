@@ -2,20 +2,19 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
-
 
 ROOT = Path(__file__).resolve().parents[2]
 DEPLOYMENT = ROOT / "deployment"
 STALE_IMAGE_TAGS = {"dev-31f2cae-r3"}
 sys.path.insert(0, str(DEPLOYMENT))
 
-import sync_assets  # noqa: E402
+import sync_assets
 
 
 class TestAssetSync(unittest.TestCase):
